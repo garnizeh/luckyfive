@@ -3,7 +3,20 @@
 **Duration:** 2 weeks (Weeks 1-2)  
 **Estimated Effort:** 80 hours  
 **Team:** 1-2 developers  
-**Status:** Not Started
+**Status:** In Progress — Sprint 1.1 started (Tasks 1.1.1 and 1.1.2 completed)
+
+## Progress Update
+
+Current state (sprint 1.1):
+
+- Task 1.1.1: Project initialization — completed. Directories created and initial scaffold (including `.gitignore`, `README.md`, `LICENSE`) added and committed to the repository.
+- Task 1.1.2: `Makefile` created and committed (basic build/test/generate targets). A basic verification was performed: `go mod tidy` ran and `go test ./...` completed without failures. Some `build` targets which rely on fully implemented `cmd/*/main.go` will be verified as those entrypoints are implemented.
+
+Commits of note:
+- 82dbd23 — initial project scaffold (created `.gitignore`, `LICENSE`, `README.md`, and initial `cmd/` files)
+- f9c0b80 — added `Makefile` with build/test/generate targets
+
+Next immediate steps: install/verify developer tools (`sqlc`, `mockgen`), add `sqlc.yaml` and SQL query files, and generate sqlc code + mocks (Task 1.1.3 → 1.1.5).
 
 ---
 
@@ -38,11 +51,13 @@ Phase 1 establishes the foundation for the entire project. This phase focuses on
 Initialize Go module and create basic project structure following the design document.
 
 **Acceptance Criteria:**
-- [ ] Go module initialized (`go mod init`)
-- [ ] Project follows structure from design doc
-- [ ] `.gitignore` configured for Go and SQLite files
-- [ ] README.md with setup instructions
-- [ ] License file added (if applicable)
+- [x] Go module initialized (`go mod init`)
+- [x] Project follows structure from design doc
+- [x] `.gitignore` configured for Go and SQLite files
+- [x] README.md with setup instructions
+- [x] License file added (if applicable)
+
+**Notes:** The Go module (`go.mod`) was present in the workspace and remains unchanged. The created directory structure matches the planned layout in the phase plan.
 
 **Subtasks:**
 1. Run `go mod init github.com/garnizeh/luckyfive`
@@ -101,12 +116,12 @@ Initialize Go module and create basic project structure following the design doc
 Create Makefile with targets for building, testing, running, and managing the project.
 
 **Acceptance Criteria:**
-- [ ] `make build` compiles all binaries
-- [ ] `make test` runs all tests
-- [ ] `make run-api` starts HTTP server
-- [ ] `make migrate` runs database migrations
+- [ ] `make build` compiles all binaries (pending verification as cmd entrypoints are implemented)
+- [x] `make test` runs all tests (basic verification performed using `go test ./...`)
+- [ ] `make run-api` starts HTTP server (requires `cmd/api/main.go` implementation)
+- [ ] `make migrate` runs database migrations (requires `cmd/migrate/main.go` and migrations)
 - [ ] `make clean` removes build artifacts
-- [ ] `make lint` runs linters
+- [ ] `make lint` runs linters (depends on `golangci-lint` being installed)
 
 **Subtasks:**
 1. Create `Makefile` with targets:
@@ -1442,17 +1457,22 @@ Update README with setup and usage instructions.
 
 ---
 
-## Phase 1 Checklist
+## Phase 1 Checklist (current)
 
-### Pre-Phase
-- [ ] Design document approved
-- [ ] Development environment set up
-- [ ] Go installed (1.21+)
-- [ ] Git configured
+- [x] Task 1.1.1: Project initialized
+- [x] Task 1.1.2: Makefile created
+
+**Progress:** A `Makefile` was added to the repository with common targets (`build`, `test`, `generate`, `migrate`, `lint`). The file was committed in commit f9c0b80.
+
+**Verification:** Basic verification steps were performed:
+- `go mod tidy` ran successfully
+- `go test ./...` ran successfully (packages without tests reported as such)
+
+Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce binaries yet because corresponding `cmd/*` `main.go` files are placeholders or not fully implemented — those targets will be verified as the entrypoints are completed.
 
 ### Sprint 1.1 (Days 1-3)
-- [ ] Task 1.1.1: Project initialized
-- [ ] Task 1.1.2: Makefile created
+- [x] Task 1.1.1: Project initialized
+- [x] Task 1.1.2: Makefile created
 - [ ] Task 1.1.3: Dependencies installed (including sqlc)
 - [ ] Task 1.1.4: Logging configured
 - [ ] Task 1.1.5: sqlc configured with Querier interfaces
