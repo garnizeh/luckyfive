@@ -3,7 +3,7 @@
 **Duration:** 2 weeks (Weeks 1-2)  
 **Estimated Effort:** 80 hours  
 **Team:** 1-2 developers  
-**Status:** In Progress — Sprint 1.1 started (Tasks 1.1.1 and 1.1.2 completed)
+**Status:** In Progress — Sprint 1.1 started (Tasks 1.1.1, 1.1.2 and 1.1.3 completed)
 
 ## Progress Update
 
@@ -11,12 +11,14 @@ Current state (sprint 1.1):
 
 - Task 1.1.1: Project initialization — completed. Directories created and initial scaffold (including `.gitignore`, `README.md`, `LICENSE`) added and committed to the repository.
 - Task 1.1.2: `Makefile` created and committed (basic build/test/generate targets). A basic verification was performed: `go mod tidy` ran and `go test ./...` completed without failures. Some `build` targets which rely on fully implemented `cmd/*/main.go` will be verified as those entrypoints are implemented.
+- Task 1.1.3: Dependencies and developer tools installed and verified. Commands executed included `go get` additions, `go install` for `sqlc`, `mockgen`, and `golangci-lint`, `go mod tidy`, and quick build/test verification. See Task 1.1.3 section for tool versions and details.
 
 Commits of note:
 - 82dbd23 — initial project scaffold (created `.gitignore`, `LICENSE`, `README.md`, and initial `cmd/` files)
 - f9c0b80 — added `Makefile` with build/test/generate targets
+- 92acdda — docs: mark Task 1.1.3 done (dependencies & dev tools installed)
 
-Next immediate steps: install/verify developer tools (`sqlc`, `mockgen`), add `sqlc.yaml` and SQL query files, and generate sqlc code + mocks (Task 1.1.3 → 1.1.5).
+Next immediate steps: implement configuration & logging (`Task 1.1.4`) and configure sqlc + generate code & mocks (`Task 1.1.5`).
 
 ---
 
@@ -1470,10 +1472,11 @@ Update README with setup and usage instructions.
 
 ---
 
-## Phase 1 Checklist (current)
+### Phase 1 Checklist (current)
 
 - [x] Task 1.1.1: Project initialized
 - [x] Task 1.1.2: Makefile created
+- [x] Task 1.1.3: Dependencies installed (including sqlc)
 
 **Progress:** A `Makefile` was added to the repository with common targets (`build`, `test`, `generate`, `migrate`, `lint`). The file was committed in commit f9c0b80.
 
@@ -1486,7 +1489,7 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 ### Sprint 1.1 (Days 1-3)
 - [x] Task 1.1.1: Project initialized
 - [x] Task 1.1.2: Makefile created
-- [ ] Task 1.1.3: Dependencies installed (including sqlc)
+- [x] Task 1.1.3: Dependencies installed (including sqlc)
 - [ ] Task 1.1.4: Logging configured
 - [ ] Task 1.1.5: sqlc configured with Querier interfaces
 
