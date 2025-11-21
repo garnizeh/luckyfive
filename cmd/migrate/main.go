@@ -12,6 +12,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/garnizeh/luckyfive/internal/config"
+	"github.com/garnizeh/luckyfive/migrations"
 	"github.com/garnizeh/luckyfive/pkg/migrator"
 )
 
@@ -70,18 +71,23 @@ func main() {
 				logger.Info("using db-specific migrations directory", "db", dbPath, "dir", candidate)
 			}
 		}
-		migrator := migrator.New(db, migrationsDir, logger)
+		var migratorInstance *migrator.Migrator
+		if migrationsDir == "migrations" {
+			migratorInstance = migrator.NewFromFS(db, migrations.Files, logger)
+		} else {
+			migratorInstance = migrator.New(db, migrationsDir, logger)
+		}
 		switch action {
 		case "up":
 			logger.Info("migrating up", "db", dbPath)
-			if err := migrator.Up(); err != nil {
+			if err := migratorInstance.Up(); err != nil {
 				logger.Error("migration up failed", "db", dbPath, "err", err)
 				db.Close()
 				os.Exit(1)
 			}
 		case "down":
 			logger.Info("migrating down", "db", dbPath)
-			if err := migrator.Down(); err != nil {
+			if err := migratorInstance.Down(); err != nil {
 				logger.Error("migration down failed", "db", dbPath, "err", err)
 				db.Close()
 				os.Exit(1)

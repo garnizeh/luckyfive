@@ -26,6 +26,17 @@ type UploadResponse struct {
 }
 
 // UploadResults handles XLSX file uploads
+// UploadResults godoc
+// @Summary Upload XLSX results file
+// @Description Accepts a multipart/form-data upload containing an XLSX file. Returns an artifact_id to be used for import.
+// @Tags results
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "XLSX file"
+// @Success 200 {object} UploadResponse
+// @Failure 400 {object} models.APIError
+// @Failure 500 {object} models.APIError
+// @Router /api/v1/results/upload [post]
 func UploadResults(uploadSvc *services.UploadService, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Only allow POST method
@@ -79,6 +90,17 @@ type ImportRequest struct {
 }
 
 // ImportResults handles result import requests
+// ImportResults godoc
+// @Summary Trigger import for uploaded artifact
+// @Description Triggers import for a previously uploaded artifact identified by artifact_id. Optional sheet name may be provided.
+// @Tags results
+// @Accept application/json
+// @Produce json
+// @Param request body ImportRequest true "Import request"
+// @Success 200 {object} services.ImportResult
+// @Failure 400 {object} models.ValidationError
+// @Failure 500 {object} models.APIError
+// @Router /api/v1/results/import [post]
 func ImportResults(resultsSvc *services.ResultsService, logger *slog.Logger) http.HandlerFunc {
 	validate := validator.New()
 
@@ -137,6 +159,18 @@ func ImportResults(resultsSvc *services.ResultsService, logger *slog.Logger) htt
 }
 
 // GetDraw handles GET /api/v1/results/{contest}
+// GetDraw godoc
+// @Summary Get a single draw
+// @Description Retrieve a single draw by contest number
+// @Tags results
+// @Accept json
+// @Produce json
+// @Param contest path int true "Contest number"
+// @Success 200 {object} models.Draw
+// @Failure 400 {object} models.APIError
+// @Failure 404 {object} models.APIError
+// @Failure 500 {object} models.APIError
+// @Router /api/v1/results/{contest} [get]
 func GetDraw(resultsSvc *services.ResultsService, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		contestStr := chi.URLParam(r, "contest")
@@ -169,6 +203,18 @@ func GetDraw(resultsSvc *services.ResultsService, logger *slog.Logger) http.Hand
 }
 
 // ListDraws handles GET /api/v1/results
+// ListDraws godoc
+// @Summary List draws with pagination
+// @Description Returns a paginated list of draws. Query params: limit (default 50), offset (default 0).
+// @Tags results
+// @Accept json
+// @Produce json
+// @Param limit query int false "Limit"
+// @Param offset query int false "Offset"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} models.APIError
+// @Failure 500 {object} models.APIError
+// @Router /api/v1/results [get]
 func ListDraws(resultsSvc *services.ResultsService, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse query parameters

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -20,6 +21,7 @@ type Migrator struct {
 	db             *sql.DB
 	migrationsPath string
 	logger         *slog.Logger
+	migrationsFS   fs.FS
 }
 
 // New creates a new Migrator. migrationsPath is the directory containing .sql files.
@@ -31,6 +33,19 @@ func New(db *sql.DB, migrationsPath string, logger *slog.Logger) *Migrator {
 		db:             db,
 		migrationsPath: migrationsPath,
 		logger:         logger,
+	}
+}
+
+// NewFromFS creates a Migrator that reads migrations from the provided fs.FS.
+// Pass migrations.Files to use the embedded SQL files.
+func NewFromFS(db *sql.DB, migrationsFS fs.FS, logger *slog.Logger) *Migrator {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &Migrator{
+		db:           db,
+		logger:       logger,
+		migrationsFS: migrationsFS,
 	}
 }
 
@@ -46,9 +61,22 @@ func (m *Migrator) ensureSchema() error {
 
 // listMigrationFiles returns a map version->path sorted by version asc
 func (m *Migrator) listMigrationFiles() (map[int]string, []int, error) {
-	files, err := os.ReadDir(m.migrationsPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("read migrations dir: %w", err)
+	var files []fs.DirEntry
+	if m.migrationsFS != nil {
+		entries, err := fs.ReadDir(m.migrationsFS, ".")
+		if err != nil {
+			return nil, nil, fmt.Errorf("read migrations fs: %w", err)
+		}
+		files = entries
+	} else {
+		entries, err := os.ReadDir(m.migrationsPath)
+		if err != nil {
+			return nil, nil, fmt.Errorf("read migrations dir: %w", err)
+		}
+		// convert []os.DirEntry to []fs.DirEntry
+		for _, e := range entries {
+			files = append(files, e)
+		}
 	}
 	entries := map[int]string{}
 	versions := []int{}
@@ -74,7 +102,11 @@ func (m *Migrator) listMigrationFiles() (map[int]string, []int, error) {
 		if err != nil {
 			continue
 		}
-		entries[ver] = filepath.Join(m.migrationsPath, name)
+		if m.migrationsFS != nil {
+			entries[ver] = name
+		} else {
+			entries[ver] = filepath.Join(m.migrationsPath, name)
+		}
 		versions = append(versions, ver)
 	}
 	sort.Ints(versions)
@@ -120,7 +152,12 @@ func (m *Migrator) Up() error {
 		}
 		path := filesMap[ver]
 		m.logger.Info("applying migration", "version", ver, "file", path)
-		content, err := os.ReadFile(path)
+		var content []byte
+		if m.migrationsFS != nil {
+			content, err = fs.ReadFile(m.migrationsFS, path)
+		} else {
+			content, err = os.ReadFile(path)
+		}
 		if err != nil {
 			return err
 		}
@@ -183,7 +220,12 @@ func (m *Migrator) Down() error {
 	if !ok {
 		return fmt.Errorf("migration file for version %d not found", last)
 	}
-	content, err := os.ReadFile(path)
+	var content []byte
+	if m.migrationsFS != nil {
+		content, err = fs.ReadFile(m.migrationsFS, path)
+	} else {
+		content, err = os.ReadFile(path)
+	}
 	if err != nil {
 		return err
 	}
@@ -271,7 +313,12 @@ func (m *Migrator) ApplyVersion(version int) error {
 		return nil
 	}
 	m.logger.Info("applying migration", "version", version, "file", path)
-	content, err := os.ReadFile(path)
+	var content []byte
+	if m.migrationsFS != nil {
+		content, err = fs.ReadFile(m.migrationsFS, path)
+	} else {
+		content, err = os.ReadFile(path)
+	}
 	if err != nil {
 		return err
 	}

@@ -1,0 +1,256 @@
+basePath: /
+definitions:
+  handlers.ImportRequest:
+    properties:
+      artifact_id:
+        type: string
+      sheet:
+        description: Optional, defaults to first sheet
+        type: string
+    required:
+    - artifact_id
+    type: object
+  handlers.UploadResponse:
+    properties:
+      artifact_id:
+        type: string
+      filename:
+        type: string
+      message:
+        type: string
+      size:
+        type: integer
+    type: object
+  models.APIError:
+    properties:
+      code:
+        type: string
+      details:
+        additionalProperties: true
+        type: object
+      message:
+        type: string
+      request_id:
+        type: string
+    type: object
+  models.Draw:
+    properties:
+      bola1:
+        type: integer
+      bola2:
+        type: integer
+      bola3:
+        type: integer
+      bola4:
+        type: integer
+      bola5:
+        type: integer
+      contest:
+        type: integer
+      draw_date:
+        type: string
+      imported_at:
+        type: string
+      raw_row:
+        type: string
+      source:
+        type: string
+    type: object
+  models.ValidationError:
+    properties:
+      code:
+        type: string
+      details:
+        additionalProperties: true
+        type: object
+      field_errors:
+        additionalProperties:
+          type: string
+        type: object
+      message:
+        type: string
+      request_id:
+        type: string
+    type: object
+  services.ImportResult:
+    properties:
+      artifact_id:
+        type: string
+      duration:
+        type: string
+      filename:
+        type: string
+      imported_at:
+        type: string
+      message:
+        type: string
+      rows_errors:
+        type: integer
+      rows_inserted:
+        type: integer
+      rows_skipped:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: devops@example.com
+    name: LuckyFive API Support
+    url: https://example.com/support
+  description: Quina Lottery Simulation API — upload XLSX results, import into SQLite,
+    and query draws.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://example.com/terms/
+  title: LuckyFive API
+  version: "1.0"
+paths:
+  /api/v1/health:
+    get:
+      consumes:
+      - application/json
+      description: Returns 200 when the service is healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Service health check
+      tags:
+      - health
+  /api/v1/results:
+    get:
+      consumes:
+      - application/json
+      description: 'Returns a paginated list of draws. Query params: limit (default
+        50), offset (default 0).'
+      parameters:
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: List draws with pagination
+      tags:
+      - results
+  /api/v1/results/{contest}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a single draw by contest number
+      parameters:
+      - description: Contest number
+        in: path
+        name: contest
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Draw'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Get a single draw
+      tags:
+      - results
+  /api/v1/results/import:
+    post:
+      consumes:
+      - application/json
+      description: Triggers import for a previously uploaded artifact identified by
+        artifact_id. Optional sheet name may be provided.
+      parameters:
+      - description: Import request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ImportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.ImportResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ValidationError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Trigger import for uploaded artifact
+      tags:
+      - results
+  /api/v1/results/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Accepts a multipart/form-data upload containing an XLSX file. Returns
+        an artifact_id to be used for import.
+      parameters:
+      - description: XLSX file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Upload XLSX results file
+      tags:
+      - results
+schemes:
+- http
+swagger: "2.0"

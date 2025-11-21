@@ -48,6 +48,17 @@ func NewResultsService(db *store.DB, logger *slog.Logger) *ResultsService {
 	}
 }
 
+// SetTempDir overrides the default temporary directory used to store uploaded
+// artifact files. This is primarily useful for tests and alternative
+// deployment configurations where the default "data/temp" path is not
+// suitable.
+func (s *ResultsService) SetTempDir(dir string) {
+	if dir == "" {
+		return
+	}
+	s.tempDir = dir
+}
+
 // ImportArtifact imports data from a previously uploaded artifact
 func (s *ResultsService) ImportArtifact(ctx context.Context, artifactID string, sheet string) (*ImportResult, error) {
 	startTime := time.Now()

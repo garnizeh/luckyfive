@@ -98,7 +98,7 @@ func TestMigrator_listMigrationFiles(t *testing.T) {
 	dir := setupTestMigrationsDir(t, migrations)
 	db := setupTestDB(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	m := New(db, dir, logger)
+	m := NewFromFS(db, os.DirFS(dir), logger)
 
 	filesMap, versions, err := m.listMigrationFiles()
 	if err != nil {
@@ -123,8 +123,8 @@ func TestMigrator_listMigrationFiles(t *testing.T) {
 		if !exists {
 			t.Errorf("version %d should exist", ver)
 		}
-		if !filepath.IsAbs(path) {
-			t.Error("path should be absolute")
+		if path == "" {
+			t.Errorf("expected non-empty path for version %d", ver)
 		}
 	}
 }
@@ -204,7 +204,7 @@ ALTER TABLE users ADD COLUMN email TEXT;
 	dir := setupTestMigrationsDir(t, migrations)
 	db := setupTestDB(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	m := New(db, dir, logger)
+	m := NewFromFS(db, os.DirFS(dir), logger)
 
 	// Apply migrations
 	err := m.Up()
@@ -253,7 +253,7 @@ func TestMigrator_Up_EmptyMigration(t *testing.T) {
 	dir := setupTestMigrationsDir(t, migrations)
 	db := setupTestDB(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	m := New(db, dir, logger)
+	m := NewFromFS(db, os.DirFS(dir), logger)
 
 	// Should not fail with empty migration
 	err := m.Up()
@@ -283,7 +283,7 @@ INVALID SQL STATEMENT;
 	dir := setupTestMigrationsDir(t, migrations)
 	db := setupTestDB(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	m := New(db, dir, logger)
+	m := NewFromFS(db, os.DirFS(dir), logger)
 
 	// Should fail with invalid SQL
 	err := m.Up()
@@ -307,7 +307,7 @@ DROP TABLE users;`,
 	dir := setupTestMigrationsDir(t, migrations)
 	db := setupTestDB(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	m := New(db, dir, logger)
+	m := NewFromFS(db, os.DirFS(dir), logger)
 
 	// Apply migration first
 	err := m.Up()
@@ -354,7 +354,7 @@ func TestMigrator_Down_NoMigrations(t *testing.T) {
 	dir := setupTestMigrationsDir(t, map[string]string{})
 	db := setupTestDB(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	m := New(db, dir, logger)
+	m := NewFromFS(db, os.DirFS(dir), logger)
 
 	err := m.Down()
 	if err == nil {
@@ -375,7 +375,7 @@ CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);`,
 	dir := setupTestMigrationsDir(t, migrations)
 	db := setupTestDB(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	m := New(db, dir, logger)
+	m := NewFromFS(db, os.DirFS(dir), logger)
 
 	// Apply migration first
 	err := m.Up()
@@ -439,7 +439,7 @@ CREATE TABLE users (id INTEGER PRIMARY KEY);
 	dir := setupTestMigrationsDir(t, migrations)
 	db := setupTestDB(t)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	m := New(db, dir, logger)
+	m := NewFromFS(db, os.DirFS(dir), logger)
 
 	// Apply specific version
 	err := m.ApplyVersion(1)

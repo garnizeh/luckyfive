@@ -1,3 +1,16 @@
+// @title LuckyFive API
+// @version 1.0
+// @description Quina Lottery Simulation API — upload XLSX results, import into SQLite, and query draws.
+// @termsOfService https://example.com/terms/
+// @contact.name LuckyFive API Support
+// @contact.url https://example.com/support
+// @contact.email devops@example.com
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+// @host localhost:8080
+// @BasePath /
+// @schemes http
+
 package main
 
 import (
@@ -14,6 +27,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"github.com/garnizeh/luckyfive/internal/config"
 	"github.com/garnizeh/luckyfive/internal/handlers"
@@ -116,6 +131,14 @@ func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadS
 	// Results query endpoints
 	r.Get("/api/v1/results/{contest}", handlers.GetDraw(resultsSvc, logger))
 	r.Get("/api/v1/results", handlers.ListDraws(resultsSvc, logger))
+
+	// Swagger UI — serves UI and expects swagger JSON at /swagger/doc.json
+	// If you generate docs with `swag init -g cmd/api/main.go -o api`,
+	// the generated swagger.json will be placed under ./api and served here.
+	r.Get("/swagger/doc.json", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "api/swagger.json")
+	})
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	return r
 }

@@ -28,6 +28,24 @@ func NewUploadService(logger *slog.Logger) *UploadService {
 	}
 }
 
+// SetTempDir overrides the temporary directory used to store uploaded files.
+// Useful for tests and alternative runtime configurations.
+func (s *UploadService) SetTempDir(dir string) {
+	if dir == "" {
+		return
+	}
+	s.tempDir = dir
+}
+
+// SetMaxSize allows overriding the maximum accepted file size (in bytes).
+// Useful for tests that want to simulate larger/smaller limits.
+func (s *UploadService) SetMaxSize(size int64) {
+	if size <= 0 {
+		return
+	}
+	s.maxSize = size
+}
+
 // UploadResult represents the result of a file upload
 type UploadResult struct {
 	ArtifactID string

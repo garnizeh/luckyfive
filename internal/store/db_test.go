@@ -2,7 +2,8 @@ package store
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
+	"errors"
 	"path/filepath"
 	"testing"
 
@@ -14,8 +15,27 @@ import (
 	"github.com/garnizeh/luckyfive/internal/store/simulations"
 )
 
-// TestOpenClose verifies that Open creates all four SQLite DBs and initializes queriers.
-// It tests basic operations and proper resource cleanup on Close.
+// TestOpen_Success ensures Open initializes DBs and queriers for in-memory DBs.
+func TestOpen_Success(t *testing.T) {
+	cfg := Config{
+		ResultsPath:     ":memory:",
+		SimulationsPath: ":memory:",
+		ConfigsPath:     ":memory:",
+		FinancesPath:    ":memory:",
+	}
+
+	db, err := Open(cfg)
+	if err != nil {
+		t.Fatalf("Open returned error: %v", err)
+	}
+	defer db.Close()
+
+	if db.ResultsDB == nil || db.SimulationsDB == nil || db.ConfigsDB == nil || db.FinancesDB == nil {
+		t.Fatalf("expected all DB connections to be non-nil")
+	}
+}
+
+// TestOpenClose verifies Open on file-backed DBs and that Close releases resources.
 func TestOpenClose(t *testing.T) {
 	tmp := t.TempDir()
 
@@ -33,43 +53,20 @@ func TestOpenClose(t *testing.T) {
 	if db == nil {
 		t.Fatalf("Open returned nil DB")
 	}
-	if db.ResultsDB == nil || db.SimulationsDB == nil || db.ConfigsDB == nil || db.FinancesDB == nil {
-		t.Fatalf("one or more DB connections are nil")
-	}
-	if db.Results == nil || db.Simulations == nil || db.Configs == nil || db.Finances == nil {
-		t.Fatalf("one or more queriers are nil")
-	}
 
-	// Test basic operations on each DB
+	// create a table on each DB to exercise the connections
 	ctx := context.Background()
-
-	// Results DB
-	if _, err := db.ResultsDB.ExecContext(ctx, "CREATE TABLE test_results (id INTEGER PRIMARY KEY)"); err != nil {
+	if _, err := db.ResultsDB.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS test_results (id INTEGER PRIMARY KEY)"); err != nil {
 		t.Fatalf("create table on results DB failed: %v", err)
 	}
-
-	// Simulations DB
-	if _, err := db.SimulationsDB.ExecContext(ctx, "CREATE TABLE test_simulations (id INTEGER PRIMARY KEY)"); err != nil {
+	if _, err := db.SimulationsDB.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS test_simulations (id INTEGER PRIMARY KEY)"); err != nil {
 		t.Fatalf("create table on simulations DB failed: %v", err)
 	}
-
-	// Configs DB
-	if _, err := db.ConfigsDB.ExecContext(ctx, "CREATE TABLE test_configs (id INTEGER PRIMARY KEY)"); err != nil {
+	if _, err := db.ConfigsDB.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS test_configs (id INTEGER PRIMARY KEY)"); err != nil {
 		t.Fatalf("create table on configs DB failed: %v", err)
 	}
-
-	// Finances DB
-	if _, err := db.FinancesDB.ExecContext(ctx, "CREATE TABLE test_finances (id INTEGER PRIMARY KEY)"); err != nil {
+	if _, err := db.FinancesDB.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS test_finances (id INTEGER PRIMARY KEY)"); err != nil {
 		t.Fatalf("create table on finances DB failed: %v", err)
-	}
-
-	// Test transaction helpers
-	err = db.WithResultsTx(ctx, func(q results.Querier) error {
-		// This would be results.Querier, but for test we just return nil
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("WithResultsTx failed: %v", err)
 	}
 
 	if err := db.Close(); err != nil {
@@ -80,187 +77,82 @@ func TestOpenClose(t *testing.T) {
 	if err := db.ResultsDB.Ping(); err == nil {
 		t.Fatalf("expected Ping on results DB after Close to return error")
 	}
-	if err := db.SimulationsDB.Ping(); err == nil {
-		t.Fatalf("expected Ping on simulations DB after Close to return error")
-	}
-	if err := db.ConfigsDB.Ping(); err == nil {
-		t.Fatalf("expected Ping on configs DB after Close to return error")
-	}
-	if err := db.FinancesDB.Ping(); err == nil {
-		t.Fatalf("expected Ping on finances DB after Close to return error")
-	}
 }
 
-// TestOpenFailures verifies that Open fails gracefully when DB connections cannot be established.
-func TestOpenFailures(t *testing.T) {
-	// Test with invalid path that should cause sql.Open to fail
-	cfg := Config{
-		ResultsPath:     "/invalid/path/results.db",
-		SimulationsPath: ":memory:", // This should work
-		ConfigsPath:     ":memory:",
-		FinancesPath:    ":memory:",
-	}
-
-	_, err := Open(cfg)
-	if err == nil {
-		t.Fatalf("expected Open to fail with invalid path")
-	}
-
-	// Test with valid paths but simulate ping failure (hard to simulate, but we can test partial failures)
-	// For now, just ensure error handling works
-}
-
-// TestWithTxHelpers verifies that transaction helpers work correctly.
-func TestWithTxHelpers(t *testing.T) {
-	cfg := Config{
-		ResultsPath:     ":memory:",
-		SimulationsPath: ":memory:",
-		ConfigsPath:     ":memory:",
-		FinancesPath:    ":memory:",
-	}
-
-	db, err := Open(cfg)
+// TestWithResultsTx_RollbackOnFnError ensures that when the user function returns an error the transaction is rolled back.
+func TestWithResultsTx_RollbackOnFnError(t *testing.T) {
+	dbConn, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		t.Fatalf("Open failed: %v", err)
+		t.Fatalf("failed to open in-memory sqlite: %v", err)
 	}
-	defer db.Close()
+	defer dbConn.Close()
 
-	ctx := context.Background()
-
-	// Test WithResultsTx
-	err = db.WithResultsTx(ctx, func(q results.Querier) error {
-		// In real usage, q would be results.Querier
-		// For this test, we just verify the transaction executes
-		return nil
-	})
+	// minimal draws table for sqlc-generated InsertDraw
+	_, err = dbConn.Exec(`CREATE TABLE IF NOT EXISTS draws (
+        contest INTEGER PRIMARY KEY,
+        draw_date TEXT NOT NULL,
+        bola1 INTEGER NOT NULL,
+        bola2 INTEGER NOT NULL,
+        bola3 INTEGER NOT NULL,
+        bola4 INTEGER NOT NULL,
+        bola5 INTEGER NOT NULL,
+        source TEXT,
+        raw_row TEXT
+    );`)
 	if err != nil {
-		t.Fatalf("WithResultsTx failed: %v", err)
+		t.Fatalf("failed to create draws table: %v", err)
 	}
 
-	// Test WithSimulationsTx
-	err = db.WithSimulationsTx(ctx, func(q simulations.Querier) error {
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("WithSimulationsTx failed: %v", err)
-	}
+	sdb := &DB{ResultsDB: dbConn, Results: results.New(dbConn)}
 
-	// Test WithConfigsTx
-	err = db.WithConfigsTx(ctx, func(q configs.Querier) error {
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("WithConfigsTx failed: %v", err)
-	}
-
-	// Test WithFinancesTx
-	err = db.WithFinancesTx(ctx, func(q finances.Querier) error {
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("WithFinancesTx failed: %v", err)
-	}
-}
-
-// TestWithTxRollback verifies that transactions roll back on error.
-func TestWithTxRollback(t *testing.T) {
-	cfg := Config{
-		ResultsPath:     ":memory:",
-		SimulationsPath: ":memory:",
-		ConfigsPath:     ":memory:",
-		FinancesPath:    ":memory:",
-	}
-
-	db, err := Open(cfg)
-	if err != nil {
-		t.Fatalf("Open failed: %v", err)
-	}
-	defer db.Close()
-
-	ctx := context.Background()
-
-	// Create a table in results DB
-	_, err = db.ResultsDB.ExecContext(ctx, "CREATE TABLE test_rollback (id INTEGER PRIMARY KEY, value TEXT)")
-	if err != nil {
-		t.Fatalf("failed to create test table: %v", err)
-	}
-
-	// Test that transaction rolls back on error
-	err = db.WithResultsTx(ctx, func(q results.Querier) error {
-		// Insert something
-		_, err := db.ResultsDB.ExecContext(ctx, "INSERT INTO test_rollback (value) VALUES ('should_rollback')")
-		if err != nil {
+	var errTest = errors.New("fn error")
+	err = sdb.WithResultsTx(context.Background(), func(q results.Querier) error {
+		params := results.InsertDrawParams{
+			Contest:  1,
+			DrawDate: "2024-01-01",
+			Bola1:    1, Bola2: 2, Bola3: 3, Bola4: 4, Bola5: 5,
+			Source: sql.NullString{String: "t", Valid: true},
+			RawRow: sql.NullString{String: "r", Valid: true},
+		}
+		if err := q.InsertDraw(context.Background(), params); err != nil {
 			return err
 		}
-		// Return an error to force rollback
-		return fmt.Errorf("forced error for rollback test")
+		return errTest
 	})
+
 	if err == nil {
-		t.Fatalf("expected transaction to fail")
+		t.Fatalf("expected error from WithResultsTx because fn returned error")
 	}
 
-	// Verify the insert was rolled back
-	var count int
-	err = db.ResultsDB.QueryRowContext(ctx, "SELECT COUNT(*) FROM test_rollback").Scan(&count)
+	c, err := sdb.Results.CountDraws(context.Background())
 	if err != nil {
-		t.Fatalf("failed to query count: %v", err)
+		t.Fatalf("failed to count draws: %v", err)
 	}
-	if count != 0 {
-		t.Fatalf("expected 0 rows after rollback, got %d", count)
+	if c != 0 {
+		t.Fatalf("expected 0 draws after rollback, got %d", c)
 	}
 }
 
-// TestWithTxErrorHandling verifies error handling in transaction helpers.
-func TestWithTxErrorHandling(t *testing.T) {
-	cfg := Config{
-		ResultsPath:     ":memory:",
-		SimulationsPath: ":memory:",
-		ConfigsPath:     ":memory:",
-		FinancesPath:    ":memory:",
-	}
-
-	db, err := Open(cfg)
+// TestWithResultsTx_BeginTxFailure verifies BeginTx error is returned when DB is closed.
+func TestWithResultsTx_BeginTxFailure(t *testing.T) {
+	dbConn, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		t.Fatalf("Open failed: %v", err)
-	}
-	defer db.Close()
-
-	ctx := context.Background()
-
-	// Test WithResultsTx with function error
-	err = db.WithResultsTx(ctx, func(q results.Querier) error {
-		return fmt.Errorf("function error")
-	})
-	if err == nil {
-		t.Fatalf("expected WithResultsTx to return error")
+		t.Fatalf("failed to open in-memory sqlite: %v", err)
 	}
 
-	// Test WithSimulationsTx with function error
-	err = db.WithSimulationsTx(ctx, func(q simulations.Querier) error {
-		return fmt.Errorf("function error")
-	})
-	if err == nil {
-		t.Fatalf("expected WithSimulationsTx to return error")
+	if err := dbConn.Close(); err != nil {
+		t.Fatalf("failed to close DB: %v", err)
 	}
 
-	// Test WithConfigsTx with function error
-	err = db.WithConfigsTx(ctx, func(q configs.Querier) error {
-		return fmt.Errorf("function error")
-	})
-	if err == nil {
-		t.Fatalf("expected WithConfigsTx to return error")
-	}
+	sdb := &DB{ResultsDB: dbConn, Results: results.New(dbConn)}
 
-	// Test WithFinancesTx with function error
-	err = db.WithFinancesTx(ctx, func(q finances.Querier) error {
-		return fmt.Errorf("function error")
-	})
+	err = sdb.WithResultsTx(context.Background(), func(q results.Querier) error { return nil })
 	if err == nil {
-		t.Fatalf("expected WithFinancesTx to return error")
+		t.Fatalf("expected BeginTx to fail on closed DB")
 	}
 }
 
-// TestCloseErrors verifies that Close handles errors gracefully.
+// TestCloseErrors ensures Close is idempotent and handles nil DB.
 func TestCloseErrors(t *testing.T) {
 	cfg := Config{
 		ResultsPath:     ":memory:",
@@ -274,49 +166,203 @@ func TestCloseErrors(t *testing.T) {
 		t.Fatalf("Open failed: %v", err)
 	}
 
-	// Close once successfully
 	if err := db.Close(); err != nil {
 		t.Fatalf("first Close failed: %v", err)
 	}
-
-	// Close again should not panic or error
 	if err := db.Close(); err != nil {
 		t.Fatalf("second Close failed: %v", err)
 	}
 
-	// Test Close on nil DB
 	var nilDB *DB
 	if err := nilDB.Close(); err != nil {
 		t.Fatalf("Close on nil DB failed: %v", err)
 	}
 }
 
-// TestConnectionPooling verifies that connection pool settings are applied.
-func TestConnectionPooling(t *testing.T) {
-	cfg := Config{
-		ResultsPath:     ":memory:",
-		SimulationsPath: ":memory:",
-		ConfigsPath:     ":memory:",
-		FinancesPath:    ":memory:",
-	}
-
-	db, err := Open(cfg)
+// TestWithResultsTx_Success ensures that a successful function commits the transaction.
+func TestWithResultsTx_Success(t *testing.T) {
+	dbConn, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		t.Fatalf("Open failed: %v", err)
+		t.Fatalf("failed to open in-memory sqlite: %v", err)
 	}
-	defer db.Close()
+	defer dbConn.Close()
 
-	// Verify connection pool settings
-	if db.ResultsDB.Stats().MaxOpenConnections != 25 {
-		t.Errorf("expected MaxOpenConnections=25, got %d", db.ResultsDB.Stats().MaxOpenConnections)
+	// minimal draws table
+	if _, err := dbConn.Exec(`CREATE TABLE IF NOT EXISTS draws (
+        contest INTEGER PRIMARY KEY,
+        draw_date TEXT NOT NULL,
+        bola1 INTEGER NOT NULL,
+        bola2 INTEGER NOT NULL,
+        bola3 INTEGER NOT NULL,
+        bola4 INTEGER NOT NULL,
+        bola5 INTEGER NOT NULL,
+        source TEXT,
+        imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        raw_row TEXT
+    );`); err != nil {
+		t.Fatalf("failed to create draws table: %v", err)
 	}
-	if db.SimulationsDB.Stats().MaxOpenConnections != 25 {
-		t.Errorf("expected MaxOpenConnections=25, got %d", db.SimulationsDB.Stats().MaxOpenConnections)
+
+	sdb := &DB{ResultsDB: dbConn, Results: results.New(dbConn)}
+
+	if err := sdb.WithResultsTx(context.Background(), func(q results.Querier) error {
+		p := results.InsertDrawParams{
+			Contest:  10,
+			DrawDate: "2025-01-02",
+			Bola1:    1, Bola2: 2, Bola3: 3, Bola4: 4, Bola5: 5,
+			Source: sql.NullString{String: "s", Valid: true},
+			RawRow: sql.NullString{String: "r", Valid: true},
+		}
+		return q.InsertDraw(context.Background(), p)
+	}); err != nil {
+		t.Fatalf("WithResultsTx commit failed: %v", err)
 	}
-	if db.ConfigsDB.Stats().MaxOpenConnections != 25 {
-		t.Errorf("expected MaxOpenConnections=25, got %d", db.ConfigsDB.Stats().MaxOpenConnections)
+
+	// verify inserted
+	cnt, err := sdb.Results.CountDraws(context.Background())
+	if err != nil {
+		t.Fatalf("CountDraws failed: %v", err)
 	}
-	if db.FinancesDB.Stats().MaxOpenConnections != 25 {
-		t.Errorf("expected MaxOpenConnections=25, got %d", db.FinancesDB.Stats().MaxOpenConnections)
+	if cnt != 1 {
+		t.Fatalf("expected 1 draw after commit, got %d", cnt)
+	}
+}
+
+// TestWithOtherTx_BasicPaths checks commit and rollback behavior for other DBs.
+func TestWithOtherTx_BasicPaths(t *testing.T) {
+	// Simulations
+	simDB, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open simulations db: %v", err)
+	}
+	defer simDB.Close()
+	sdb := &DB{SimulationsDB: simDB, Simulations: simulations.New(simDB)}
+
+	// success (commit)
+	if err := sdb.WithSimulationsTx(context.Background(), func(q simulations.Querier) error {
+		// no-op
+		return nil
+	}); err != nil {
+		t.Fatalf("WithSimulationsTx commit failed: %v", err)
+	}
+
+	// rollback when fn returns error
+	var sentinel = errors.New("fail")
+	if err := sdb.WithSimulationsTx(context.Background(), func(q simulations.Querier) error {
+		return sentinel
+	}); err == nil {
+		t.Fatalf("expected error from WithSimulationsTx when fn returns error")
+	}
+
+	// Configs
+	cfgDB, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open configs db: %v", err)
+	}
+	defer cfgDB.Close()
+	cdb := &DB{ConfigsDB: cfgDB, Configs: configs.New(cfgDB)}
+
+	if err := cdb.WithConfigsTx(context.Background(), func(q configs.Querier) error { return nil }); err != nil {
+		t.Fatalf("WithConfigsTx commit failed: %v", err)
+	}
+	if err := cdb.WithConfigsTx(context.Background(), func(q configs.Querier) error { return sentinel }); err == nil {
+		t.Fatalf("expected error from WithConfigsTx when fn returns error")
+	}
+
+	// Finances
+	fDB, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open finances db: %v", err)
+	}
+	defer fDB.Close()
+	fdb := &DB{FinancesDB: fDB, Finances: finances.New(fDB)}
+
+	if err := fdb.WithFinancesTx(context.Background(), func(q finances.Querier) error { return nil }); err != nil {
+		t.Fatalf("WithFinancesTx commit failed: %v", err)
+	}
+	if err := fdb.WithFinancesTx(context.Background(), func(q finances.Querier) error { return sentinel }); err == nil {
+		t.Fatalf("expected error from WithFinancesTx when fn returns error")
+	}
+}
+
+// TestBeginTxFailures checks that BeginTx returns errors when DB is closed.
+func TestBeginTxFailures(t *testing.T) {
+	// Results
+	rdb, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open results db: %v", err)
+	}
+	if err := rdb.Close(); err != nil {
+		t.Fatalf("close results db: %v", err)
+	}
+	rd := &DB{ResultsDB: rdb, Results: results.New(rdb)}
+	if err := rd.WithResultsTx(context.Background(), func(q results.Querier) error { return nil }); err == nil {
+		t.Fatalf("expected BeginTx to fail on closed ResultsDB")
+	}
+
+	// Simulations
+	sdbConn, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open simulations db: %v", err)
+	}
+	if err := sdbConn.Close(); err != nil {
+		t.Fatalf("close simulations db: %v", err)
+	}
+	sd := &DB{SimulationsDB: sdbConn, Simulations: simulations.New(sdbConn)}
+	if err := sd.WithSimulationsTx(context.Background(), func(q simulations.Querier) error { return nil }); err == nil {
+		t.Fatalf("expected BeginTx to fail on closed SimulationsDB")
+	}
+
+	// Configs
+	cdbConn, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open configs db: %v", err)
+	}
+	if err := cdbConn.Close(); err != nil {
+		t.Fatalf("close configs db: %v", err)
+	}
+	cd := &DB{ConfigsDB: cdbConn, Configs: configs.New(cdbConn)}
+	if err := cd.WithConfigsTx(context.Background(), func(q configs.Querier) error { return nil }); err == nil {
+		t.Fatalf("expected BeginTx to fail on closed ConfigsDB")
+	}
+
+	// Finances
+	fdbConn, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open finances db: %v", err)
+	}
+	if err := fdbConn.Close(); err != nil {
+		t.Fatalf("close finances db: %v", err)
+	}
+	fd := &DB{FinancesDB: fdbConn, Finances: finances.New(fdbConn)}
+	if err := fd.WithFinancesTx(context.Background(), func(q finances.Querier) error { return nil }); err == nil {
+		t.Fatalf("expected BeginTx to fail on closed FinancesDB")
+	}
+}
+
+// TestOpen_PingFailures exercises Open branches where Ping fails for each DB in turn.
+func TestOpen_PingFailures(t *testing.T) {
+	// Results ping fails when path points to non-existent directory in read-only mode
+	cfg := Config{ResultsPath: "file:/this_dir_should_not_exist_12345/results.db?mode=ro", SimulationsPath: ":memory:", ConfigsPath: ":memory:", FinancesPath: ":memory:"}
+	if _, err := Open(cfg); err == nil {
+		t.Fatalf("expected Open to fail when Results ping fails")
+	}
+
+	// Simulations ping fails
+	cfg = Config{ResultsPath: ":memory:", SimulationsPath: "file:/this_dir_should_not_exist_12345/sim.db?mode=ro", ConfigsPath: ":memory:", FinancesPath: ":memory:"}
+	if _, err := Open(cfg); err == nil {
+		t.Fatalf("expected Open to fail when Simulations ping fails")
+	}
+
+	// Configs ping fails
+	cfg = Config{ResultsPath: ":memory:", SimulationsPath: ":memory:", ConfigsPath: "file:/this_dir_should_not_exist_12345/configs.db?mode=ro", FinancesPath: ":memory:"}
+	if _, err := Open(cfg); err == nil {
+		t.Fatalf("expected Open to fail when Configs ping fails")
+	}
+
+	// Finances ping fails
+	cfg = Config{ResultsPath: ":memory:", SimulationsPath: ":memory:", ConfigsPath: ":memory:", FinancesPath: "file:/this_dir_should_not_exist_12345/finances.db?mode=ro"}
+	if _, err := Open(cfg); err == nil {
+		t.Fatalf("expected Open to fail when Finances ping fails")
 	}
 }

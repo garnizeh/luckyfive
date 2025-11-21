@@ -1,5 +1,5 @@
 PEMPTY :=
-.PHONY: build test test-coverage run-api run-worker migrate clean lint generate sqlc-generate mock-generate
+.PHONY: build test test-coverage run-api run-worker migrate clean lint generate sqlc-generate mock-generate swagger-generate
 
 build:
 	@echo "Building binaries..."
@@ -16,6 +16,13 @@ test:
 
 test-coverage:
 	@go test -v -coverprofile=coverage.out ./...
+	@go tool cover -html=coverage.out -o coverage.html
+
+# Run tests with coverage across all packages (includes coverage for dependent packages)
+test-coverage-all:
+	@echo "Running tests with coverage across all packages..."
+	@go test ./... -covermode=atomic -coverpkg=./... -coverprofile=coverage.out
+	@go tool cover -func=coverage.out | tee coverage.txt
 	@go tool cover -html=coverage.out -o coverage.html
 
 run-api:
@@ -45,5 +52,9 @@ mock-generate: sqlc-generate
 	@mockgen -source=internal/store/configs/querier.go -destination=internal/store/configs/mock/querier.go -package=mock
 	@mockgen -source=internal/store/finances/querier.go -destination=internal/store/finances/mock/querier.go -package=mock
 
-generate: sqlc-generate mock-generate
+swagger-generate:
+	@echo "Generating OpenAPI/Swagger docs (if swag CLI is available)";
+	@if command -v swag >/dev/null 2>&1; then swag init -g cmd/api/main.go --parseInternal -o api || echo "swag init failed"; else echo "swag CLI not found, skipping swagger generation (install with 'go install github.com/swaggo/swag/cmd/swag@latest')"; fi
+
+generate: sqlc-generate mock-generate swagger-generate
 	@echo "Code generation complete"
