@@ -56,9 +56,10 @@ func main() {
 	// Initialize services
 	systemSvc := services.NewSystemService(db, startTime)
 	uploadSvc := services.NewUploadService(logger)
+	resultsSvc := services.NewResultsService(db, logger)
 
 	// Setup router
-	router := setupRouter(logger, systemSvc, uploadSvc)
+	router := setupRouter(logger, systemSvc, uploadSvc, resultsSvc)
 
 	// Create HTTP server
 	server := &http.Server{
@@ -93,7 +94,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService) *chi.Mux {
+func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService, resultsSvc *services.ResultsService) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack
@@ -108,6 +109,9 @@ func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadS
 
 	// Results upload endpoint
 	r.Post("/api/v1/results/upload", handlers.UploadResults(uploadSvc, logger))
+
+	// Results import endpoint
+	r.Post("/api/v1/results/import", handlers.ImportResults(resultsSvc, logger))
 
 	return r
 }
