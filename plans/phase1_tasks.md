@@ -7,13 +7,12 @@
 
 ## Progress Update
 
-**Status Update (November 21, 2025):** Sprint 1.3 has been successfully completed. All Import Service methods (SaveArtifact, ImportArtifact, GetDraw, ListDraws, ValidateDrawData) are implemented, thoroughly tested, and integrated. The service can now handle XLSX uploads, parsing, database operations, and queries with comprehensive error handling and logging. We are now beginning Sprint 1.4 (HTTP API Foundation) to build the HTTP API layer that will expose these service methods.
+**Status Update (November 21, 2025):** Sprint 1.4 (HTTP API Foundation) is in progress. Task 1.4.1 (HTTP Server Setup) and Task 1.4.2 (Health Endpoint) are now completed. The HTTP server is running with Chi router, middleware stack, graceful shutdown, and a fully functional health endpoint that checks database connectivity and returns structured JSON responses. Next task is 1.4.3 (Results Upload Endpoint).
 
-Current state (sprint 1.3 completed — starting sprint 1.4):
+Current state (sprint 1.4 in progress — HTTP API Foundation):
 
-- Task 1.3.1: XLSX Parser Implementation — completed. XLSX parsing with column detection implemented, comprehensive tests added, batch import with transactions working, successfully imported 6882 records in ~12 seconds.
-- Task 1.3.2: Batch Insert Implementation — completed. Integrated into ImportService with configurable batch size (100 records), transaction-based processing for performance.
-- Task 1.3.3: Import Service Complete — completed. All methods implemented with error handling, logging, and import history tracking.
+- Task 1.4.1: HTTP Server Setup — completed. Chi router configured with middleware stack (RequestID, RealIP, custom logging, recovery, CORS), graceful shutdown implemented, server starts successfully on port 8080.
+- Task 1.4.2: Health Endpoint — completed. `/api/v1/health` endpoint implemented with database connectivity checks for all 4 databases, uptime tracking, version information, and structured JSON responses. Returns 503 when databases are unhealthy.
 
 ---
 
@@ -1167,27 +1166,50 @@ Set up HTTP server with routing and middleware.
 Implement `/api/v1/health` endpoint.
 
 **Acceptance Criteria:**
-- [ ] Returns 200 OK with system status
-- [ ] Checks database connectivity
-- [ ] Returns version information
+- [x] Returns 200 OK with system status
+- [x] Checks database connectivity
+- [x] Returns version information
+
+**Status:** Completed — Health endpoint implemented with database connectivity checks for all 4 databases, uptime tracking, and structured JSON responses. Returns 503 Service Unavailable when databases are unhealthy.
 
 **Subtasks:**
 1. Create `internal/handlers/health.go`:
    ```go
-   func HealthCheck(db *store.DB) http.HandlerFunc {
+   func HealthCheck(db *store.DB, startTime time.Time) http.HandlerFunc {
        return func(w http.ResponseWriter, r *http.Request) {
-           status := checkDatabases(db)
-           json.NewEncoder(w).Encode(status)
+           services := make(map[string]string)
+           
+           // Check database connectivity
+           if err := checkDatabaseHealth(db); err != nil {
+               services["database"] = "unhealthy"
+               w.WriteHeader(http.StatusServiceUnavailable)
+           } else {
+               services["database"] = "healthy"
+           }
+           
+           services["api"] = "healthy"
+           
+           response := HealthResponse{
+               Status:    getOverallStatus(services),
+               Timestamp: time.Now().UTC().Format(time.RFC3339),
+               Version:   "1.0.0",
+               Uptime:    time.Since(startTime).String(),
+               Services:  services,
+           }
+           
+           w.Header().Set("Content-Type", "application/json")
+           json.NewEncoder(w).Encode(response)
        }
    }
    ```
-2. Add database ping checks
-3. Return structured JSON response
+2. Add database ping checks for all 4 databases (Results, Simulations, Configs, Finances)
+3. Return structured JSON response with status, timestamp, version, uptime, and service health
 
 **Testing:**
-- Endpoint returns 200
-- Database status accurate
-- Response matches design doc format
+- Endpoint returns 200 OK when healthy
+- Returns 503 Service Unavailable when databases are unhealthy
+- Database status accurate for all 4 databases
+- Response includes uptime tracking and version information
 
 ---
 
@@ -1570,7 +1592,7 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 
 ### Sprint 1.4 (Days 11-14)
 - [x] Task 1.4.1: HTTP server running
-- [ ] Task 1.4.2: Health endpoint working
+- [x] Task 1.4.2: Health endpoint working
 - [ ] Task 1.4.3: Upload endpoint working
 - [ ] Task 1.4.4: Import endpoint working
 - [ ] Task 1.4.5: Query endpoints working
