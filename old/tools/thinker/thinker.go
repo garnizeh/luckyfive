@@ -96,7 +96,7 @@ func main() {
 	var mu sync.Mutex
 
 	// concurrency control using errgroup with limit similar to concurrent_sweep
-	defaultThreads := max(runtime.NumCPU() - 1, 1)
+	defaultThreads := max(runtime.NumCPU()-1, 1)
 	// allow environment control via GOMAXPROCS or flag? use defaultThreads
 	var g errgroup.Group
 	g.SetLimit(defaultThreads)

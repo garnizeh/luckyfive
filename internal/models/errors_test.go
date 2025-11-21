@@ -48,7 +48,7 @@ func TestAPIError_WithRequestID(t *testing.T) {
 func TestAPIError_WithDetails(t *testing.T) {
 	err := NewAPIError("test", "message")
 	details := map[string]interface{}{
-		"field": "username",
+		"field":  "username",
 		"reason": "required",
 	}
 
