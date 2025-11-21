@@ -113,5 +113,9 @@ func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadS
 	// Results import endpoint
 	r.Post("/api/v1/results/import", handlers.ImportResults(resultsSvc, logger))
 
+	// Results query endpoints
+	r.Get("/api/v1/results/{contest}", handlers.GetDraw(resultsSvc, logger))
+	r.Get("/api/v1/results", handlers.ListDraws(resultsSvc, logger))
+
 	return r
 }

@@ -2,12 +2,16 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/garnizeh/luckyfive/internal/services"
+	"github.com/go-chi/chi/v5"
 )
 
 // UploadResponse represents the upload response
@@ -143,5 +147,105 @@ func ImportResults(resultsSvc *services.ResultsService, logger *slog.Logger) htt
 
 		// Return success response
 		WriteJSON(w, http.StatusOK, result)
+	}
+}
+
+// GetDraw handles GET /api/v1/results/{contest}
+func GetDraw(resultsSvc *services.ResultsService, logger *slog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		contestStr := chi.URLParam(r, "contest")
+		if contestStr == "" {
+			WriteError(w, http.StatusBadRequest, APIError{
+				Code:    "missing_contest",
+				Message: "contest parameter is required",
+			})
+			return
+		}
+
+		contest, err := strconv.Atoi(contestStr)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, APIError{
+				Code:    "invalid_contest",
+				Message: "contest must be a valid number",
+			})
+			return
+		}
+
+		logger.Info("Getting draw", "contest", contest)
+
+		draw, err := resultsSvc.GetDraw(r.Context(), contest)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				WriteError(w, http.StatusNotFound, APIError{
+					Code:    "draw_not_found",
+					Message: "draw not found",
+				})
+				return
+			}
+			logger.Error("Failed to get draw", "error", err, "contest", contest)
+			WriteError(w, http.StatusInternalServerError, APIError{
+				Code:    "get_draw_failed",
+				Message: "failed to get draw",
+			})
+			return
+		}
+
+		WriteJSON(w, http.StatusOK, draw)
+	}
+}
+
+// ListDraws handles GET /api/v1/results
+func ListDraws(resultsSvc *services.ResultsService, logger *slog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Parse query parameters
+		limitStr := r.URL.Query().Get("limit")
+		offsetStr := r.URL.Query().Get("offset")
+
+		limit := 50 // default limit
+		if limitStr != "" {
+			if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 1000 {
+				limit = l
+			} else {
+				WriteError(w, http.StatusBadRequest, APIError{
+					Code:    "invalid_limit",
+					Message: "limit must be a number between 1 and 1000",
+				})
+				return
+			}
+		}
+
+		offset := 0 // default offset
+		if offsetStr != "" {
+			if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+				offset = o
+			} else {
+				WriteError(w, http.StatusBadRequest, APIError{
+					Code:    "invalid_offset",
+					Message: "offset must be a non-negative number",
+				})
+				return
+			}
+		}
+
+		logger.Info("Listing draws", "limit", limit, "offset", offset)
+
+		draws, err := resultsSvc.ListDraws(r.Context(), limit, offset)
+		if err != nil {
+			logger.Error("Failed to list draws", "error", err)
+			WriteError(w, http.StatusInternalServerError, APIError{
+				Code:    "list_draws_failed",
+				Message: "failed to list draws",
+			})
+			return
+		}
+
+		response := map[string]interface{}{
+			"draws":  draws,
+			"limit":  limit,
+			"offset": offset,
+			"count":  len(draws),
+		}
+
+		WriteJSON(w, http.StatusOK, response)
 	}
 }
