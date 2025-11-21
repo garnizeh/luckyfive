@@ -3,7 +3,7 @@
 **Duration:** 2 weeks (Weeks 1-2)  
 **Estimated Effort:** 80 hours  
 **Team:** 1-2 developers  
-**Status:** In Progress — Sprint 1.1 started (Tasks 1.1.1, 1.1.2 and 1.1.3 completed)
+**Status:** In Progress — Sprint 1.1 started (Tasks 1.1.1, 1.1.2, 1.1.3, 1.1.4 and 1.1.5 completed)
 
 ## Progress Update
 
@@ -12,6 +12,8 @@ Current state (sprint 1.1):
 - Task 1.1.1: Project initialization — completed. Directories created and initial scaffold (including `.gitignore`, `README.md`, `LICENSE`) added and committed to the repository.
 - Task 1.1.2: `Makefile` created and committed (basic build/test/generate targets). A basic verification was performed: `go mod tidy` ran and `go test ./...` completed without failures. Some `build` targets which rely on fully implemented `cmd/*/main.go` will be verified as those entrypoints are implemented.
 - Task 1.1.3: Dependencies and developer tools installed and verified. Commands executed included `go get` additions, `go install` for `sqlc`, `mockgen`, and `golangci-lint`, `go mod tidy`, and quick build/test verification. See Task 1.1.3 section for tool versions and details.
+- Task 1.1.4: Logging & Configuration implemented. `internal/config` and `internal/logger` were added; unit tests for these packages were created and executed locally (tests passed for those packages).
+- Task 1.1.5: sqlc configuration and generation completed. `sqlc.yaml`, expanded SQL queries and production-ready migrations were added; `sqlc generate` and `mockgen` were run to produce queriers and mocks, and the generated artifacts were committed.
 
 Commits of note:
 - 82dbd23 — initial project scaffold (created `.gitignore`, `LICENSE`, `README.md`, and initial `cmd/` files)
@@ -19,7 +21,7 @@ Commits of note:
 - 92acdda — docs: mark Task 1.1.3 done (dependencies & dev tools installed)
 - 527d9e3 — test(config/logger): add invalid concurrency and logger level tests
 
-Next immediate steps: configure sqlc + generate code & mocks (`Task 1.1.5`).
+Next immediate steps: run integration tests and implement the database access layer (see Task 1.2.6). 
 Recent work: production-ready migrations were added for results, simulations, configs and finances; SQL query files were expanded with additional useful queries; sqlc generation and mock generation were executed and mocks were added to `internal/store/*/mock/`.
 
 Recent small wins:
@@ -283,10 +285,10 @@ Set up structured logging and configuration management.
 Configure sqlc for type-safe database code generation with mockable Querier interfaces.
 
 **Acceptance Criteria:**
-- [ ] `sqlc.yaml` configured for all 4 databases
-- [ ] Querier interfaces generated
-- [ ] Mock generation configured
-- [ ] Make target for code generation
+- [x] `sqlc.yaml` configured for all 4 databases
+- [x] Querier interfaces generated
+- [x] Mock generation configured
+- [x] Make target for code generation
 
 **Subtasks:**
 1. Create `sqlc.yaml` in project root:
@@ -394,6 +396,32 @@ Configure sqlc for type-safe database code generation with mockable Querier inte
 - Querier interfaces generated in each package
 - Mock files created successfully
 - Generated code compiles
+
+Files generated & committed (partial list):
+- migrations/001_create_results.sql
+- migrations/002_create_simulations.sql
+- migrations/003_create_configs.sql
+- migrations/004_create_finances.sql
+- internal/store/queries/results.sql
+- internal/store/queries/simulations.sql
+- internal/store/queries/configs.sql
+- internal/store/queries/finances.sql
+- internal/store/results/querier.go
+- internal/store/results/models.go
+- internal/store/results/results.sql.go
+- internal/store/results/mock/querier.go
+- internal/store/simulations/querier.go
+- internal/store/simulations/models.go
+- internal/store/simulations/simulations.sql.go
+- internal/store/simulations/mock/querier.go
+- internal/store/configs/querier.go
+- internal/store/configs/models.go
+- internal/store/configs/configs.sql.go
+- internal/store/configs/mock/querier.go
+- internal/store/finances/querier.go
+- internal/store/finances/models.go
+- internal/store/finances/finances.sql.go
+- internal/store/finances/mock/querier.go
 
 ---
 
