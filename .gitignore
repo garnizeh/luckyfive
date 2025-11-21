@@ -1,0 +1,25 @@
+# Binaries
+/bin/
+*.exe
+
+# Data
+/data/*.db
+/data/simulations/
+
+# Generated
+/.sqlc/
+/internal/store/*/mock/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Coverage
+coverage.out
+coverage.html
+
+# Node
+node_modules/
