@@ -181,7 +181,7 @@ Add required Go dependencies to `go.mod`.
 - [x] All required libraries added
 - [x] `go.mod` and `go.sum` committed
 - [x] No version conflicts detected during `go mod tidy`
-- [ ] Dependencies documented in README
+- [x] Dependencies documented in README
 
 **Completed:** Task verified and committed on 2025-11-21. See commit 92acdda for the doc update and go.mod/go.sum changes.
 
@@ -237,6 +237,8 @@ Observed tool versions on the environment where the commands were run:
 - `go version`: go1.25.4 linux/amd64
 
 All commands completed without errors. `go.mod` and `go.sum` were updated and committed.
+
+**Documentation:** The project's `README.md` was updated to document the installed Go libraries and developer tools (sqlc, mockgen, golangci-lint) and include install/run commands. See commit e4668ed.
 
 ---
 
@@ -1491,7 +1493,7 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 ### Sprint 1.1 (Days 1-3)
 - [x] Task 1.1.1: Project initialized
 - [x] Task 1.1.2: Makefile created
-- [x] Task 1.1.3: Dependencies installed (including sqlc)
+- [x] Task 1.1.3: Dependencies installed (including sqlc) and documented in `README.md`
 - [ ] Task 1.1.4: Logging configured
 - [ ] Task 1.1.5: sqlc configured with Querier interfaces
 
