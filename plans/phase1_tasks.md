@@ -3,39 +3,17 @@
 **Duration:** 2 weeks (Weeks 1-2)  
 **Estimated Effort:** 80 hours  
 **Team:** 1-2 developers  
-**Status:** In Progress — Sprint 1.2 completed, starting Sprint 1.3 (XLSX Parser Implementation)
+**Status:** In Progress — Sprint 1.3 completed on November 21, 2025. Now starting Sprint 1.4 (HTTP API Foundation)
 
 ## Progress Update
 
-Current state (sprint 1.2 completed — starting sprint 1.3):
+**Status Update (November 21, 2025):** Sprint 1.3 has been successfully completed. All Import Service methods (SaveArtifact, ImportArtifact, GetDraw, ListDraws, ValidateDrawData) are implemented, thoroughly tested, and integrated. The service can now handle XLSX uploads, parsing, database operations, and queries with comprehensive error handling and logging. We are now beginning Sprint 1.4 (HTTP API Foundation) to build the HTTP API layer that will expose these service methods.
 
-- Task 1.1.1: Project initialization — completed. Directories created and initial scaffold (including `.gitignore`, `README.md`, `LICENSE`) added and committed to the repository.
-- Task 1.1.2: `Makefile` created and committed (basic build/test/generate targets). A basic verification was performed: `go mod tidy` ran and `go test ./...` completed without failures. Some `build` targets which rely on fully implemented `cmd/*/main.go` will be verified as those entrypoints are implemented.
-- Task 1.1.3: Dependencies and developer tools installed and verified. Commands executed included `go get` additions, `go install` for `sqlc`, `mockgen`, and `golangci-lint`, `go mod tidy`, and quick build/test verification. See Task 1.1.3 section for tool versions and details.
-- Task 1.1.4: Logging & Configuration implemented. `internal/config` and `internal/logger` were added; unit tests for these packages were created and executed locally (tests passed for those packages).
-- Task 1.1.5: sqlc configuration and generation completed. `sqlc.yaml`, expanded SQL queries and production-ready migrations were added; `sqlc generate` and `mockgen` were run to produce queriers and mocks, and the generated artifacts were committed.
+Current state (sprint 1.3 completed — starting sprint 1.4):
 
-- Task 1.2.1: Migration system implemented — completed. A migration runner (`internal/store/migrate.go`) and CLI (`cmd/migrate`) were added; migrations have been exercised against local DB files created under `data/db/`. The CLI supports `up`, `down`, `version`, `-only` (apply specific versions) and `-file` (apply a single migration by file). Documentation for the `migrate` CLI was added to `docs/migrate.md`.
-
-- Task 1.2.2: Results Database Schema + Queries — completed. Migrations (`migrations/001_create_results.sql`) and query files (`internal/store/queries/results.sql`) were added; `sqlc generate` was run to produce queriers and mocks, and basic verification (create/insert/select via tests) was executed locally.
-
-- Task 1.2.3: Simulations Database Schema — completed. Schema updated to match design doc v2, sqlc queries regenerated, indexes included in down migration.
-
-- Task 1.2.4: Configs Database Schema — completed. Migration created, queries added, sqlc generated successfully.
-
-- Task 1.2.5: Finances Database Schema — completed. Migration updated to standard format, queries added schema header, sqlc generated successfully.
-
-- Task 1.2.6: Database Access Layer with sqlc Integration — completed. DB struct with 4 connections, queriers, transaction helpers, connection pooling, and comprehensive tests implemented.
-
-Next immediate steps: start Task 1.3.1 (XLSX Parser Implementation), implement column detection logic, and create models for draw data.
-
-Recent small wins:
-
-- Task 1.1.4 (Logging & Configuration) implemented. Unit tests for `internal/config` and `internal/logger` were added and run locally (they pass). See commit `527d9e3` which added the tests.
-
-- Sprint 1.2 completed successfully. All database infrastructure tasks (1.2.1-1.2.6) implemented with comprehensive testing and type-safe database operations via sqlc integration.
-
-- Starting Sprint 1.3: XLSX Parser Implementation. Next focus is on implementing XLSX parsing with auto-detection of column layouts and creating the ImportService foundation.
+- Task 1.3.1: XLSX Parser Implementation — completed. XLSX parsing with column detection implemented, comprehensive tests added, batch import with transactions working, successfully imported 6882 records in ~12 seconds.
+- Task 1.3.2: Batch Insert Implementation — completed. Integrated into ImportService with configurable batch size (100 records), transaction-based processing for performance.
+- Task 1.3.3: Import Service Complete — completed. All methods implemented with error handling, logging, and import history tracking.
 
 ---
 
@@ -971,10 +949,12 @@ Create database connection management and integrate sqlc-generated Queriers.
 Implement XLSX parsing with auto-detection of column layout.
 
 **Acceptance Criteria:**
-- [ ] Can parse XLSX files using excelize
-- [ ] Auto-detects column names (flexible mapping)
-- [ ] Handles different date formats
-- [ ] Validates data integrity
+- [x] Can parse XLSX files using excelize
+- [x] Auto-detects column names (flexible mapping)
+- [x] Handles different date formats
+- [x] Validates data integrity
+
+**Status:** Completed — XLSX parser implemented with column detection, date parsing, and comprehensive validation. Successfully parsed 6882 records from Quina.xlsx with auto-detection of Brazilian lottery format.
 
 **Subtasks:**
 1. Create `internal/services/import.go`:
@@ -1045,10 +1025,12 @@ Implement XLSX parsing with auto-detection of column layout.
 Implement batch insert for performance using sqlc-generated queries.
 
 **Acceptance Criteria:**
-- [ ] Batch inserts in transactions
-- [ ] Configurable batch size
-- [ ] Rollback on error
-- [ ] Progress reporting
+- [x] Batch inserts in transactions
+- [x] Configurable batch size
+- [x] Rollback on error
+- [x] Progress reporting
+
+**Status:** Completed — Batch insert implemented with configurable batch size (100 records), transaction-based processing, and progress reporting. Successfully imported 6882 records in ~12 seconds using 69 batches.
 
 **Subtasks:**
 1. Update `internal/services/import.go`:
@@ -1108,11 +1090,13 @@ Implement batch insert for performance using sqlc-generated queries.
 Complete ImportService with all methods from design doc.
 
 **Acceptance Criteria:**
-- [ ] SaveArtifact() implemented
-- [ ] ImportArtifact() implemented
-- [ ] GetDraw() implemented
-- [ ] ListDraws() implemented
-- [ ] ValidateDrawData() implemented
+- [x] SaveArtifact() implemented
+- [x] ImportArtifact() implemented
+- [x] GetDraw() implemented
+- [x] ListDraws() implemented
+- [x] ValidateDrawData() implemented
+
+**Status:** Completed — All ImportService methods implemented with artifact storage, database query wrappers, and validation. SaveArtifact stores uploaded XLSX files temporarily, ImportArtifact processes saved artifacts end-to-end, GetDraw and ListDraws wrap sqlc queries, ValidateDrawData delegates to models.Draw.Validate.
 
 **Subtasks:**
 1. Implement all interface methods
@@ -1577,10 +1561,10 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 - Added `internal/store/db_test.go` with unit tests for file-backed and in-memory DB opening, basic DDL/DML and transaction commit; these tests pass locally (`go test ./internal/store -v`).
 - Completed: added WithTx helpers that accept sqlc queriers, configured connection pool sizes, and added comprehensive tests with 87.5% coverage for transaction functions.
 
-### Sprint 1.3 (Days 8-10) — In Progress — In Progress
-- [ ] Task 1.3.1: XLSX parser working
-- [ ] Task 1.3.2: Batch insert implemented
-- [ ] Task 1.3.3: ImportService complete
+### Sprint 1.3 (Days 8-10) — Completed
+- [x] Task 1.3.1: XLSX parser working
+- [x] Task 1.3.2: Batch insert implemented
+- [x] Task 1.3.3: ImportService complete
 
 ### Sprint 1.4 (Days 11-14)
 - [ ] Task 1.4.1: HTTP server running
