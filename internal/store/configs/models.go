@@ -9,7 +9,18 @@ import (
 )
 
 type Config struct {
-	ID    int64          `json:"id"`
-	Key   string         `json:"key"`
-	Value sql.NullString `json:"value"`
+	ID          int64          `json:"id"`
+	Key         string         `json:"key"`
+	Value       sql.NullString `json:"value"`
+	Description sql.NullString `json:"description"`
+	UpdatedAt   string         `json:"updated_at"`
+}
+
+type ConfigPreset struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Mode      string `json:"mode"`
+	Settings  string `json:"settings"`
+	IsDefault int64  `json:"is_default"`
+	CreatedAt string `json:"created_at"`
 }

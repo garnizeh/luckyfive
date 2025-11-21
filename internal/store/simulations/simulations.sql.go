@@ -7,10 +7,47 @@ package simulations
 
 import (
 	"context"
+	"database/sql"
 )
 
+const createAnalysisJob = `-- name: CreateAnalysisJob :one
+INSERT INTO analysis_jobs (simulation_id, status, worker)
+VALUES (?, ?, ?)
+RETURNING id, simulation_id, started_at, finished_at, status, worker, result_summary
+`
+
+type CreateAnalysisJobParams struct {
+	SimulationID int64          `json:"simulation_id"`
+	Status       string         `json:"status"`
+	Worker       sql.NullString `json:"worker"`
+}
+
+func (q *Queries) CreateAnalysisJob(ctx context.Context, arg CreateAnalysisJobParams) (AnalysisJob, error) {
+	row := q.db.QueryRowContext(ctx, createAnalysisJob, arg.SimulationID, arg.Status, arg.Worker)
+	var i AnalysisJob
+	err := row.Scan(
+		&i.ID,
+		&i.SimulationID,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.Status,
+		&i.Worker,
+		&i.ResultSummary,
+	)
+	return i, err
+}
+
+const deleteSimulation = `-- name: DeleteSimulation :exec
+DELETE FROM simulations WHERE id = ?
+`
+
+func (q *Queries) DeleteSimulation(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteSimulation, id)
+	return err
+}
+
 const getSimulation = `-- name: GetSimulation :one
-SELECT id, name FROM simulations
+SELECT id, name, description, created_at, settings, status FROM simulations
 WHERE id = ?
 LIMIT 1
 `
@@ -18,12 +55,156 @@ LIMIT 1
 func (q *Queries) GetSimulation(ctx context.Context, id int64) (Simulation, error) {
 	row := q.db.QueryRowContext(ctx, getSimulation, id)
 	var i Simulation
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.Settings,
+		&i.Status,
+	)
 	return i, err
 }
 
+const insertSimulation = `-- name: InsertSimulation :one
+INSERT INTO simulations (name, description, settings, status)
+VALUES (?, ?, ?, ?)
+RETURNING id, name, description, created_at, settings, status
+`
+
+type InsertSimulationParams struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	Settings    sql.NullString `json:"settings"`
+	Status      string         `json:"status"`
+}
+
+func (q *Queries) InsertSimulation(ctx context.Context, arg InsertSimulationParams) (Simulation, error) {
+	row := q.db.QueryRowContext(ctx, insertSimulation,
+		arg.Name,
+		arg.Description,
+		arg.Settings,
+		arg.Status,
+	)
+	var i Simulation
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.Settings,
+		&i.Status,
+	)
+	return i, err
+}
+
+const insertSimulationResult = `-- name: InsertSimulationResult :one
+INSERT INTO simulation_contest_results (simulation_id, contest, result_blob)
+VALUES (?, ?, ?)
+RETURNING id, simulation_id, contest, result_blob, created_at
+`
+
+type InsertSimulationResultParams struct {
+	SimulationID int64          `json:"simulation_id"`
+	Contest      int64          `json:"contest"`
+	ResultBlob   sql.NullString `json:"result_blob"`
+}
+
+func (q *Queries) InsertSimulationResult(ctx context.Context, arg InsertSimulationResultParams) (SimulationContestResult, error) {
+	row := q.db.QueryRowContext(ctx, insertSimulationResult, arg.SimulationID, arg.Contest, arg.ResultBlob)
+	var i SimulationContestResult
+	err := row.Scan(
+		&i.ID,
+		&i.SimulationID,
+		&i.Contest,
+		&i.ResultBlob,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listAnalysisJobsBySimulation = `-- name: ListAnalysisJobsBySimulation :many
+SELECT id, simulation_id, started_at, finished_at, status, worker, result_summary FROM analysis_jobs WHERE simulation_id = ? ORDER BY id DESC LIMIT ? OFFSET ?
+`
+
+type ListAnalysisJobsBySimulationParams struct {
+	SimulationID int64 `json:"simulation_id"`
+	Limit        int64 `json:"limit"`
+	Offset       int64 `json:"offset"`
+}
+
+func (q *Queries) ListAnalysisJobsBySimulation(ctx context.Context, arg ListAnalysisJobsBySimulationParams) ([]AnalysisJob, error) {
+	rows, err := q.db.QueryContext(ctx, listAnalysisJobsBySimulation, arg.SimulationID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AnalysisJob
+	for rows.Next() {
+		var i AnalysisJob
+		if err := rows.Scan(
+			&i.ID,
+			&i.SimulationID,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.Status,
+			&i.Worker,
+			&i.ResultSummary,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSimulationResults = `-- name: ListSimulationResults :many
+SELECT id, simulation_id, contest, result_blob, created_at FROM simulation_contest_results WHERE simulation_id = ? ORDER BY id ASC LIMIT ? OFFSET ?
+`
+
+type ListSimulationResultsParams struct {
+	SimulationID int64 `json:"simulation_id"`
+	Limit        int64 `json:"limit"`
+	Offset       int64 `json:"offset"`
+}
+
+func (q *Queries) ListSimulationResults(ctx context.Context, arg ListSimulationResultsParams) ([]SimulationContestResult, error) {
+	rows, err := q.db.QueryContext(ctx, listSimulationResults, arg.SimulationID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SimulationContestResult
+	for rows.Next() {
+		var i SimulationContestResult
+		if err := rows.Scan(
+			&i.ID,
+			&i.SimulationID,
+			&i.Contest,
+			&i.ResultBlob,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSimulations = `-- name: ListSimulations :many
-SELECT id, name FROM simulations
+SELECT id, name, description, created_at, settings, status FROM simulations
 ORDER BY id DESC
 LIMIT ? OFFSET ?
 `
@@ -42,7 +223,14 @@ func (q *Queries) ListSimulations(ctx context.Context, arg ListSimulationsParams
 	var items []Simulation
 	for rows.Next() {
 		var i Simulation
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.CreatedAt,
+			&i.Settings,
+			&i.Status,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -54,4 +242,27 @@ func (q *Queries) ListSimulations(ctx context.Context, arg ListSimulationsParams
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateSimulation = `-- name: UpdateSimulation :exec
+UPDATE simulations SET name = ?, description = ?, settings = ?, status = ? WHERE id = ?
+`
+
+type UpdateSimulationParams struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	Settings    sql.NullString `json:"settings"`
+	Status      string         `json:"status"`
+	ID          int64          `json:"id"`
+}
+
+func (q *Queries) UpdateSimulation(ctx context.Context, arg UpdateSimulationParams) error {
+	_, err := q.db.ExecContext(ctx, updateSimulation,
+		arg.Name,
+		arg.Description,
+		arg.Settings,
+		arg.Status,
+		arg.ID,
+	)
+	return err
 }

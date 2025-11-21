@@ -10,7 +10,13 @@ import (
 
 type Querier interface {
 	GetConfig(ctx context.Context, id int64) (Config, error)
+	GetConfigByKey(ctx context.Context, key string) (Config, error)
+	GetDefaultPresetForMode(ctx context.Context, mode string) (ConfigPreset, error)
+	InsertConfig(ctx context.Context, arg InsertConfigParams) (Config, error)
+	InsertPreset(ctx context.Context, arg InsertPresetParams) (ConfigPreset, error)
 	ListConfigs(ctx context.Context, arg ListConfigsParams) ([]Config, error)
+	ListPresetsByMode(ctx context.Context, arg ListPresetsByModeParams) ([]ConfigPreset, error)
+	UpdateConfig(ctx context.Context, arg UpdateConfigParams) error
 }
 
 var _ Querier = (*Queries)(nil)

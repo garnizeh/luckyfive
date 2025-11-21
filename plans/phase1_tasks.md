@@ -20,6 +20,7 @@ Commits of note:
 - 527d9e3 — test(config/logger): add invalid concurrency and logger level tests
 
 Next immediate steps: configure sqlc + generate code & mocks (`Task 1.1.5`).
+Recent work: production-ready migrations were added for results, simulations, configs and finances; SQL query files were expanded with additional useful queries; sqlc generation and mock generation were executed and mocks were added to `internal/store/*/mock/`.
 
 Recent small wins:
 
@@ -1453,7 +1454,7 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 - [x] Task 1.1.2: Makefile created
 - [x] Task 1.1.3: Dependencies installed (including sqlc) and documented in `README.md`
 - [x] Task 1.1.4: Logging configured
-- [ ] Task 1.1.5: sqlc configured with Querier interfaces
+    - [x] Task 1.1.5: sqlc configured with Querier interfaces (queriers generated and mocks created)
 
 ### Sprint 1.2 (Days 4-7)
 - [ ] Task 1.2.1: Migration system working

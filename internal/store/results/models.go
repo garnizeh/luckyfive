@@ -9,24 +9,25 @@ import (
 )
 
 type Draw struct {
-	Contest  int64          `json:"contest"`
-	DrawDate string         `json:"draw_date"`
-	Bola1    sql.NullInt64  `json:"bola1"`
-	Bola2    sql.NullInt64  `json:"bola2"`
-	Bola3    sql.NullInt64  `json:"bola3"`
-	Bola4    sql.NullInt64  `json:"bola4"`
-	Bola5    sql.NullInt64  `json:"bola5"`
-	Source   sql.NullString `json:"source"`
-	RawRow   sql.NullString `json:"raw_row"`
+	Contest    int64          `json:"contest"`
+	DrawDate   string         `json:"draw_date"`
+	Bola1      int64          `json:"bola1"`
+	Bola2      int64          `json:"bola2"`
+	Bola3      int64          `json:"bola3"`
+	Bola4      int64          `json:"bola4"`
+	Bola5      int64          `json:"bola5"`
+	Source     sql.NullString `json:"source"`
+	ImportedAt string         `json:"imported_at"`
+	RawRow     sql.NullString `json:"raw_row"`
 }
 
 type ImportHistory struct {
 	ID           int64          `json:"id"`
 	Filename     string         `json:"filename"`
 	ImportedAt   string         `json:"imported_at"`
-	RowsInserted sql.NullInt64  `json:"rows_inserted"`
-	RowsSkipped  sql.NullInt64  `json:"rows_skipped"`
-	RowsErrors   sql.NullInt64  `json:"rows_errors"`
+	RowsInserted int64          `json:"rows_inserted"`
+	RowsSkipped  int64          `json:"rows_skipped"`
+	RowsErrors   int64          `json:"rows_errors"`
 	SourceHash   sql.NullString `json:"source_hash"`
 	Metadata     sql.NullString `json:"metadata"`
 }

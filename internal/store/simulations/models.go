@@ -4,7 +4,33 @@
 
 package simulations
 
+import (
+	"database/sql"
+)
+
+type AnalysisJob struct {
+	ID            int64          `json:"id"`
+	SimulationID  int64          `json:"simulation_id"`
+	StartedAt     sql.NullString `json:"started_at"`
+	FinishedAt    sql.NullString `json:"finished_at"`
+	Status        string         `json:"status"`
+	Worker        sql.NullString `json:"worker"`
+	ResultSummary sql.NullString `json:"result_summary"`
+}
+
 type Simulation struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID          int64          `json:"id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	CreatedAt   string         `json:"created_at"`
+	Settings    sql.NullString `json:"settings"`
+	Status      string         `json:"status"`
+}
+
+type SimulationContestResult struct {
+	ID           int64          `json:"id"`
+	SimulationID int64          `json:"simulation_id"`
+	Contest      int64          `json:"contest"`
+	ResultBlob   sql.NullString `json:"result_blob"`
+	CreatedAt    string         `json:"created_at"`
 }

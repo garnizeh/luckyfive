@@ -10,13 +10,17 @@ import (
 
 type Querier interface {
 	CountDraws(ctx context.Context) (int64, error)
+	CountDrawsBetweenDates(ctx context.Context, arg CountDrawsBetweenDatesParams) (int64, error)
+	DeleteDraw(ctx context.Context, contest int64) error
 	GetContestRange(ctx context.Context) (GetContestRangeRow, error)
 	// schema: migrations/001_create_results.sql
 	GetDraw(ctx context.Context, contest int64) (Draw, error)
+	GetDrawByDate(ctx context.Context, drawDate string) ([]Draw, error)
 	GetImportHistory(ctx context.Context, arg GetImportHistoryParams) ([]ImportHistory, error)
 	InsertDraw(ctx context.Context, arg InsertDrawParams) error
 	InsertImportHistory(ctx context.Context, arg InsertImportHistoryParams) (ImportHistory, error)
 	ListDraws(ctx context.Context, arg ListDrawsParams) ([]Draw, error)
+	ListDrawsByBall(ctx context.Context, arg ListDrawsByBallParams) ([]Draw, error)
 	ListDrawsByContestRange(ctx context.Context, arg ListDrawsByContestRangeParams) ([]Draw, error)
 	ListDrawsByDateRange(ctx context.Context, arg ListDrawsByDateRangeParams) ([]Draw, error)
 	UpsertDraw(ctx context.Context, arg UpsertDrawParams) error

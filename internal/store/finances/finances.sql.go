@@ -7,42 +7,102 @@ package finances
 
 import (
 	"context"
+	"database/sql"
 )
 
-const getFinance = `-- name: GetFinance :one
-SELECT id, account, balance FROM finances
+const getAccountBalance = `-- name: GetAccountBalance :one
+SELECT account, balance_cents, entries FROM financial_summary WHERE account = ?
+`
+
+func (q *Queries) GetAccountBalance(ctx context.Context, account string) (FinancialSummary, error) {
+	row := q.db.QueryRowContext(ctx, getAccountBalance, account)
+	var i FinancialSummary
+	err := row.Scan(&i.Account, &i.BalanceCents, &i.Entries)
+	return i, err
+}
+
+const getLedgerEntry = `-- name: GetLedgerEntry :one
+SELECT id, account, amount_cents, currency, description, created_at FROM ledger
 WHERE id = ?
 LIMIT 1
 `
 
-func (q *Queries) GetFinance(ctx context.Context, id int64) (Finance, error) {
-	row := q.db.QueryRowContext(ctx, getFinance, id)
-	var i Finance
-	err := row.Scan(&i.ID, &i.Account, &i.Balance)
+func (q *Queries) GetLedgerEntry(ctx context.Context, id int64) (Ledger, error) {
+	row := q.db.QueryRowContext(ctx, getLedgerEntry, id)
+	var i Ledger
+	err := row.Scan(
+		&i.ID,
+		&i.Account,
+		&i.AmountCents,
+		&i.Currency,
+		&i.Description,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
-const listFinances = `-- name: ListFinances :many
-SELECT id, account, balance FROM finances
-ORDER BY id DESC
+const insertLedgerEntry = `-- name: InsertLedgerEntry :one
+
+INSERT INTO ledger (account, amount_cents, currency, description)
+VALUES (?, ?, ?, ?)
+RETURNING id, account, amount_cents, currency, description, created_at
+`
+
+type InsertLedgerEntryParams struct {
+	Account     string         `json:"account"`
+	AmountCents int64          `json:"amount_cents"`
+	Currency    string         `json:"currency"`
+	Description sql.NullString `json:"description"`
+}
+
+// NOTE: ledger table used in production migration. The view `financial_summary` provides balances by account.
+func (q *Queries) InsertLedgerEntry(ctx context.Context, arg InsertLedgerEntryParams) (Ledger, error) {
+	row := q.db.QueryRowContext(ctx, insertLedgerEntry,
+		arg.Account,
+		arg.AmountCents,
+		arg.Currency,
+		arg.Description,
+	)
+	var i Ledger
+	err := row.Scan(
+		&i.ID,
+		&i.Account,
+		&i.AmountCents,
+		&i.Currency,
+		&i.Description,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listLedgerEntries = `-- name: ListLedgerEntries :many
+SELECT id, account, amount_cents, currency, description, created_at FROM ledger
+ORDER BY created_at DESC
 LIMIT ? OFFSET ?
 `
 
-type ListFinancesParams struct {
+type ListLedgerEntriesParams struct {
 	Limit  int64 `json:"limit"`
 	Offset int64 `json:"offset"`
 }
 
-func (q *Queries) ListFinances(ctx context.Context, arg ListFinancesParams) ([]Finance, error) {
-	rows, err := q.db.QueryContext(ctx, listFinances, arg.Limit, arg.Offset)
+func (q *Queries) ListLedgerEntries(ctx context.Context, arg ListLedgerEntriesParams) ([]Ledger, error) {
+	rows, err := q.db.QueryContext(ctx, listLedgerEntries, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Finance
+	var items []Ledger
 	for rows.Next() {
-		var i Finance
-		if err := rows.Scan(&i.ID, &i.Account, &i.Balance); err != nil {
+		var i Ledger
+		if err := rows.Scan(
+			&i.ID,
+			&i.Account,
+			&i.AmountCents,
+			&i.Currency,
+			&i.Description,
+			&i.CreatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -54,4 +114,60 @@ func (q *Queries) ListFinances(ctx context.Context, arg ListFinancesParams) ([]F
 		return nil, err
 	}
 	return items, nil
+}
+
+const listLedgerForAccount = `-- name: ListLedgerForAccount :many
+SELECT id, account, amount_cents, currency, description, created_at FROM ledger WHERE account = ? ORDER BY created_at DESC LIMIT ? OFFSET ?
+`
+
+type ListLedgerForAccountParams struct {
+	Account string `json:"account"`
+	Limit   int64  `json:"limit"`
+	Offset  int64  `json:"offset"`
+}
+
+func (q *Queries) ListLedgerForAccount(ctx context.Context, arg ListLedgerForAccountParams) ([]Ledger, error) {
+	rows, err := q.db.QueryContext(ctx, listLedgerForAccount, arg.Account, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Ledger
+	for rows.Next() {
+		var i Ledger
+		if err := rows.Scan(
+			&i.ID,
+			&i.Account,
+			&i.AmountCents,
+			&i.Currency,
+			&i.Description,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const sumLedgerBetweenDates = `-- name: SumLedgerBetweenDates :one
+SELECT SUM(amount_cents) FROM ledger WHERE created_at BETWEEN ? AND ?
+`
+
+type SumLedgerBetweenDatesParams struct {
+	FromCreatedAt string `json:"from_created_at"`
+	ToCreatedAt   string `json:"to_created_at"`
+}
+
+func (q *Queries) SumLedgerBetweenDates(ctx context.Context, arg SumLedgerBetweenDatesParams) (sql.NullFloat64, error) {
+	row := q.db.QueryRowContext(ctx, sumLedgerBetweenDates, arg.FromCreatedAt, arg.ToCreatedAt)
+	var sum sql.NullFloat64
+	err := row.Scan(&sum)
+	return sum, err
 }

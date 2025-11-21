@@ -9,8 +9,15 @@ import (
 )
 
 type Querier interface {
+	CreateAnalysisJob(ctx context.Context, arg CreateAnalysisJobParams) (AnalysisJob, error)
+	DeleteSimulation(ctx context.Context, id int64) error
 	GetSimulation(ctx context.Context, id int64) (Simulation, error)
+	InsertSimulation(ctx context.Context, arg InsertSimulationParams) (Simulation, error)
+	InsertSimulationResult(ctx context.Context, arg InsertSimulationResultParams) (SimulationContestResult, error)
+	ListAnalysisJobsBySimulation(ctx context.Context, arg ListAnalysisJobsBySimulationParams) ([]AnalysisJob, error)
+	ListSimulationResults(ctx context.Context, arg ListSimulationResultsParams) ([]SimulationContestResult, error)
 	ListSimulations(ctx context.Context, arg ListSimulationsParams) ([]Simulation, error)
+	UpdateSimulation(ctx context.Context, arg UpdateSimulationParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -58,3 +58,21 @@ RETURNING *;
 SELECT * FROM import_history
 ORDER BY imported_at DESC
 LIMIT ? OFFSET ?;
+
+-- name: GetDrawByDate :many
+SELECT * FROM draws
+WHERE draw_date = ?
+ORDER BY contest DESC;
+
+-- name: DeleteDraw :exec
+DELETE FROM draws WHERE contest = ?;
+
+-- name: ListDrawsByBall :many
+SELECT * FROM draws
+WHERE bola1 = ? OR bola2 = ? OR bola3 = ? OR bola4 = ? OR bola5 = ?
+ORDER BY contest DESC
+LIMIT ? OFFSET ?;
+
+-- name: CountDrawsBetweenDates :one
+SELECT COUNT(*) FROM draws
+WHERE draw_date BETWEEN ? AND ?;

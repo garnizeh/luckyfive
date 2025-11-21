@@ -7,10 +7,11 @@ package configs
 
 import (
 	"context"
+	"database/sql"
 )
 
 const getConfig = `-- name: GetConfig :one
-SELECT id, "key", value FROM configs
+SELECT id, "key", value, description, updated_at FROM configs
 WHERE id = ?
 LIMIT 1
 `
@@ -18,12 +19,110 @@ LIMIT 1
 func (q *Queries) GetConfig(ctx context.Context, id int64) (Config, error) {
 	row := q.db.QueryRowContext(ctx, getConfig, id)
 	var i Config
-	err := row.Scan(&i.ID, &i.Key, &i.Value)
+	err := row.Scan(
+		&i.ID,
+		&i.Key,
+		&i.Value,
+		&i.Description,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getConfigByKey = `-- name: GetConfigByKey :one
+SELECT id, "key", value, description, updated_at FROM configs WHERE key = ? LIMIT 1
+`
+
+func (q *Queries) GetConfigByKey(ctx context.Context, key string) (Config, error) {
+	row := q.db.QueryRowContext(ctx, getConfigByKey, key)
+	var i Config
+	err := row.Scan(
+		&i.ID,
+		&i.Key,
+		&i.Value,
+		&i.Description,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getDefaultPresetForMode = `-- name: GetDefaultPresetForMode :one
+SELECT id, name, mode, settings, is_default, created_at FROM config_presets WHERE mode = ? AND is_default = 1 LIMIT 1
+`
+
+func (q *Queries) GetDefaultPresetForMode(ctx context.Context, mode string) (ConfigPreset, error) {
+	row := q.db.QueryRowContext(ctx, getDefaultPresetForMode, mode)
+	var i ConfigPreset
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Mode,
+		&i.Settings,
+		&i.IsDefault,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const insertConfig = `-- name: InsertConfig :one
+INSERT INTO configs (key, value, description)
+VALUES (?, ?, ?)
+RETURNING id, "key", value, description, updated_at
+`
+
+type InsertConfigParams struct {
+	Key         string         `json:"key"`
+	Value       sql.NullString `json:"value"`
+	Description sql.NullString `json:"description"`
+}
+
+func (q *Queries) InsertConfig(ctx context.Context, arg InsertConfigParams) (Config, error) {
+	row := q.db.QueryRowContext(ctx, insertConfig, arg.Key, arg.Value, arg.Description)
+	var i Config
+	err := row.Scan(
+		&i.ID,
+		&i.Key,
+		&i.Value,
+		&i.Description,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertPreset = `-- name: InsertPreset :one
+INSERT INTO config_presets (name, mode, settings, is_default)
+VALUES (?, ?, ?, ?)
+RETURNING id, name, mode, settings, is_default, created_at
+`
+
+type InsertPresetParams struct {
+	Name      string `json:"name"`
+	Mode      string `json:"mode"`
+	Settings  string `json:"settings"`
+	IsDefault int64  `json:"is_default"`
+}
+
+func (q *Queries) InsertPreset(ctx context.Context, arg InsertPresetParams) (ConfigPreset, error) {
+	row := q.db.QueryRowContext(ctx, insertPreset,
+		arg.Name,
+		arg.Mode,
+		arg.Settings,
+		arg.IsDefault,
+	)
+	var i ConfigPreset
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Mode,
+		&i.Settings,
+		&i.IsDefault,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
 const listConfigs = `-- name: ListConfigs :many
-SELECT id, "key", value FROM configs
+SELECT id, "key", value, description, updated_at FROM configs
 ORDER BY id DESC
 LIMIT ? OFFSET ?
 `
@@ -42,7 +141,13 @@ func (q *Queries) ListConfigs(ctx context.Context, arg ListConfigsParams) ([]Con
 	var items []Config
 	for rows.Next() {
 		var i Config
-		if err := rows.Scan(&i.ID, &i.Key, &i.Value); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Key,
+			&i.Value,
+			&i.Description,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -54,4 +159,59 @@ func (q *Queries) ListConfigs(ctx context.Context, arg ListConfigsParams) ([]Con
 		return nil, err
 	}
 	return items, nil
+}
+
+const listPresetsByMode = `-- name: ListPresetsByMode :many
+SELECT id, name, mode, settings, is_default, created_at FROM config_presets WHERE mode = ? ORDER BY id DESC LIMIT ? OFFSET ?
+`
+
+type ListPresetsByModeParams struct {
+	Mode   string `json:"mode"`
+	Limit  int64  `json:"limit"`
+	Offset int64  `json:"offset"`
+}
+
+func (q *Queries) ListPresetsByMode(ctx context.Context, arg ListPresetsByModeParams) ([]ConfigPreset, error) {
+	rows, err := q.db.QueryContext(ctx, listPresetsByMode, arg.Mode, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ConfigPreset
+	for rows.Next() {
+		var i ConfigPreset
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Mode,
+			&i.Settings,
+			&i.IsDefault,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateConfig = `-- name: UpdateConfig :exec
+UPDATE configs SET value = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?
+`
+
+type UpdateConfigParams struct {
+	Value       sql.NullString `json:"value"`
+	Description sql.NullString `json:"description"`
+	Key         string         `json:"key"`
+}
+
+func (q *Queries) UpdateConfig(ctx context.Context, arg UpdateConfigParams) error {
+	_, err := q.db.ExecContext(ctx, updateConfig, arg.Value, arg.Description, arg.Key)
+	return err
 }

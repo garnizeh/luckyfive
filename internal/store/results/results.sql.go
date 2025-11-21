@@ -21,6 +21,32 @@ func (q *Queries) CountDraws(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countDrawsBetweenDates = `-- name: CountDrawsBetweenDates :one
+SELECT COUNT(*) FROM draws
+WHERE draw_date BETWEEN ? AND ?
+`
+
+type CountDrawsBetweenDatesParams struct {
+	FromDrawDate string `json:"from_draw_date"`
+	ToDrawDate   string `json:"to_draw_date"`
+}
+
+func (q *Queries) CountDrawsBetweenDates(ctx context.Context, arg CountDrawsBetweenDatesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countDrawsBetweenDates, arg.FromDrawDate, arg.ToDrawDate)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const deleteDraw = `-- name: DeleteDraw :exec
+DELETE FROM draws WHERE contest = ?
+`
+
+func (q *Queries) DeleteDraw(ctx context.Context, contest int64) error {
+	_, err := q.db.ExecContext(ctx, deleteDraw, contest)
+	return err
+}
+
 const getContestRange = `-- name: GetContestRange :one
 SELECT MIN(contest) as min_contest, MAX(contest) as max_contest
 FROM draws
@@ -40,7 +66,7 @@ func (q *Queries) GetContestRange(ctx context.Context) (GetContestRangeRow, erro
 
 const getDraw = `-- name: GetDraw :one
 
-SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, raw_row FROM draws
+SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, imported_at, raw_row FROM draws
 WHERE contest = ?
 LIMIT 1
 `
@@ -58,9 +84,50 @@ func (q *Queries) GetDraw(ctx context.Context, contest int64) (Draw, error) {
 		&i.Bola4,
 		&i.Bola5,
 		&i.Source,
+		&i.ImportedAt,
 		&i.RawRow,
 	)
 	return i, err
+}
+
+const getDrawByDate = `-- name: GetDrawByDate :many
+SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, imported_at, raw_row FROM draws
+WHERE draw_date = ?
+ORDER BY contest DESC
+`
+
+func (q *Queries) GetDrawByDate(ctx context.Context, drawDate string) ([]Draw, error) {
+	rows, err := q.db.QueryContext(ctx, getDrawByDate, drawDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Draw
+	for rows.Next() {
+		var i Draw
+		if err := rows.Scan(
+			&i.Contest,
+			&i.DrawDate,
+			&i.Bola1,
+			&i.Bola2,
+			&i.Bola3,
+			&i.Bola4,
+			&i.Bola5,
+			&i.Source,
+			&i.ImportedAt,
+			&i.RawRow,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getImportHistory = `-- name: GetImportHistory :many
@@ -115,11 +182,11 @@ INSERT INTO draws (
 type InsertDrawParams struct {
 	Contest  int64          `json:"contest"`
 	DrawDate string         `json:"draw_date"`
-	Bola1    sql.NullInt64  `json:"bola1"`
-	Bola2    sql.NullInt64  `json:"bola2"`
-	Bola3    sql.NullInt64  `json:"bola3"`
-	Bola4    sql.NullInt64  `json:"bola4"`
-	Bola5    sql.NullInt64  `json:"bola5"`
+	Bola1    int64          `json:"bola1"`
+	Bola2    int64          `json:"bola2"`
+	Bola3    int64          `json:"bola3"`
+	Bola4    int64          `json:"bola4"`
+	Bola5    int64          `json:"bola5"`
 	Source   sql.NullString `json:"source"`
 	RawRow   sql.NullString `json:"raw_row"`
 }
@@ -148,9 +215,9 @@ RETURNING id, filename, imported_at, rows_inserted, rows_skipped, rows_errors, s
 
 type InsertImportHistoryParams struct {
 	Filename     string         `json:"filename"`
-	RowsInserted sql.NullInt64  `json:"rows_inserted"`
-	RowsSkipped  sql.NullInt64  `json:"rows_skipped"`
-	RowsErrors   sql.NullInt64  `json:"rows_errors"`
+	RowsInserted int64          `json:"rows_inserted"`
+	RowsSkipped  int64          `json:"rows_skipped"`
+	RowsErrors   int64          `json:"rows_errors"`
 	SourceHash   sql.NullString `json:"source_hash"`
 	Metadata     sql.NullString `json:"metadata"`
 }
@@ -179,7 +246,7 @@ func (q *Queries) InsertImportHistory(ctx context.Context, arg InsertImportHisto
 }
 
 const listDraws = `-- name: ListDraws :many
-SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, raw_row FROM draws
+SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, imported_at, raw_row FROM draws
 ORDER BY contest DESC
 LIMIT ? OFFSET ?
 `
@@ -207,6 +274,66 @@ func (q *Queries) ListDraws(ctx context.Context, arg ListDrawsParams) ([]Draw, e
 			&i.Bola4,
 			&i.Bola5,
 			&i.Source,
+			&i.ImportedAt,
+			&i.RawRow,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDrawsByBall = `-- name: ListDrawsByBall :many
+SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, imported_at, raw_row FROM draws
+WHERE bola1 = ? OR bola2 = ? OR bola3 = ? OR bola4 = ? OR bola5 = ?
+ORDER BY contest DESC
+LIMIT ? OFFSET ?
+`
+
+type ListDrawsByBallParams struct {
+	Bola1  int64 `json:"bola1"`
+	Bola2  int64 `json:"bola2"`
+	Bola3  int64 `json:"bola3"`
+	Bola4  int64 `json:"bola4"`
+	Bola5  int64 `json:"bola5"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
+}
+
+func (q *Queries) ListDrawsByBall(ctx context.Context, arg ListDrawsByBallParams) ([]Draw, error) {
+	rows, err := q.db.QueryContext(ctx, listDrawsByBall,
+		arg.Bola1,
+		arg.Bola2,
+		arg.Bola3,
+		arg.Bola4,
+		arg.Bola5,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Draw
+	for rows.Next() {
+		var i Draw
+		if err := rows.Scan(
+			&i.Contest,
+			&i.DrawDate,
+			&i.Bola1,
+			&i.Bola2,
+			&i.Bola3,
+			&i.Bola4,
+			&i.Bola5,
+			&i.Source,
+			&i.ImportedAt,
 			&i.RawRow,
 		); err != nil {
 			return nil, err
@@ -223,7 +350,7 @@ func (q *Queries) ListDraws(ctx context.Context, arg ListDrawsParams) ([]Draw, e
 }
 
 const listDrawsByContestRange = `-- name: ListDrawsByContestRange :many
-SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, raw_row FROM draws
+SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, imported_at, raw_row FROM draws
 WHERE contest BETWEEN ? AND ?
 ORDER BY contest ASC
 `
@@ -251,6 +378,7 @@ func (q *Queries) ListDrawsByContestRange(ctx context.Context, arg ListDrawsByCo
 			&i.Bola4,
 			&i.Bola5,
 			&i.Source,
+			&i.ImportedAt,
 			&i.RawRow,
 		); err != nil {
 			return nil, err
@@ -267,7 +395,7 @@ func (q *Queries) ListDrawsByContestRange(ctx context.Context, arg ListDrawsByCo
 }
 
 const listDrawsByDateRange = `-- name: ListDrawsByDateRange :many
-SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, raw_row FROM draws
+SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, imported_at, raw_row FROM draws
 WHERE draw_date BETWEEN ? AND ?
 ORDER BY contest DESC
 LIMIT ? OFFSET ?
@@ -303,6 +431,7 @@ func (q *Queries) ListDrawsByDateRange(ctx context.Context, arg ListDrawsByDateR
 			&i.Bola4,
 			&i.Bola5,
 			&i.Source,
+			&i.ImportedAt,
 			&i.RawRow,
 		); err != nil {
 			return nil, err
@@ -337,11 +466,11 @@ ON CONFLICT(contest) DO UPDATE SET
 type UpsertDrawParams struct {
 	Contest  int64          `json:"contest"`
 	DrawDate string         `json:"draw_date"`
-	Bola1    sql.NullInt64  `json:"bola1"`
-	Bola2    sql.NullInt64  `json:"bola2"`
-	Bola3    sql.NullInt64  `json:"bola3"`
-	Bola4    sql.NullInt64  `json:"bola4"`
-	Bola5    sql.NullInt64  `json:"bola5"`
+	Bola1    int64          `json:"bola1"`
+	Bola2    int64          `json:"bola2"`
+	Bola3    int64          `json:"bola3"`
+	Bola4    int64          `json:"bola4"`
+	Bola5    int64          `json:"bola5"`
 	Source   sql.NullString `json:"source"`
 	RawRow   sql.NullString `json:"raw_row"`
 }

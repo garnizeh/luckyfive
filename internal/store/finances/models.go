@@ -4,8 +4,21 @@
 
 package finances
 
-type Finance struct {
-	ID      int64  `json:"id"`
-	Account string `json:"account"`
-	Balance int64  `json:"balance"`
+import (
+	"database/sql"
+)
+
+type FinancialSummary struct {
+	Account      string          `json:"account"`
+	BalanceCents sql.NullFloat64 `json:"balance_cents"`
+	Entries      int64           `json:"entries"`
+}
+
+type Ledger struct {
+	ID          int64          `json:"id"`
+	Account     string         `json:"account"`
+	AmountCents int64          `json:"amount_cents"`
+	Currency    string         `json:"currency"`
+	Description sql.NullString `json:"description"`
+	CreatedAt   string         `json:"created_at"`
 }

@@ -3,6 +3,7 @@ module github.com/garnizeh/luckyfive
 go 1.25.3
 
 require (
+	github.com/golang/mock v1.6.0
 	github.com/xuri/excelize/v2 v2.10.0
 	golang.org/x/sync v0.18.0
 	modernc.org/sqlite v1.40.1

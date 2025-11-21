@@ -6,11 +6,17 @@ package finances
 
 import (
 	"context"
+	"database/sql"
 )
 
 type Querier interface {
-	GetFinance(ctx context.Context, id int64) (Finance, error)
-	ListFinances(ctx context.Context, arg ListFinancesParams) ([]Finance, error)
+	GetAccountBalance(ctx context.Context, account string) (FinancialSummary, error)
+	GetLedgerEntry(ctx context.Context, id int64) (Ledger, error)
+	// NOTE: ledger table used in production migration. The view `financial_summary` provides balances by account.
+	InsertLedgerEntry(ctx context.Context, arg InsertLedgerEntryParams) (Ledger, error)
+	ListLedgerEntries(ctx context.Context, arg ListLedgerEntriesParams) ([]Ledger, error)
+	ListLedgerForAccount(ctx context.Context, arg ListLedgerForAccountParams) ([]Ledger, error)
+	SumLedgerBetweenDates(ctx context.Context, arg SumLedgerBetweenDatesParams) (sql.NullFloat64, error)
 }
 
 var _ Querier = (*Queries)(nil)
