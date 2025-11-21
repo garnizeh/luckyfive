@@ -6,6 +6,7 @@ package mock
 
 import (
 	context "context"
+	sql "database/sql"
 	reflect "reflect"
 
 	simulations "github.com/garnizeh/luckyfive/internal/store/simulations"
@@ -35,19 +36,63 @@ func (m *MockQuerier) EXPECT() *MockQuerierMockRecorder {
 	return m.recorder
 }
 
-// CreateAnalysisJob mocks base method.
-func (m *MockQuerier) CreateAnalysisJob(ctx context.Context, arg simulations.CreateAnalysisJobParams) (simulations.AnalysisJob, error) {
+// CountAnalysisJobs mocks base method.
+func (m *MockQuerier) CountAnalysisJobs(ctx context.Context) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAnalysisJob", ctx, arg)
-	ret0, _ := ret[0].(simulations.AnalysisJob)
+	ret := m.ctrl.Call(m, "CountAnalysisJobs", ctx)
+	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// CreateAnalysisJob indicates an expected call of CreateAnalysisJob.
-func (mr *MockQuerierMockRecorder) CreateAnalysisJob(ctx, arg interface{}) *gomock.Call {
+// CountAnalysisJobs indicates an expected call of CountAnalysisJobs.
+func (mr *MockQuerierMockRecorder) CountAnalysisJobs(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAnalysisJob", reflect.TypeOf((*MockQuerier)(nil).CreateAnalysisJob), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountAnalysisJobs", reflect.TypeOf((*MockQuerier)(nil).CountAnalysisJobs), ctx)
+}
+
+// CountSimulationContestResults mocks base method.
+func (m *MockQuerier) CountSimulationContestResults(ctx context.Context, simulationID int64) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountSimulationContestResults", ctx, simulationID)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountSimulationContestResults indicates an expected call of CountSimulationContestResults.
+func (mr *MockQuerierMockRecorder) CountSimulationContestResults(ctx, simulationID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountSimulationContestResults", reflect.TypeOf((*MockQuerier)(nil).CountSimulationContestResults), ctx, simulationID)
+}
+
+// CountSimulations mocks base method.
+func (m *MockQuerier) CountSimulations(ctx context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountSimulations", ctx)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountSimulations indicates an expected call of CountSimulations.
+func (mr *MockQuerierMockRecorder) CountSimulations(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountSimulations", reflect.TypeOf((*MockQuerier)(nil).CountSimulations), ctx)
+}
+
+// DeleteAnalysisJob mocks base method.
+func (m *MockQuerier) DeleteAnalysisJob(ctx context.Context, id int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAnalysisJob", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAnalysisJob indicates an expected call of DeleteAnalysisJob.
+func (mr *MockQuerierMockRecorder) DeleteAnalysisJob(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAnalysisJob", reflect.TypeOf((*MockQuerier)(nil).DeleteAnalysisJob), ctx, id)
 }
 
 // DeleteSimulation mocks base method.
@@ -62,6 +107,21 @@ func (m *MockQuerier) DeleteSimulation(ctx context.Context, id int64) error {
 func (mr *MockQuerierMockRecorder) DeleteSimulation(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSimulation", reflect.TypeOf((*MockQuerier)(nil).DeleteSimulation), ctx, id)
+}
+
+// GetAnalysisJob mocks base method.
+func (m *MockQuerier) GetAnalysisJob(ctx context.Context, id int64) (simulations.AnalysisJob, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAnalysisJob", ctx, id)
+	ret0, _ := ret[0].(simulations.AnalysisJob)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAnalysisJob indicates an expected call of GetAnalysisJob.
+func (mr *MockQuerierMockRecorder) GetAnalysisJob(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnalysisJob", reflect.TypeOf((*MockQuerier)(nil).GetAnalysisJob), ctx, id)
 }
 
 // GetSimulation mocks base method.
@@ -79,6 +139,51 @@ func (mr *MockQuerierMockRecorder) GetSimulation(ctx, id interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSimulation", reflect.TypeOf((*MockQuerier)(nil).GetSimulation), ctx, id)
 }
 
+// GetSimulationByRecipeName mocks base method.
+func (m *MockQuerier) GetSimulationByRecipeName(ctx context.Context, recipeName sql.NullString) (simulations.Simulation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSimulationByRecipeName", ctx, recipeName)
+	ret0, _ := ret[0].(simulations.Simulation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSimulationByRecipeName indicates an expected call of GetSimulationByRecipeName.
+func (mr *MockQuerierMockRecorder) GetSimulationByRecipeName(ctx, recipeName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSimulationByRecipeName", reflect.TypeOf((*MockQuerier)(nil).GetSimulationByRecipeName), ctx, recipeName)
+}
+
+// GetSimulationContestResult mocks base method.
+func (m *MockQuerier) GetSimulationContestResult(ctx context.Context, arg simulations.GetSimulationContestResultParams) (simulations.SimulationContestResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSimulationContestResult", ctx, arg)
+	ret0, _ := ret[0].(simulations.SimulationContestResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSimulationContestResult indicates an expected call of GetSimulationContestResult.
+func (mr *MockQuerierMockRecorder) GetSimulationContestResult(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSimulationContestResult", reflect.TypeOf((*MockQuerier)(nil).GetSimulationContestResult), ctx, arg)
+}
+
+// InsertAnalysisJob mocks base method.
+func (m *MockQuerier) InsertAnalysisJob(ctx context.Context, arg simulations.InsertAnalysisJobParams) (simulations.AnalysisJob, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertAnalysisJob", ctx, arg)
+	ret0, _ := ret[0].(simulations.AnalysisJob)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InsertAnalysisJob indicates an expected call of InsertAnalysisJob.
+func (mr *MockQuerierMockRecorder) InsertAnalysisJob(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertAnalysisJob", reflect.TypeOf((*MockQuerier)(nil).InsertAnalysisJob), ctx, arg)
+}
+
 // InsertSimulation mocks base method.
 func (m *MockQuerier) InsertSimulation(ctx context.Context, arg simulations.InsertSimulationParams) (simulations.Simulation, error) {
 	m.ctrl.T.Helper()
@@ -94,49 +199,94 @@ func (mr *MockQuerierMockRecorder) InsertSimulation(ctx, arg interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertSimulation", reflect.TypeOf((*MockQuerier)(nil).InsertSimulation), ctx, arg)
 }
 
-// InsertSimulationResult mocks base method.
-func (m *MockQuerier) InsertSimulationResult(ctx context.Context, arg simulations.InsertSimulationResultParams) (simulations.SimulationContestResult, error) {
+// InsertSimulationContestResult mocks base method.
+func (m *MockQuerier) InsertSimulationContestResult(ctx context.Context, arg simulations.InsertSimulationContestResultParams) (simulations.SimulationContestResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InsertSimulationResult", ctx, arg)
+	ret := m.ctrl.Call(m, "InsertSimulationContestResult", ctx, arg)
 	ret0, _ := ret[0].(simulations.SimulationContestResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// InsertSimulationResult indicates an expected call of InsertSimulationResult.
-func (mr *MockQuerierMockRecorder) InsertSimulationResult(ctx, arg interface{}) *gomock.Call {
+// InsertSimulationContestResult indicates an expected call of InsertSimulationContestResult.
+func (mr *MockQuerierMockRecorder) InsertSimulationContestResult(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertSimulationResult", reflect.TypeOf((*MockQuerier)(nil).InsertSimulationResult), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertSimulationContestResult", reflect.TypeOf((*MockQuerier)(nil).InsertSimulationContestResult), ctx, arg)
 }
 
-// ListAnalysisJobsBySimulation mocks base method.
-func (m *MockQuerier) ListAnalysisJobsBySimulation(ctx context.Context, arg simulations.ListAnalysisJobsBySimulationParams) ([]simulations.AnalysisJob, error) {
+// ListAnalysisJobs mocks base method.
+func (m *MockQuerier) ListAnalysisJobs(ctx context.Context, arg simulations.ListAnalysisJobsParams) ([]simulations.AnalysisJob, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAnalysisJobsBySimulation", ctx, arg)
+	ret := m.ctrl.Call(m, "ListAnalysisJobs", ctx, arg)
 	ret0, _ := ret[0].([]simulations.AnalysisJob)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListAnalysisJobsBySimulation indicates an expected call of ListAnalysisJobsBySimulation.
-func (mr *MockQuerierMockRecorder) ListAnalysisJobsBySimulation(ctx, arg interface{}) *gomock.Call {
+// ListAnalysisJobs indicates an expected call of ListAnalysisJobs.
+func (mr *MockQuerierMockRecorder) ListAnalysisJobs(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAnalysisJobsBySimulation", reflect.TypeOf((*MockQuerier)(nil).ListAnalysisJobsBySimulation), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAnalysisJobs", reflect.TypeOf((*MockQuerier)(nil).ListAnalysisJobs), ctx, arg)
 }
 
-// ListSimulationResults mocks base method.
-func (m *MockQuerier) ListSimulationResults(ctx context.Context, arg simulations.ListSimulationResultsParams) ([]simulations.SimulationContestResult, error) {
+// ListAnalysisJobsByStatus mocks base method.
+func (m *MockQuerier) ListAnalysisJobsByStatus(ctx context.Context, arg simulations.ListAnalysisJobsByStatusParams) ([]simulations.AnalysisJob, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListSimulationResults", ctx, arg)
+	ret := m.ctrl.Call(m, "ListAnalysisJobsByStatus", ctx, arg)
+	ret0, _ := ret[0].([]simulations.AnalysisJob)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAnalysisJobsByStatus indicates an expected call of ListAnalysisJobsByStatus.
+func (mr *MockQuerierMockRecorder) ListAnalysisJobsByStatus(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAnalysisJobsByStatus", reflect.TypeOf((*MockQuerier)(nil).ListAnalysisJobsByStatus), ctx, arg)
+}
+
+// ListAnalysisJobsByType mocks base method.
+func (m *MockQuerier) ListAnalysisJobsByType(ctx context.Context, arg simulations.ListAnalysisJobsByTypeParams) ([]simulations.AnalysisJob, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAnalysisJobsByType", ctx, arg)
+	ret0, _ := ret[0].([]simulations.AnalysisJob)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAnalysisJobsByType indicates an expected call of ListAnalysisJobsByType.
+func (mr *MockQuerierMockRecorder) ListAnalysisJobsByType(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAnalysisJobsByType", reflect.TypeOf((*MockQuerier)(nil).ListAnalysisJobsByType), ctx, arg)
+}
+
+// ListSimulationContestResults mocks base method.
+func (m *MockQuerier) ListSimulationContestResults(ctx context.Context, arg simulations.ListSimulationContestResultsParams) ([]simulations.SimulationContestResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSimulationContestResults", ctx, arg)
 	ret0, _ := ret[0].([]simulations.SimulationContestResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListSimulationResults indicates an expected call of ListSimulationResults.
-func (mr *MockQuerierMockRecorder) ListSimulationResults(ctx, arg interface{}) *gomock.Call {
+// ListSimulationContestResults indicates an expected call of ListSimulationContestResults.
+func (mr *MockQuerierMockRecorder) ListSimulationContestResults(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSimulationResults", reflect.TypeOf((*MockQuerier)(nil).ListSimulationResults), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSimulationContestResults", reflect.TypeOf((*MockQuerier)(nil).ListSimulationContestResults), ctx, arg)
+}
+
+// ListSimulationContestResultsByHits mocks base method.
+func (m *MockQuerier) ListSimulationContestResultsByHits(ctx context.Context, arg simulations.ListSimulationContestResultsByHitsParams) ([]simulations.SimulationContestResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSimulationContestResultsByHits", ctx, arg)
+	ret0, _ := ret[0].([]simulations.SimulationContestResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSimulationContestResultsByHits indicates an expected call of ListSimulationContestResultsByHits.
+func (mr *MockQuerierMockRecorder) ListSimulationContestResultsByHits(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSimulationContestResultsByHits", reflect.TypeOf((*MockQuerier)(nil).ListSimulationContestResultsByHits), ctx, arg)
 }
 
 // ListSimulations mocks base method.
@@ -154,16 +304,102 @@ func (mr *MockQuerierMockRecorder) ListSimulations(ctx, arg interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSimulations", reflect.TypeOf((*MockQuerier)(nil).ListSimulations), ctx, arg)
 }
 
-// UpdateSimulation mocks base method.
-func (m *MockQuerier) UpdateSimulation(ctx context.Context, arg simulations.UpdateSimulationParams) error {
+// ListSimulationsByMode mocks base method.
+func (m *MockQuerier) ListSimulationsByMode(ctx context.Context, arg simulations.ListSimulationsByModeParams) ([]simulations.Simulation, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSimulation", ctx, arg)
+	ret := m.ctrl.Call(m, "ListSimulationsByMode", ctx, arg)
+	ret0, _ := ret[0].([]simulations.Simulation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSimulationsByMode indicates an expected call of ListSimulationsByMode.
+func (mr *MockQuerierMockRecorder) ListSimulationsByMode(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSimulationsByMode", reflect.TypeOf((*MockQuerier)(nil).ListSimulationsByMode), ctx, arg)
+}
+
+// ListSimulationsByStatus mocks base method.
+func (m *MockQuerier) ListSimulationsByStatus(ctx context.Context, arg simulations.ListSimulationsByStatusParams) ([]simulations.Simulation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListSimulationsByStatus", ctx, arg)
+	ret0, _ := ret[0].([]simulations.Simulation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSimulationsByStatus indicates an expected call of ListSimulationsByStatus.
+func (mr *MockQuerierMockRecorder) ListSimulationsByStatus(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSimulationsByStatus", reflect.TypeOf((*MockQuerier)(nil).ListSimulationsByStatus), ctx, arg)
+}
+
+// UpdateAnalysisJobArtifacts mocks base method.
+func (m *MockQuerier) UpdateAnalysisJobArtifacts(ctx context.Context, arg simulations.UpdateAnalysisJobArtifactsParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAnalysisJobArtifacts", ctx, arg)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateSimulation indicates an expected call of UpdateSimulation.
-func (mr *MockQuerierMockRecorder) UpdateSimulation(ctx, arg interface{}) *gomock.Call {
+// UpdateAnalysisJobArtifacts indicates an expected call of UpdateAnalysisJobArtifacts.
+func (mr *MockQuerierMockRecorder) UpdateAnalysisJobArtifacts(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSimulation", reflect.TypeOf((*MockQuerier)(nil).UpdateSimulation), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAnalysisJobArtifacts", reflect.TypeOf((*MockQuerier)(nil).UpdateAnalysisJobArtifacts), ctx, arg)
+}
+
+// UpdateAnalysisJobProgress mocks base method.
+func (m *MockQuerier) UpdateAnalysisJobProgress(ctx context.Context, arg simulations.UpdateAnalysisJobProgressParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAnalysisJobProgress", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateAnalysisJobProgress indicates an expected call of UpdateAnalysisJobProgress.
+func (mr *MockQuerierMockRecorder) UpdateAnalysisJobProgress(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAnalysisJobProgress", reflect.TypeOf((*MockQuerier)(nil).UpdateAnalysisJobProgress), ctx, arg)
+}
+
+// UpdateAnalysisJobStatus mocks base method.
+func (m *MockQuerier) UpdateAnalysisJobStatus(ctx context.Context, arg simulations.UpdateAnalysisJobStatusParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAnalysisJobStatus", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateAnalysisJobStatus indicates an expected call of UpdateAnalysisJobStatus.
+func (mr *MockQuerierMockRecorder) UpdateAnalysisJobStatus(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAnalysisJobStatus", reflect.TypeOf((*MockQuerier)(nil).UpdateAnalysisJobStatus), ctx, arg)
+}
+
+// UpdateSimulationArtifacts mocks base method.
+func (m *MockQuerier) UpdateSimulationArtifacts(ctx context.Context, arg simulations.UpdateSimulationArtifactsParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSimulationArtifacts", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSimulationArtifacts indicates an expected call of UpdateSimulationArtifacts.
+func (mr *MockQuerierMockRecorder) UpdateSimulationArtifacts(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSimulationArtifacts", reflect.TypeOf((*MockQuerier)(nil).UpdateSimulationArtifacts), ctx, arg)
+}
+
+// UpdateSimulationStatus mocks base method.
+func (m *MockQuerier) UpdateSimulationStatus(ctx context.Context, arg simulations.UpdateSimulationStatusParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSimulationStatus", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSimulationStatus indicates an expected call of UpdateSimulationStatus.
+func (mr *MockQuerierMockRecorder) UpdateSimulationStatus(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSimulationStatus", reflect.TypeOf((*MockQuerier)(nil).UpdateSimulationStatus), ctx, arg)
 }

@@ -9,13 +9,17 @@ import (
 )
 
 type Querier interface {
+	DeleteConfig(ctx context.Context, id int64) error
+	// schema: migrations/003_create_configs.sql
 	GetConfig(ctx context.Context, id int64) (Config, error)
-	GetConfigByKey(ctx context.Context, key string) (Config, error)
-	GetDefaultPresetForMode(ctx context.Context, mode string) (ConfigPreset, error)
+	GetConfigByName(ctx context.Context, name string) (Config, error)
+	GetConfigPresetByName(ctx context.Context, name string) (ConfigPreset, error)
+	GetConfigPresets(ctx context.Context) ([]ConfigPreset, error)
+	GetDefaultConfigForMode(ctx context.Context, mode string) (Config, error)
 	InsertConfig(ctx context.Context, arg InsertConfigParams) (Config, error)
-	InsertPreset(ctx context.Context, arg InsertPresetParams) (ConfigPreset, error)
 	ListConfigs(ctx context.Context, arg ListConfigsParams) ([]Config, error)
-	ListPresetsByMode(ctx context.Context, arg ListPresetsByModeParams) ([]ConfigPreset, error)
+	ListConfigsByMode(ctx context.Context, arg ListConfigsByModeParams) ([]Config, error)
+	SetConfigAsDefault(ctx context.Context, arg SetConfigAsDefaultParams) error
 	UpdateConfig(ctx context.Context, arg UpdateConfigParams) error
 }
 

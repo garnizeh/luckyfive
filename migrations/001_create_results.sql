@@ -1,3 +1,8 @@
+-- Migration: 001_create_results.sql
+-- Creates tables for results.db: draws, import_history
+
+-- Up migration
+
 -- Production-ready schema for results DB
 -- Creates draws table with data integrity checks and import history tracking
 CREATE TABLE IF NOT EXISTS draws (
@@ -29,8 +34,8 @@ CREATE TABLE IF NOT EXISTS import_history (
   metadata TEXT
 );
 
--- Down migrations (kept as comments for manual migration runner)
--- DROP INDEX IF EXISTS idx_draws_draw_date;
+-- Down migration
 -- DROP INDEX IF EXISTS idx_draws_imported_at;
+-- DROP INDEX IF EXISTS idx_draws_draw_date;
 -- DROP TABLE IF EXISTS import_history;
 -- DROP TABLE IF EXISTS draws;

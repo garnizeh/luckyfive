@@ -10,17 +10,26 @@ import (
 
 type Config struct {
 	ID          int64          `json:"id"`
-	Key         string         `json:"key"`
-	Value       sql.NullString `json:"value"`
+	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
+	RecipeJson  string         `json:"recipe_json"`
+	Tags        sql.NullString `json:"tags"`
+	IsDefault   sql.NullInt64  `json:"is_default"`
+	Mode        string         `json:"mode"`
+	CreatedAt   string         `json:"created_at"`
 	UpdatedAt   string         `json:"updated_at"`
+	CreatedBy   sql.NullString `json:"created_by"`
+	TimesUsed   sql.NullInt64  `json:"times_used"`
+	LastUsedAt  sql.NullString `json:"last_used_at"`
 }
 
 type ConfigPreset struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	Mode      string `json:"mode"`
-	Settings  string `json:"settings"`
-	IsDefault int64  `json:"is_default"`
-	CreatedAt string `json:"created_at"`
+	ID          int64          `json:"id"`
+	Name        string         `json:"name"`
+	DisplayName string         `json:"display_name"`
+	Description sql.NullString `json:"description"`
+	RecipeJson  string         `json:"recipe_json"`
+	RiskLevel   sql.NullString `json:"risk_level"`
+	IsActive    sql.NullInt64  `json:"is_active"`
+	SortOrder   sql.NullInt64  `json:"sort_order"`
 }

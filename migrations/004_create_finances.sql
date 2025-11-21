@@ -1,3 +1,8 @@
+-- Migration: 004_create_finances.sql
+-- Creates tables for finances.db: ledger, financial_summary view
+
+-- Up migration
+
 -- Production-ready schema for finances DB
 CREATE TABLE IF NOT EXISTS ledger (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

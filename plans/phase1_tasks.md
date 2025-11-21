@@ -450,6 +450,7 @@ Create database migration system for managing schema versions.
 2. Migration tracking table (`schema_migrations`) is created by the migrator on demand.
 3. `cmd/migrate/main.go` added and supports `up`, `down`, `version`, `-only` and `-file` flags.
 4. Migration loading from `migrations/` is implemented; the CLI also supports per-DB subdirectories (`migrations/<dbname>/`) when present.
+5. Migration files follow consistent format: `-- Migration: XXX_create_YYY.sql` header, `-- Up migration` and `-- Down migration` sections, with proper DROP INDEX statements in down migrations.
 
 **Testing performed:**
 - Ran `./bin/migrate up` to create DB files under `data/db/` and apply migrations.
@@ -477,7 +478,13 @@ Create migrations for `results.db` and SQL queries for sqlc generation.
 **Subtasks:**
 1. Create `migrations/001_create_results.sql`:
    ```sql
+   -- Migration: 001_create_results.sql
+   -- Creates tables for results.db: draws, import_history
+   
    -- Up migration
+   
+   -- Production-ready schema for results DB
+   -- Creates draws table with data integrity checks and import history tracking
    CREATE TABLE IF NOT EXISTS draws (
      contest INTEGER PRIMARY KEY,
      draw_date TEXT NOT NULL,
@@ -489,28 +496,103 @@ Create migrations for `results.db` and SQL queries for sqlc generation.
      source TEXT,
      imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
      raw_row TEXT,
-     
+     -- ensure ascending order of balls when inserted (application should also enforce)
      CHECK(bola1 < bola2 AND bola2 < bola3 AND bola3 < bola4 AND bola4 < bola5)
    );
    
-   CREATE INDEX IF NOT EXISTS idx_draws_date ON draws(draw_date);
-   CREATE INDEX IF NOT EXISTS idx_draws_imported ON draws(imported_at);
+   CREATE INDEX IF NOT EXISTS idx_draws_draw_date ON draws(draw_date);
+   CREATE INDEX IF NOT EXISTS idx_draws_imported_at ON draws(imported_at);
    
    CREATE TABLE IF NOT EXISTS import_history (
      id INTEGER PRIMARY KEY AUTOINCREMENT,
      filename TEXT NOT NULL,
      imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-     rows_inserted INTEGER NOT NULL,
-     rows_skipped INTEGER NOT NULL,
-     rows_errors INTEGER NOT NULL,
+     rows_inserted INTEGER NOT NULL DEFAULT 0,
+     rows_skipped INTEGER NOT NULL DEFAULT 0,
+     rows_errors INTEGER NOT NULL DEFAULT 0,
      source_hash TEXT,
      metadata TEXT
    );
    
    -- Down migration
-   -- DROP TABLE IF EXISTS draws;
+   -- DROP INDEX IF EXISTS idx_draws_imported_at;
+   -- DROP INDEX IF EXISTS idx_draws_draw_date;
    -- DROP TABLE IF EXISTS import_history;
+   -- DROP TABLE IF EXISTS draws;
    ```
+
+2. Create `internal/store/queries/results.sql`:
+   ```sql
+   -- schema: migrations/001_create_results.sql
+   
+   -- name: GetDraw :one
+   SELECT * FROM draws
+   WHERE contest = ?
+   LIMIT 1;
+   
+   -- name: ListDraws :many
+   SELECT * FROM draws
+   ORDER BY contest DESC
+   LIMIT ? OFFSET ?;
+   
+   -- name: ListDrawsByDateRange :many
+   SELECT * FROM draws
+   WHERE draw_date BETWEEN ? AND ?
+   ORDER BY contest DESC
+   LIMIT ? OFFSET ?;
+   
+   -- name: ListDrawsByContestRange :many
+   SELECT * FROM draws
+   WHERE contest BETWEEN ? AND ?
+   ORDER BY contest ASC;
+   
+   -- name: InsertDraw :exec
+   INSERT INTO draws (
+     contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, raw_row
+   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+   
+   -- name: UpsertDraw :exec
+   INSERT INTO draws (
+     contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, raw_row
+   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+   ON CONFLICT(contest) DO UPDATE SET
+     draw_date = excluded.draw_date,
+     bola1 = excluded.bola1,
+     bola2 = excluded.bola2,
+     bola3 = excluded.bola3,
+     bola4 = excluded.bola4,
+     bola5 = excluded.bola5,
+     source = excluded.source,
+     raw_row = excluded.raw_row,
+     imported_at = CURRENT_TIMESTAMP;
+   
+   -- name: CountDraws :one
+   SELECT COUNT(*) FROM draws;
+   
+   -- name: GetContestRange :one
+   SELECT MIN(contest) as min_contest, MAX(contest) as max_contest
+   FROM draws;
+   
+   -- name: InsertImportHistory :one
+   INSERT INTO import_history (
+     filename, rows_inserted, rows_skipped, rows_errors, source_hash, metadata
+   ) VALUES (?, ?, ?, ?, ?, ?)
+   RETURNING *;
+   
+   -- name: GetImportHistory :many
+   SELECT * FROM import_history
+   ORDER BY imported_at DESC
+   LIMIT ? OFFSET ?;
+   ```
+
+3. Test migration with `make migrate`
+4. Run `make generate` to create Go code
+
+**Testing:**
+- Tables created successfully
+- Constraints enforce data integrity
+- Indexes exist
+- sqlc generates Querier interface
 
 2. Create `internal/store/queries/results.sql`:
    ```sql
@@ -586,7 +668,7 @@ Create migrations for `results.db` and SQL queries for sqlc generation.
 ---
 
 #### Task 1.2.3: Simulations Database Schema
-**Status:** In progress — initial table definitions and indexes are being implemented; next steps are FK and cascade tests.
+**Status:** Completed — schema updated to match design doc v2, sqlc queries regenerated, indexes included in down migration.
 **Effort:** 4 hours  
 **Priority:** Critical  
 **Assignee:** Dev 1
@@ -595,10 +677,10 @@ Create migrations for `results.db` and SQL queries for sqlc generation.
 Create migrations for `simulations.db`.
 
 **Acceptance Criteria:**
-- [ ] `simulations` table created
-- [ ] `simulation_contest_results` table created
-- [ ] `analysis_jobs` table created
-- [ ] Foreign keys and indexes configured
+- [x] `simulations` table created
+- [x] `simulation_contest_results` table created
+- [x] `analysis_jobs` table created
+- [x] Foreign keys and indexes configured
 
 **Subtasks:**
 1. Create `migrations/002_create_simulations.sql` (see design doc for full schema)
@@ -616,6 +698,7 @@ Create migrations for `simulations.db`.
 ---
 
 #### Task 1.2.4: Configs Database Schema
+**Status:** Completed — migration created, queries added, sqlc generated successfully
 **Effort:** 2 hours  
 **Priority:** Critical  
 **Assignee:** Dev 1
@@ -624,9 +707,9 @@ Create migrations for `simulations.db`.
 Create migrations for `configs.db`.
 
 **Acceptance Criteria:**
-- [ ] `configs` table created
-- [ ] `config_presets` table created with default data
-- [ ] Trigger for single default per mode
+- [x] `configs` table created
+- [x] `config_presets` table created with default data
+- [x] Trigger for single default per mode
 
 **Subtasks:**
 1. Create `migrations/003_create_configs.sql` (see design doc)
@@ -640,6 +723,7 @@ Create migrations for `configs.db`.
 ---
 
 #### Task 1.2.5: Finances Database Schema
+**Status:** Completed — migration updated to standard format, queries added schema header, sqlc generated successfully
 **Effort:** 2 hours  
 **Priority:** Critical  
 **Assignee:** Dev 1
@@ -648,9 +732,9 @@ Create migrations for `configs.db`.
 Create migrations for `finances.db`.
 
 **Acceptance Criteria:**
-- [ ] `ledger` table created
-- [ ] `financial_summary` view created
-- [ ] Indexes for queries
+- [x] `ledger` table created
+- [x] `financial_summary` view created
+- [x] Indexes for queries
 
 **Subtasks:**
 1. Create `migrations/004_create_finances.sql`
@@ -1477,7 +1561,7 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 ### Sprint 1.2 (Days 4-7)
 - [x] Task 1.2.1: Migration system working
 - [x] Task 1.2.2: Results schema created
-- [ ] Task 1.2.3: Simulations schema created (in progress)
+- [x] Task 1.2.3: Simulations schema created
 - [ ] Task 1.2.4: Configs schema created
 - [ ] Task 1.2.5: Finances schema created
 - [ ] Task 1.2.6: DB access layer implemented (in progress)

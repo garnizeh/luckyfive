@@ -1,3 +1,5 @@
+-- schema: migrations/004_create_finances.sql
+
 -- name: GetLedgerEntry :one
 SELECT * FROM ledger
 WHERE id = ?

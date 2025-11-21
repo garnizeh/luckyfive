@@ -22,11 +22,13 @@ func (q *Queries) GetAccountBalance(ctx context.Context, account string) (Financ
 }
 
 const getLedgerEntry = `-- name: GetLedgerEntry :one
+
 SELECT id, account, amount_cents, currency, description, created_at FROM ledger
 WHERE id = ?
 LIMIT 1
 `
 
+// schema: migrations/004_create_finances.sql
 func (q *Queries) GetLedgerEntry(ctx context.Context, id int64) (Ledger, error) {
 	row := q.db.QueryRowContext(ctx, getLedgerEntry, id)
 	var i Ledger

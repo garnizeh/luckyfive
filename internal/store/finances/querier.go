@@ -11,6 +11,7 @@ import (
 
 type Querier interface {
 	GetAccountBalance(ctx context.Context, account string) (FinancialSummary, error)
+	// schema: migrations/004_create_finances.sql
 	GetLedgerEntry(ctx context.Context, id int64) (Ledger, error)
 	// NOTE: ledger table used in production migration. The view `financial_summary` provides balances by account.
 	InsertLedgerEntry(ctx context.Context, arg InsertLedgerEntryParams) (Ledger, error)

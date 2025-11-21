@@ -9,28 +9,52 @@ import (
 )
 
 type AnalysisJob struct {
-	ID            int64          `json:"id"`
-	SimulationID  int64          `json:"simulation_id"`
-	StartedAt     sql.NullString `json:"started_at"`
-	FinishedAt    sql.NullString `json:"finished_at"`
-	Status        string         `json:"status"`
-	Worker        sql.NullString `json:"worker"`
-	ResultSummary sql.NullString `json:"result_summary"`
+	ID                   int64          `json:"id"`
+	CreatedAt            string         `json:"created_at"`
+	StartedAt            sql.NullString `json:"started_at"`
+	FinishedAt           sql.NullString `json:"finished_at"`
+	Status               string         `json:"status"`
+	JobType              string         `json:"job_type"`
+	ConfigJson           string         `json:"config_json"`
+	TotalSimulations     sql.NullInt64  `json:"total_simulations"`
+	CompletedSimulations sql.NullInt64  `json:"completed_simulations"`
+	FailedSimulations    sql.NullInt64  `json:"failed_simulations"`
+	TopConfigsJson       sql.NullString `json:"top_configs_json"`
+	ReportBlob           []byte         `json:"report_blob"`
+	ReportName           sql.NullString `json:"report_name"`
+	ErrorMessage         sql.NullString `json:"error_message"`
 }
 
 type Simulation struct {
-	ID          int64          `json:"id"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	CreatedAt   string         `json:"created_at"`
-	Settings    sql.NullString `json:"settings"`
-	Status      string         `json:"status"`
+	ID            int64          `json:"id"`
+	CreatedAt     string         `json:"created_at"`
+	StartedAt     sql.NullString `json:"started_at"`
+	FinishedAt    sql.NullString `json:"finished_at"`
+	Status        string         `json:"status"`
+	RecipeName    sql.NullString `json:"recipe_name"`
+	RecipeJson    string         `json:"recipe_json"`
+	Mode          string         `json:"mode"`
+	StartContest  int64          `json:"start_contest"`
+	EndContest    int64          `json:"end_contest"`
+	WorkerID      sql.NullString `json:"worker_id"`
+	RunDurationMs sql.NullInt64  `json:"run_duration_ms"`
+	SummaryJson   sql.NullString `json:"summary_json"`
+	OutputBlob    []byte         `json:"output_blob"`
+	OutputName    sql.NullString `json:"output_name"`
+	LogBlob       []byte         `json:"log_blob"`
+	ErrorMessage  sql.NullString `json:"error_message"`
+	ErrorStack    sql.NullString `json:"error_stack"`
+	CreatedBy     sql.NullString `json:"created_by"`
 }
 
 type SimulationContestResult struct {
-	ID           int64          `json:"id"`
-	SimulationID int64          `json:"simulation_id"`
-	Contest      int64          `json:"contest"`
-	ResultBlob   sql.NullString `json:"result_blob"`
-	CreatedAt    string         `json:"created_at"`
+	ID                    int64          `json:"id"`
+	SimulationID          int64          `json:"simulation_id"`
+	Contest               int64          `json:"contest"`
+	ActualNumbers         string         `json:"actual_numbers"`
+	BestHits              int64          `json:"best_hits"`
+	BestPredictionIndex   sql.NullInt64  `json:"best_prediction_index"`
+	BestPredictionNumbers sql.NullString `json:"best_prediction_numbers"`
+	PredictionsJson       string         `json:"predictions_json"`
+	ProcessedAt           string         `json:"processed_at"`
 }
