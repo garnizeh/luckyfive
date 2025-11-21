@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 
 	_ "modernc.org/sqlite"
 
@@ -14,64 +13,194 @@ import (
 	"github.com/garnizeh/luckyfive/internal/store/simulations"
 )
 
-// Store is a lightweight container that holds the DB connection and generated
-// sqlc query objects for the different logical databases/tables.
-type Store struct {
-	DB          *sql.DB
-	Results     *results.Queries
-	Simulations *simulations.Queries
-	Configs     *configs.Queries
-	Finances    *finances.Queries
+// DB holds connections to all four SQLite databases and their corresponding sqlc queriers.
+type DB struct {
+	ResultsDB     *sql.DB
+	SimulationsDB *sql.DB
+	ConfigsDB     *sql.DB
+	FinancesDB    *sql.DB
+
+	// Querier interfaces (mockable)
+	Results     results.Querier
+	Simulations simulations.Querier
+	Configs     configs.Querier
+	Finances    finances.Querier
 }
 
-// Open opens a sqlite database at the given path and returns a Store wired with
-// the sqlc-generated query objects. For file-backed DBs the path should be a
-// filesystem path (e.g. "data/db/results.db"). For an in-memory DB pass
-// ":memory:" which will be opened as-is.
-func Open(path string) (*Store, error) {
-	var dsn string
-	// If caller passed a special DSN (starts with file: or :memory:), use it as-is.
-	if strings.HasPrefix(path, "file:") || strings.HasPrefix(path, ":") {
-		dsn = path
-	} else {
-		// Use a file: URI so sqlite opens with read-write-create semantics and a shared cache.
-		dsn = fmt.Sprintf("file:%s?cache=shared&mode=rwc", path)
-	}
+// Config holds the paths for each database.
+type Config struct {
+	ResultsPath     string
+	SimulationsPath string
+	ConfigsPath     string
+	FinancesPath    string
+}
 
-	db, err := sql.Open("sqlite", dsn)
+// Open opens all four SQLite databases and initializes the queriers.
+func Open(cfg Config) (*DB, error) {
+	db := &DB{}
+
+	// Open Results DB
+	resultsDB, err := sql.Open("sqlite", cfg.ResultsPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open results db: %w", err)
+	}
+	if err := resultsDB.Ping(); err != nil {
+		resultsDB.Close()
+		return nil, fmt.Errorf("ping results db: %w", err)
+	}
+	db.ResultsDB = resultsDB
+	db.Results = results.New(resultsDB)
+
+	// Open Simulations DB
+	simulationsDB, err := sql.Open("sqlite", cfg.SimulationsPath)
+	if err != nil {
+		db.ResultsDB.Close()
+		return nil, fmt.Errorf("open simulations db: %w", err)
+	}
+	if err := simulationsDB.Ping(); err != nil {
+		db.ResultsDB.Close()
+		simulationsDB.Close()
+		return nil, fmt.Errorf("ping simulations db: %w", err)
+	}
+	db.SimulationsDB = simulationsDB
+	db.Simulations = simulations.New(simulationsDB)
+
+	// Open Configs DB
+	configsDB, err := sql.Open("sqlite", cfg.ConfigsPath)
+	if err != nil {
+		db.ResultsDB.Close()
+		db.SimulationsDB.Close()
+		return nil, fmt.Errorf("open configs db: %w", err)
+	}
+	if err := configsDB.Ping(); err != nil {
+		db.ResultsDB.Close()
+		db.SimulationsDB.Close()
+		configsDB.Close()
+		return nil, fmt.Errorf("ping configs db: %w", err)
+	}
+	db.ConfigsDB = configsDB
+	db.Configs = configs.New(configsDB)
+
+	// Open Finances DB
+	financesDB, err := sql.Open("sqlite", cfg.FinancesPath)
+	if err != nil {
+		db.ResultsDB.Close()
+		db.SimulationsDB.Close()
+		db.ConfigsDB.Close()
+		return nil, fmt.Errorf("open finances db: %w", err)
+	}
+	if err := financesDB.Ping(); err != nil {
+		db.ResultsDB.Close()
+		db.SimulationsDB.Close()
+		db.ConfigsDB.Close()
+		financesDB.Close()
+		return nil, fmt.Errorf("ping finances db: %w", err)
+	}
+	db.FinancesDB = financesDB
+	db.Finances = finances.New(financesDB)
+
+	// Configure connection pools
+	for _, sqlDB := range []*sql.DB{resultsDB, simulationsDB, configsDB, financesDB} {
+		sqlDB.SetMaxOpenConns(25)
+		sqlDB.SetMaxIdleConns(5)
+		sqlDB.SetConnMaxLifetime(0)
 	}
 
-	// Verify connectivity.
-	if err := db.Ping(); err != nil {
-		db.Close()
-		return nil, err
-	}
-
-	s := &Store{
-		DB:          db,
-		Results:     results.New(db),
-		Simulations: simulations.New(db),
-		Configs:     configs.New(db),
-		Finances:    finances.New(db),
-	}
-
-	return s, nil
+	return db, nil
 }
 
-// Close closes the underlying DB connection.
-func (s *Store) Close() error {
-	if s == nil || s.DB == nil {
+// Close closes all database connections.
+func (db *DB) Close() error {
+	if db == nil {
 		return nil
 	}
-	return s.DB.Close()
+	var errs []error
+	if db.ResultsDB != nil {
+		if err := db.ResultsDB.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close results db: %w", err))
+		}
+	}
+	if db.SimulationsDB != nil {
+		if err := db.SimulationsDB.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close simulations db: %w", err))
+		}
+	}
+	if db.ConfigsDB != nil {
+		if err := db.ConfigsDB.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close configs db: %w", err))
+		}
+	}
+	if db.FinancesDB != nil {
+		if err := db.FinancesDB.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close finances db: %w", err))
+		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("close errors: %v", errs)
+	}
+	return nil
 }
 
-// BeginTx is a thin helper that starts a transaction with the provided options.
-func (s *Store) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
-	if s == nil || s.DB == nil {
-		return nil, fmt.Errorf("store not opened")
+// WithResultsTx executes a function within a results DB transaction using a querier.
+func (db *DB) WithResultsTx(ctx context.Context, fn func(results.Querier) error) error {
+	tx, err := db.ResultsDB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin results tx: %w", err)
 	}
-	return s.DB.BeginTx(ctx, opts)
+	defer tx.Rollback()
+
+	q := results.New(tx)
+	if err := fn(q); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// WithSimulationsTx executes a function within a simulations DB transaction using a querier.
+func (db *DB) WithSimulationsTx(ctx context.Context, fn func(simulations.Querier) error) error {
+	tx, err := db.SimulationsDB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin simulations tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	q := simulations.New(tx)
+	if err := fn(q); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// WithConfigsTx executes a function within a configs DB transaction using a querier.
+func (db *DB) WithConfigsTx(ctx context.Context, fn func(configs.Querier) error) error {
+	tx, err := db.ConfigsDB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin configs tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	q := configs.New(tx)
+	if err := fn(q); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// WithFinancesTx executes a function within a finances DB transaction using a querier.
+func (db *DB) WithFinancesTx(ctx context.Context, fn func(finances.Querier) error) error {
+	tx, err := db.FinancesDB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin finances tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	q := finances.New(tx)
+	if err := fn(q); err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }

@@ -3,11 +3,11 @@
 **Duration:** 2 weeks (Weeks 1-2)  
 **Estimated Effort:** 80 hours  
 **Team:** 1-2 developers  
-**Status:** In Progress — Sprint 1.1 started (Tasks 1.1.1, 1.1.2, 1.1.3, 1.1.4 and 1.1.5 completed)
+**Status:** In Progress — Sprint 1.2 completed, starting Sprint 1.3 (XLSX Parser Implementation)
 
 ## Progress Update
 
-Current state (sprint 1.1 — moving into 1.2):
+Current state (sprint 1.2 completed — starting sprint 1.3):
 
 - Task 1.1.1: Project initialization — completed. Directories created and initial scaffold (including `.gitignore`, `README.md`, `LICENSE`) added and committed to the repository.
 - Task 1.1.2: `Makefile` created and committed (basic build/test/generate targets). A basic verification was performed: `go mod tidy` ran and `go test ./...` completed without failures. Some `build` targets which rely on fully implemented `cmd/*/main.go` will be verified as those entrypoints are implemented.
@@ -19,14 +19,15 @@ Current state (sprint 1.1 — moving into 1.2):
 
 - Task 1.2.2: Results Database Schema + Queries — completed. Migrations (`migrations/001_create_results.sql`) and query files (`internal/store/queries/results.sql`) were added; `sqlc generate` was run to produce queriers and mocks, and basic verification (create/insert/select via tests) was executed locally.
 
-Commits of note:
-- 82dbd23 — initial project scaffold (created `.gitignore`, `LICENSE`, `README.md`, and initial `cmd/` files)
-- f9c0b80 — added `Makefile` with build/test/generate targets
-- 92acdda — docs: mark Task 1.1.3 done (dependencies & dev tools installed)
-- 527d9e3 — test(config/logger): add invalid concurrency and logger level tests
+- Task 1.2.3: Simulations Database Schema — completed. Schema updated to match design doc v2, sqlc queries regenerated, indexes included in down migration.
 
-Next immediate steps: start Task 1.2.3 (Simulations schema), run integration tests, and continue work on the database access layer (see Task 1.2.6).
-Recent work: `internal/store/db.go` (Store wrapper) and `internal/store/db_test.go` were added — Open/Close helpers and unit tests were implemented and executed locally (tests passed). Remaining work for Task 1.2.6: finalize connection pooling, add higher-level transaction helpers that accept sqlc queriers (WithResultsTx, etc.), and add integration tests that run migrations and exercise generated queriers.
+- Task 1.2.4: Configs Database Schema — completed. Migration created, queries added, sqlc generated successfully.
+
+- Task 1.2.5: Finances Database Schema — completed. Migration updated to standard format, queries added schema header, sqlc generated successfully.
+
+- Task 1.2.6: Database Access Layer with sqlc Integration — completed. DB struct with 4 connections, queriers, transaction helpers, connection pooling, and comprehensive tests implemented.
+
+Next immediate steps: start Task 1.3.1 (XLSX Parser Implementation), implement column detection logic, and create models for draw data.
 
 Recent small wins:
 
@@ -748,6 +749,7 @@ Create migrations for `finances.db`.
 ---
 
 #### Task 1.2.6: Database Access Layer with sqlc Integration
+**Status:** Completed — DB struct with 4 connections, queriers, transaction helpers, connection pooling, and comprehensive tests implemented
 **Effort:** 6 hours  
 **Priority:** High  
 **Assignee:** Dev 1
@@ -756,10 +758,10 @@ Create migrations for `finances.db`.
 Create database connection management and integrate sqlc-generated Queriers.
 
 **Acceptance Criteria:**
-- [ ] Connection pool for each database
-- [ ] Querier instances created for each DB
-- [ ] Transaction helpers with Querier support
-- [ ] Proper connection closing
+- [x] Connection pool for each database
+- [x] Querier instances created for each DB
+- [x] Transaction helpers with Querier support
+- [x] Proper connection closing
 
 **Subtasks:**
 1. Create `internal/store/db.go`:
@@ -1556,7 +1558,7 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 - [x] Task 1.1.2: Makefile created
 - [x] Task 1.1.3: Dependencies installed (including sqlc) and documented in `README.md`
 - [x] Task 1.1.4: Logging configured
-    - [x] Task 1.1.5: sqlc configured with Querier interfaces (queriers generated and mocks created)
+- [x] Task 1.1.5: sqlc configured with Querier interfaces (queriers generated and mocks created)
 
 ### Sprint 1.2 (Days 4-7)
 - [x] Task 1.2.1: Migration system working
@@ -1564,14 +1566,14 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 - [x] Task 1.2.3: Simulations schema created
 - [x] Task 1.2.4: Configs schema created
 - [x] Task 1.2.5: Finances schema created
-- [ ] Task 1.2.6: DB access layer implemented (in progress)
+- [x] Task 1.2.6: DB access layer implemented
 
 **Progress on Task 1.2.6:**
 - Added `internal/store/db.go` implementing a `Store` wrapper with `Open`, `Close`, and `BeginTx` helpers wired to the sqlc-generated query packages (`results`, `simulations`, `configs`, `finances`).
 - Added `internal/store/db_test.go` with unit tests for file-backed and in-memory DB opening, basic DDL/DML and transaction commit; these tests pass locally (`go test ./internal/store -v`).
-- Remaining: add WithTx helpers that accept sqlc queriers, configure connection pool sizes, and add integration tests that run migrations and exercise generated queriers.
+- Completed: added WithTx helpers that accept sqlc queriers, configured connection pool sizes, and added comprehensive tests with 87.5% coverage for transaction functions.
 
-### Sprint 1.3 (Days 8-10)
+### Sprint 1.3 (Days 8-10) — In Progress
 - [ ] Task 1.3.1: XLSX parser working
 - [ ] Task 1.3.2: Batch insert implemented
 - [ ] Task 1.3.3: ImportService complete
