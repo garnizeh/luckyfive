@@ -1,6 +1,9 @@
 package predictor
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // Prediction represents a single prediction (a set of numbers) and optional score/meta.
 type Prediction struct {
@@ -11,11 +14,11 @@ type Prediction struct {
 
 // PredictionParams provides inputs for GeneratePredictions.
 type PredictionParams struct {
-	HistoricalDraws [][]int
-	MaxHistory      int   // sim_prev_max
-	NumPredictions  int   // sim_preds
+	HistoricalDraws []Draw
+	MaxHistory      int // sim_prev_max
+	NumPredictions  int // sim_preds
+	Weights         Weights
 	Seed            int64 // deterministic seed
-	// Weights and other algorithm knobs can be added here
 }
 
 // Weights contains optional algorithm weights that can be tuned or evolved.
@@ -24,6 +27,13 @@ type Weights struct {
 	Beta  float64
 	Gamma float64
 	Delta float64
+}
+
+// Draw represents a historical lottery draw.
+type Draw struct {
+	Contest int
+	Numbers []int
+	Date    time.Time
 }
 
 // ScoreResult represents aggregated scoring information for a set of predictions

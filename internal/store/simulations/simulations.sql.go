@@ -10,249 +10,136 @@ import (
 	"database/sql"
 )
 
-const countAnalysisJobs = `-- name: CountAnalysisJobs :one
-SELECT COUNT(*) FROM analysis_jobs
+const cancelSimulation = `-- name: CancelSimulation :exec
+UPDATE simulations
+SET status = 'cancelled',
+    finished_at = ?
+WHERE id = ? AND status IN ('pending', 'running')
 `
 
-func (q *Queries) CountAnalysisJobs(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countAnalysisJobs)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+type CancelSimulationParams struct {
+	FinishedAt sql.NullString `json:"finished_at"`
+	ID         int64          `json:"id"`
 }
 
-const countSimulationContestResults = `-- name: CountSimulationContestResults :one
-SELECT COUNT(*) FROM simulation_contest_results
-WHERE simulation_id = ?
-`
-
-func (q *Queries) CountSimulationContestResults(ctx context.Context, simulationID int64) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countSimulationContestResults, simulationID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countSimulations = `-- name: CountSimulations :one
-SELECT COUNT(*) FROM simulations
-`
-
-func (q *Queries) CountSimulations(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countSimulations)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const deleteAnalysisJob = `-- name: DeleteAnalysisJob :exec
-DELETE FROM analysis_jobs WHERE id = ?
-`
-
-func (q *Queries) DeleteAnalysisJob(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteAnalysisJob, id)
+func (q *Queries) CancelSimulation(ctx context.Context, arg CancelSimulationParams) error {
+	_, err := q.db.ExecContext(ctx, cancelSimulation, arg.FinishedAt, arg.ID)
 	return err
 }
 
-const deleteSimulation = `-- name: DeleteSimulation :exec
-DELETE FROM simulations WHERE id = ?
-`
-
-func (q *Queries) DeleteSimulation(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteSimulation, id)
-	return err
-}
-
-const getAnalysisJob = `-- name: GetAnalysisJob :one
-SELECT id, created_at, started_at, finished_at, status, job_type, config_json, total_simulations, completed_simulations, failed_simulations, top_configs_json, report_blob, report_name, error_message FROM analysis_jobs
-WHERE id = ?
-LIMIT 1
-`
-
-func (q *Queries) GetAnalysisJob(ctx context.Context, id int64) (AnalysisJob, error) {
-	row := q.db.QueryRowContext(ctx, getAnalysisJob, id)
-	var i AnalysisJob
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.StartedAt,
-		&i.FinishedAt,
-		&i.Status,
-		&i.JobType,
-		&i.ConfigJson,
-		&i.TotalSimulations,
-		&i.CompletedSimulations,
-		&i.FailedSimulations,
-		&i.TopConfigsJson,
-		&i.ReportBlob,
-		&i.ReportName,
-		&i.ErrorMessage,
-	)
-	return i, err
-}
-
-const getSimulation = `-- name: GetSimulation :one
-
-SELECT id, created_at, started_at, finished_at, status, recipe_name, recipe_json, mode, start_contest, end_contest, worker_id, run_duration_ms, summary_json, output_blob, output_name, log_blob, error_message, error_stack, created_by FROM simulations
-WHERE id = ?
-LIMIT 1
-`
-
-// schema: migrations/002_create_simulations.sql
-func (q *Queries) GetSimulation(ctx context.Context, id int64) (Simulation, error) {
-	row := q.db.QueryRowContext(ctx, getSimulation, id)
-	var i Simulation
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.StartedAt,
-		&i.FinishedAt,
-		&i.Status,
-		&i.RecipeName,
-		&i.RecipeJson,
-		&i.Mode,
-		&i.StartContest,
-		&i.EndContest,
-		&i.WorkerID,
-		&i.RunDurationMs,
-		&i.SummaryJson,
-		&i.OutputBlob,
-		&i.OutputName,
-		&i.LogBlob,
-		&i.ErrorMessage,
-		&i.ErrorStack,
-		&i.CreatedBy,
-	)
-	return i, err
-}
-
-const getSimulationByRecipeName = `-- name: GetSimulationByRecipeName :one
-SELECT id, created_at, started_at, finished_at, status, recipe_name, recipe_json, mode, start_contest, end_contest, worker_id, run_duration_ms, summary_json, output_blob, output_name, log_blob, error_message, error_stack, created_by FROM simulations
-WHERE recipe_name = ?
-LIMIT 1
-`
-
-func (q *Queries) GetSimulationByRecipeName(ctx context.Context, recipeName sql.NullString) (Simulation, error) {
-	row := q.db.QueryRowContext(ctx, getSimulationByRecipeName, recipeName)
-	var i Simulation
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.StartedAt,
-		&i.FinishedAt,
-		&i.Status,
-		&i.RecipeName,
-		&i.RecipeJson,
-		&i.Mode,
-		&i.StartContest,
-		&i.EndContest,
-		&i.WorkerID,
-		&i.RunDurationMs,
-		&i.SummaryJson,
-		&i.OutputBlob,
-		&i.OutputName,
-		&i.LogBlob,
-		&i.ErrorMessage,
-		&i.ErrorStack,
-		&i.CreatedBy,
-	)
-	return i, err
-}
-
-const getSimulationContestResult = `-- name: GetSimulationContestResult :one
-SELECT id, simulation_id, contest, actual_numbers, best_hits, best_prediction_index, best_prediction_numbers, predictions_json, processed_at FROM simulation_contest_results
-WHERE simulation_id = ? AND contest = ?
-LIMIT 1
-`
-
-type GetSimulationContestResultParams struct {
-	SimulationID int64 `json:"simulation_id"`
-	Contest      int64 `json:"contest"`
-}
-
-func (q *Queries) GetSimulationContestResult(ctx context.Context, arg GetSimulationContestResultParams) (SimulationContestResult, error) {
-	row := q.db.QueryRowContext(ctx, getSimulationContestResult, arg.SimulationID, arg.Contest)
-	var i SimulationContestResult
-	err := row.Scan(
-		&i.ID,
-		&i.SimulationID,
-		&i.Contest,
-		&i.ActualNumbers,
-		&i.BestHits,
-		&i.BestPredictionIndex,
-		&i.BestPredictionNumbers,
-		&i.PredictionsJson,
-		&i.ProcessedAt,
-	)
-	return i, err
-}
-
-const insertAnalysisJob = `-- name: InsertAnalysisJob :one
-INSERT INTO analysis_jobs (
-  job_type, config_json, status, total_simulations
-) VALUES (?, ?, ?, ?)
-RETURNING id, created_at, started_at, finished_at, status, job_type, config_json, total_simulations, completed_simulations, failed_simulations, top_configs_json, report_blob, report_name, error_message
-`
-
-type InsertAnalysisJobParams struct {
-	JobType          string        `json:"job_type"`
-	ConfigJson       string        `json:"config_json"`
-	Status           string        `json:"status"`
-	TotalSimulations sql.NullInt64 `json:"total_simulations"`
-}
-
-func (q *Queries) InsertAnalysisJob(ctx context.Context, arg InsertAnalysisJobParams) (AnalysisJob, error) {
-	row := q.db.QueryRowContext(ctx, insertAnalysisJob,
-		arg.JobType,
-		arg.ConfigJson,
-		arg.Status,
-		arg.TotalSimulations,
-	)
-	var i AnalysisJob
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.StartedAt,
-		&i.FinishedAt,
-		&i.Status,
-		&i.JobType,
-		&i.ConfigJson,
-		&i.TotalSimulations,
-		&i.CompletedSimulations,
-		&i.FailedSimulations,
-		&i.TopConfigsJson,
-		&i.ReportBlob,
-		&i.ReportName,
-		&i.ErrorMessage,
-	)
-	return i, err
-}
-
-const insertSimulation = `-- name: InsertSimulation :one
-INSERT INTO simulations (
-  recipe_name, recipe_json, mode, start_contest, end_contest,
-  status, created_by
-) VALUES (?, ?, ?, ?, ?, ?, ?)
+const claimPendingSimulation = `-- name: ClaimPendingSimulation :one
+UPDATE simulations
+SET status = 'running',
+    started_at = ?,
+    worker_id = ?
+WHERE id = (
+    SELECT id FROM simulations
+    WHERE status = 'pending'
+    ORDER BY created_at ASC
+    LIMIT 1
+)
 RETURNING id, created_at, started_at, finished_at, status, recipe_name, recipe_json, mode, start_contest, end_contest, worker_id, run_duration_ms, summary_json, output_blob, output_name, log_blob, error_message, error_stack, created_by
 `
 
-type InsertSimulationParams struct {
+type ClaimPendingSimulationParams struct {
+	StartedAt sql.NullString `json:"started_at"`
+	WorkerID  sql.NullString `json:"worker_id"`
+}
+
+func (q *Queries) ClaimPendingSimulation(ctx context.Context, arg ClaimPendingSimulationParams) (Simulation, error) {
+	row := q.db.QueryRowContext(ctx, claimPendingSimulation, arg.StartedAt, arg.WorkerID)
+	var i Simulation
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.Status,
+		&i.RecipeName,
+		&i.RecipeJson,
+		&i.Mode,
+		&i.StartContest,
+		&i.EndContest,
+		&i.WorkerID,
+		&i.RunDurationMs,
+		&i.SummaryJson,
+		&i.OutputBlob,
+		&i.OutputName,
+		&i.LogBlob,
+		&i.ErrorMessage,
+		&i.ErrorStack,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
+const completeSimulation = `-- name: CompleteSimulation :exec
+UPDATE simulations
+SET status = 'completed',
+    finished_at = ?,
+    run_duration_ms = ?,
+    summary_json = ?,
+    output_blob = ?,
+    output_name = ?
+WHERE id = ?
+`
+
+type CompleteSimulationParams struct {
+	FinishedAt    sql.NullString `json:"finished_at"`
+	RunDurationMs sql.NullInt64  `json:"run_duration_ms"`
+	SummaryJson   sql.NullString `json:"summary_json"`
+	OutputBlob    []byte         `json:"output_blob"`
+	OutputName    sql.NullString `json:"output_name"`
+	ID            int64          `json:"id"`
+}
+
+func (q *Queries) CompleteSimulation(ctx context.Context, arg CompleteSimulationParams) error {
+	_, err := q.db.ExecContext(ctx, completeSimulation,
+		arg.FinishedAt,
+		arg.RunDurationMs,
+		arg.SummaryJson,
+		arg.OutputBlob,
+		arg.OutputName,
+		arg.ID,
+	)
+	return err
+}
+
+const countSimulationsByStatus = `-- name: CountSimulationsByStatus :one
+SELECT COUNT(*) FROM simulations
+WHERE status = ?
+`
+
+func (q *Queries) CountSimulationsByStatus(ctx context.Context, status string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countSimulationsByStatus, status)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const createSimulation = `-- name: CreateSimulation :one
+INSERT INTO simulations (
+    recipe_name, recipe_json, mode, start_contest, end_contest, created_by
+) VALUES (?, ?, ?, ?, ?, ?)
+RETURNING id, created_at, started_at, finished_at, status, recipe_name, recipe_json, mode, start_contest, end_contest, worker_id, run_duration_ms, summary_json, output_blob, output_name, log_blob, error_message, error_stack, created_by
+`
+
+type CreateSimulationParams struct {
 	RecipeName   sql.NullString `json:"recipe_name"`
 	RecipeJson   string         `json:"recipe_json"`
 	Mode         string         `json:"mode"`
 	StartContest int64          `json:"start_contest"`
 	EndContest   int64          `json:"end_contest"`
-	Status       string         `json:"status"`
 	CreatedBy    sql.NullString `json:"created_by"`
 }
 
-func (q *Queries) InsertSimulation(ctx context.Context, arg InsertSimulationParams) (Simulation, error) {
-	row := q.db.QueryRowContext(ctx, insertSimulation,
+func (q *Queries) CreateSimulation(ctx context.Context, arg CreateSimulationParams) (Simulation, error) {
+	row := q.db.QueryRowContext(ctx, createSimulation,
 		arg.RecipeName,
 		arg.RecipeJson,
 		arg.Mode,
 		arg.StartContest,
 		arg.EndContest,
-		arg.Status,
 		arg.CreatedBy,
 	)
 	var i Simulation
@@ -280,215 +167,47 @@ func (q *Queries) InsertSimulation(ctx context.Context, arg InsertSimulationPara
 	return i, err
 }
 
-const insertSimulationContestResult = `-- name: InsertSimulationContestResult :one
-INSERT INTO simulation_contest_results (
-  simulation_id, contest, actual_numbers, best_hits,
-  best_prediction_index, best_prediction_numbers, predictions_json
-) VALUES (?, ?, ?, ?, ?, ?, ?)
-RETURNING id, simulation_id, contest, actual_numbers, best_hits, best_prediction_index, best_prediction_numbers, predictions_json, processed_at
+const failSimulation = `-- name: FailSimulation :exec
+UPDATE simulations
+SET status = 'failed',
+    finished_at = ?,
+    error_message = ?,
+    error_stack = ?
+WHERE id = ?
 `
 
-type InsertSimulationContestResultParams struct {
-	SimulationID          int64          `json:"simulation_id"`
-	Contest               int64          `json:"contest"`
-	ActualNumbers         string         `json:"actual_numbers"`
-	BestHits              int64          `json:"best_hits"`
-	BestPredictionIndex   sql.NullInt64  `json:"best_prediction_index"`
-	BestPredictionNumbers sql.NullString `json:"best_prediction_numbers"`
-	PredictionsJson       string         `json:"predictions_json"`
+type FailSimulationParams struct {
+	FinishedAt   sql.NullString `json:"finished_at"`
+	ErrorMessage sql.NullString `json:"error_message"`
+	ErrorStack   sql.NullString `json:"error_stack"`
+	ID           int64          `json:"id"`
 }
 
-func (q *Queries) InsertSimulationContestResult(ctx context.Context, arg InsertSimulationContestResultParams) (SimulationContestResult, error) {
-	row := q.db.QueryRowContext(ctx, insertSimulationContestResult,
-		arg.SimulationID,
-		arg.Contest,
-		arg.ActualNumbers,
-		arg.BestHits,
-		arg.BestPredictionIndex,
-		arg.BestPredictionNumbers,
-		arg.PredictionsJson,
+func (q *Queries) FailSimulation(ctx context.Context, arg FailSimulationParams) error {
+	_, err := q.db.ExecContext(ctx, failSimulation,
+		arg.FinishedAt,
+		arg.ErrorMessage,
+		arg.ErrorStack,
+		arg.ID,
 	)
-	var i SimulationContestResult
-	err := row.Scan(
-		&i.ID,
-		&i.SimulationID,
-		&i.Contest,
-		&i.ActualNumbers,
-		&i.BestHits,
-		&i.BestPredictionIndex,
-		&i.BestPredictionNumbers,
-		&i.PredictionsJson,
-		&i.ProcessedAt,
-	)
-	return i, err
+	return err
 }
 
-const listAnalysisJobs = `-- name: ListAnalysisJobs :many
-SELECT id, created_at, started_at, finished_at, status, job_type, config_json, total_simulations, completed_simulations, failed_simulations, top_configs_json, report_blob, report_name, error_message FROM analysis_jobs
-ORDER BY created_at DESC
-LIMIT ? OFFSET ?
-`
-
-type ListAnalysisJobsParams struct {
-	Limit  int64 `json:"limit"`
-	Offset int64 `json:"offset"`
-}
-
-func (q *Queries) ListAnalysisJobs(ctx context.Context, arg ListAnalysisJobsParams) ([]AnalysisJob, error) {
-	rows, err := q.db.QueryContext(ctx, listAnalysisJobs, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []AnalysisJob
-	for rows.Next() {
-		var i AnalysisJob
-		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.StartedAt,
-			&i.FinishedAt,
-			&i.Status,
-			&i.JobType,
-			&i.ConfigJson,
-			&i.TotalSimulations,
-			&i.CompletedSimulations,
-			&i.FailedSimulations,
-			&i.TopConfigsJson,
-			&i.ReportBlob,
-			&i.ReportName,
-			&i.ErrorMessage,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listAnalysisJobsByStatus = `-- name: ListAnalysisJobsByStatus :many
-SELECT id, created_at, started_at, finished_at, status, job_type, config_json, total_simulations, completed_simulations, failed_simulations, top_configs_json, report_blob, report_name, error_message FROM analysis_jobs
-WHERE status = ?
-ORDER BY created_at DESC
-LIMIT ? OFFSET ?
-`
-
-type ListAnalysisJobsByStatusParams struct {
-	Status string `json:"status"`
-	Limit  int64  `json:"limit"`
-	Offset int64  `json:"offset"`
-}
-
-func (q *Queries) ListAnalysisJobsByStatus(ctx context.Context, arg ListAnalysisJobsByStatusParams) ([]AnalysisJob, error) {
-	rows, err := q.db.QueryContext(ctx, listAnalysisJobsByStatus, arg.Status, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []AnalysisJob
-	for rows.Next() {
-		var i AnalysisJob
-		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.StartedAt,
-			&i.FinishedAt,
-			&i.Status,
-			&i.JobType,
-			&i.ConfigJson,
-			&i.TotalSimulations,
-			&i.CompletedSimulations,
-			&i.FailedSimulations,
-			&i.TopConfigsJson,
-			&i.ReportBlob,
-			&i.ReportName,
-			&i.ErrorMessage,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listAnalysisJobsByType = `-- name: ListAnalysisJobsByType :many
-SELECT id, created_at, started_at, finished_at, status, job_type, config_json, total_simulations, completed_simulations, failed_simulations, top_configs_json, report_blob, report_name, error_message FROM analysis_jobs
-WHERE job_type = ?
-ORDER BY created_at DESC
-LIMIT ? OFFSET ?
-`
-
-type ListAnalysisJobsByTypeParams struct {
-	JobType string `json:"job_type"`
-	Limit   int64  `json:"limit"`
-	Offset  int64  `json:"offset"`
-}
-
-func (q *Queries) ListAnalysisJobsByType(ctx context.Context, arg ListAnalysisJobsByTypeParams) ([]AnalysisJob, error) {
-	rows, err := q.db.QueryContext(ctx, listAnalysisJobsByType, arg.JobType, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []AnalysisJob
-	for rows.Next() {
-		var i AnalysisJob
-		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.StartedAt,
-			&i.FinishedAt,
-			&i.Status,
-			&i.JobType,
-			&i.ConfigJson,
-			&i.TotalSimulations,
-			&i.CompletedSimulations,
-			&i.FailedSimulations,
-			&i.TopConfigsJson,
-			&i.ReportBlob,
-			&i.ReportName,
-			&i.ErrorMessage,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listSimulationContestResults = `-- name: ListSimulationContestResults :many
+const getContestResults = `-- name: GetContestResults :many
 SELECT id, simulation_id, contest, actual_numbers, best_hits, best_prediction_index, best_prediction_numbers, predictions_json, processed_at FROM simulation_contest_results
 WHERE simulation_id = ?
 ORDER BY contest ASC
 LIMIT ? OFFSET ?
 `
 
-type ListSimulationContestResultsParams struct {
+type GetContestResultsParams struct {
 	SimulationID int64 `json:"simulation_id"`
 	Limit        int64 `json:"limit"`
 	Offset       int64 `json:"offset"`
 }
 
-func (q *Queries) ListSimulationContestResults(ctx context.Context, arg ListSimulationContestResultsParams) ([]SimulationContestResult, error) {
-	rows, err := q.db.QueryContext(ctx, listSimulationContestResults, arg.SimulationID, arg.Limit, arg.Offset)
+func (q *Queries) GetContestResults(ctx context.Context, arg GetContestResultsParams) ([]SimulationContestResult, error) {
+	rows, err := q.db.QueryContext(ctx, getContestResults, arg.SimulationID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -520,22 +239,22 @@ func (q *Queries) ListSimulationContestResults(ctx context.Context, arg ListSimu
 	return items, nil
 }
 
-const listSimulationContestResultsByHits = `-- name: ListSimulationContestResultsByHits :many
+const getContestResultsByMinHits = `-- name: GetContestResultsByMinHits :many
 SELECT id, simulation_id, contest, actual_numbers, best_hits, best_prediction_index, best_prediction_numbers, predictions_json, processed_at FROM simulation_contest_results
 WHERE simulation_id = ? AND best_hits >= ?
 ORDER BY best_hits DESC, contest ASC
 LIMIT ? OFFSET ?
 `
 
-type ListSimulationContestResultsByHitsParams struct {
+type GetContestResultsByMinHitsParams struct {
 	SimulationID int64 `json:"simulation_id"`
 	BestHits     int64 `json:"best_hits"`
 	Limit        int64 `json:"limit"`
 	Offset       int64 `json:"offset"`
 }
 
-func (q *Queries) ListSimulationContestResultsByHits(ctx context.Context, arg ListSimulationContestResultsByHitsParams) ([]SimulationContestResult, error) {
-	rows, err := q.db.QueryContext(ctx, listSimulationContestResultsByHits,
+func (q *Queries) GetContestResultsByMinHits(ctx context.Context, arg GetContestResultsByMinHitsParams) ([]SimulationContestResult, error) {
+	rows, err := q.db.QueryContext(ctx, getContestResultsByMinHits,
 		arg.SimulationID,
 		arg.BestHits,
 		arg.Limit,
@@ -572,6 +291,69 @@ func (q *Queries) ListSimulationContestResultsByHits(ctx context.Context, arg Li
 	return items, nil
 }
 
+const getSimulation = `-- name: GetSimulation :one
+SELECT id, created_at, started_at, finished_at, status, recipe_name, recipe_json, mode, start_contest, end_contest, worker_id, run_duration_ms, summary_json, output_blob, output_name, log_blob, error_message, error_stack, created_by FROM simulations
+WHERE id = ?
+LIMIT 1
+`
+
+func (q *Queries) GetSimulation(ctx context.Context, id int64) (Simulation, error) {
+	row := q.db.QueryRowContext(ctx, getSimulation, id)
+	var i Simulation
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.Status,
+		&i.RecipeName,
+		&i.RecipeJson,
+		&i.Mode,
+		&i.StartContest,
+		&i.EndContest,
+		&i.WorkerID,
+		&i.RunDurationMs,
+		&i.SummaryJson,
+		&i.OutputBlob,
+		&i.OutputName,
+		&i.LogBlob,
+		&i.ErrorMessage,
+		&i.ErrorStack,
+		&i.CreatedBy,
+	)
+	return i, err
+}
+
+const insertContestResult = `-- name: InsertContestResult :exec
+INSERT INTO simulation_contest_results (
+    simulation_id, contest, actual_numbers, best_hits,
+    best_prediction_index, best_prediction_numbers, predictions_json
+) VALUES (?, ?, ?, ?, ?, ?, ?)
+`
+
+type InsertContestResultParams struct {
+	SimulationID          int64          `json:"simulation_id"`
+	Contest               int64          `json:"contest"`
+	ActualNumbers         string         `json:"actual_numbers"`
+	BestHits              int64          `json:"best_hits"`
+	BestPredictionIndex   sql.NullInt64  `json:"best_prediction_index"`
+	BestPredictionNumbers sql.NullString `json:"best_prediction_numbers"`
+	PredictionsJson       string         `json:"predictions_json"`
+}
+
+func (q *Queries) InsertContestResult(ctx context.Context, arg InsertContestResultParams) error {
+	_, err := q.db.ExecContext(ctx, insertContestResult,
+		arg.SimulationID,
+		arg.Contest,
+		arg.ActualNumbers,
+		arg.BestHits,
+		arg.BestPredictionIndex,
+		arg.BestPredictionNumbers,
+		arg.PredictionsJson,
+	)
+	return err
+}
+
 const listSimulations = `-- name: ListSimulations :many
 SELECT id, created_at, started_at, finished_at, status, recipe_name, recipe_json, mode, start_contest, end_contest, worker_id, run_duration_ms, summary_json, output_blob, output_name, log_blob, error_message, error_stack, created_by FROM simulations
 ORDER BY created_at DESC
@@ -585,62 +367,6 @@ type ListSimulationsParams struct {
 
 func (q *Queries) ListSimulations(ctx context.Context, arg ListSimulationsParams) ([]Simulation, error) {
 	rows, err := q.db.QueryContext(ctx, listSimulations, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Simulation
-	for rows.Next() {
-		var i Simulation
-		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.StartedAt,
-			&i.FinishedAt,
-			&i.Status,
-			&i.RecipeName,
-			&i.RecipeJson,
-			&i.Mode,
-			&i.StartContest,
-			&i.EndContest,
-			&i.WorkerID,
-			&i.RunDurationMs,
-			&i.SummaryJson,
-			&i.OutputBlob,
-			&i.OutputName,
-			&i.LogBlob,
-			&i.ErrorMessage,
-			&i.ErrorStack,
-			&i.CreatedBy,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listSimulationsByMode = `-- name: ListSimulationsByMode :many
-SELECT id, created_at, started_at, finished_at, status, recipe_name, recipe_json, mode, start_contest, end_contest, worker_id, run_duration_ms, summary_json, output_blob, output_name, log_blob, error_message, error_stack, created_by FROM simulations
-WHERE mode = ?
-ORDER BY created_at DESC
-LIMIT ? OFFSET ?
-`
-
-type ListSimulationsByModeParams struct {
-	Mode   string `json:"mode"`
-	Limit  int64  `json:"limit"`
-	Offset int64  `json:"offset"`
-}
-
-func (q *Queries) ListSimulationsByMode(ctx context.Context, arg ListSimulationsByModeParams) ([]Simulation, error) {
-	rows, err := q.db.QueryContext(ctx, listSimulationsByMode, arg.Mode, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -738,136 +464,24 @@ func (q *Queries) ListSimulationsByStatus(ctx context.Context, arg ListSimulatio
 	return items, nil
 }
 
-const updateAnalysisJobArtifacts = `-- name: UpdateAnalysisJobArtifacts :exec
-UPDATE analysis_jobs SET
-  report_blob = ?,
-  report_name = ?
-WHERE id = ?
-`
-
-type UpdateAnalysisJobArtifactsParams struct {
-	ReportBlob []byte         `json:"report_blob"`
-	ReportName sql.NullString `json:"report_name"`
-	ID         int64          `json:"id"`
-}
-
-func (q *Queries) UpdateAnalysisJobArtifacts(ctx context.Context, arg UpdateAnalysisJobArtifactsParams) error {
-	_, err := q.db.ExecContext(ctx, updateAnalysisJobArtifacts, arg.ReportBlob, arg.ReportName, arg.ID)
-	return err
-}
-
-const updateAnalysisJobProgress = `-- name: UpdateAnalysisJobProgress :exec
-UPDATE analysis_jobs SET
-  completed_simulations = ?,
-  failed_simulations = ?
-WHERE id = ?
-`
-
-type UpdateAnalysisJobProgressParams struct {
-	CompletedSimulations sql.NullInt64 `json:"completed_simulations"`
-	FailedSimulations    sql.NullInt64 `json:"failed_simulations"`
-	ID                   int64         `json:"id"`
-}
-
-func (q *Queries) UpdateAnalysisJobProgress(ctx context.Context, arg UpdateAnalysisJobProgressParams) error {
-	_, err := q.db.ExecContext(ctx, updateAnalysisJobProgress, arg.CompletedSimulations, arg.FailedSimulations, arg.ID)
-	return err
-}
-
-const updateAnalysisJobStatus = `-- name: UpdateAnalysisJobStatus :exec
-UPDATE analysis_jobs SET
-  status = ?,
-  started_at = ?,
-  finished_at = ?,
-  completed_simulations = ?,
-  failed_simulations = ?,
-  top_configs_json = ?,
-  error_message = ?
-WHERE id = ?
-`
-
-type UpdateAnalysisJobStatusParams struct {
-	Status               string         `json:"status"`
-	StartedAt            sql.NullString `json:"started_at"`
-	FinishedAt           sql.NullString `json:"finished_at"`
-	CompletedSimulations sql.NullInt64  `json:"completed_simulations"`
-	FailedSimulations    sql.NullInt64  `json:"failed_simulations"`
-	TopConfigsJson       sql.NullString `json:"top_configs_json"`
-	ErrorMessage         sql.NullString `json:"error_message"`
-	ID                   int64          `json:"id"`
-}
-
-func (q *Queries) UpdateAnalysisJobStatus(ctx context.Context, arg UpdateAnalysisJobStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateAnalysisJobStatus,
-		arg.Status,
-		arg.StartedAt,
-		arg.FinishedAt,
-		arg.CompletedSimulations,
-		arg.FailedSimulations,
-		arg.TopConfigsJson,
-		arg.ErrorMessage,
-		arg.ID,
-	)
-	return err
-}
-
-const updateSimulationArtifacts = `-- name: UpdateSimulationArtifacts :exec
-UPDATE simulations SET
-  output_blob = ?,
-  output_name = ?,
-  log_blob = ?
-WHERE id = ?
-`
-
-type UpdateSimulationArtifactsParams struct {
-	OutputBlob []byte         `json:"output_blob"`
-	OutputName sql.NullString `json:"output_name"`
-	LogBlob    []byte         `json:"log_blob"`
-	ID         int64          `json:"id"`
-}
-
-func (q *Queries) UpdateSimulationArtifacts(ctx context.Context, arg UpdateSimulationArtifactsParams) error {
-	_, err := q.db.ExecContext(ctx, updateSimulationArtifacts,
-		arg.OutputBlob,
-		arg.OutputName,
-		arg.LogBlob,
-		arg.ID,
-	)
-	return err
-}
-
 const updateSimulationStatus = `-- name: UpdateSimulationStatus :exec
-UPDATE simulations SET
-  status = ?,
-  started_at = ?,
-  finished_at = ?,
-  run_duration_ms = ?,
-  summary_json = ?,
-  error_message = ?,
-  error_stack = ?
-WHERE id = ?
+UPDATE simulations
+SET status = ?, started_at = ?, worker_id = ?
+WHERE id = ? AND status = 'pending'
 `
 
 type UpdateSimulationStatusParams struct {
-	Status        string         `json:"status"`
-	StartedAt     sql.NullString `json:"started_at"`
-	FinishedAt    sql.NullString `json:"finished_at"`
-	RunDurationMs sql.NullInt64  `json:"run_duration_ms"`
-	SummaryJson   sql.NullString `json:"summary_json"`
-	ErrorMessage  sql.NullString `json:"error_message"`
-	ErrorStack    sql.NullString `json:"error_stack"`
-	ID            int64          `json:"id"`
+	Status    string         `json:"status"`
+	StartedAt sql.NullString `json:"started_at"`
+	WorkerID  sql.NullString `json:"worker_id"`
+	ID        int64          `json:"id"`
 }
 
 func (q *Queries) UpdateSimulationStatus(ctx context.Context, arg UpdateSimulationStatusParams) error {
 	_, err := q.db.ExecContext(ctx, updateSimulationStatus,
 		arg.Status,
 		arg.StartedAt,
-		arg.FinishedAt,
-		arg.RunDurationMs,
-		arg.SummaryJson,
-		arg.ErrorMessage,
-		arg.ErrorStack,
+		arg.WorkerID,
 		arg.ID,
 	)
 	return err

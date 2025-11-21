@@ -1,4 +1,8 @@
--- schema: migrations/003_create_configs.sql
+-- name: CreateConfig :one
+INSERT INTO configs (
+    name, description, recipe_json, tags, is_default, mode, created_by
+) VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING *;
 
 -- name: GetConfig :one
 SELECT * FROM configs
@@ -12,48 +16,49 @@ LIMIT 1;
 
 -- name: ListConfigs :many
 SELECT * FROM configs
-ORDER BY created_at DESC
+ORDER BY name ASC
 LIMIT ? OFFSET ?;
 
 -- name: ListConfigsByMode :many
 SELECT * FROM configs
 WHERE mode = ?
-ORDER BY created_at DESC
+ORDER BY times_used DESC, name ASC
 LIMIT ? OFFSET ?;
 
--- name: GetDefaultConfigForMode :one
-SELECT * FROM configs
-WHERE mode = ? AND is_default = 1
-LIMIT 1;
-
--- name: InsertConfig :one
-INSERT INTO configs (name, description, recipe_json, tags, mode, created_by)
-VALUES (?, ?, ?, ?, ?, ?)
-RETURNING *;
-
 -- name: UpdateConfig :exec
-UPDATE configs SET
-  description = ?,
-  recipe_json = ?,
-  tags = ?,
-  updated_at = CURRENT_TIMESTAMP,
-  last_used_at = CURRENT_TIMESTAMP,
-  times_used = times_used + 1
+UPDATE configs
+SET description = ?,
+    recipe_json = ?,
+    tags = ?,
+    updated_at = CURRENT_TIMESTAMP
 WHERE id = ?;
 
--- name: SetConfigAsDefault :exec
-UPDATE configs SET is_default = CASE WHEN configs.id = ? THEN 1 ELSE 0 END
-WHERE mode = (SELECT c.mode FROM configs c WHERE c.id = ?);
-
 -- name: DeleteConfig :exec
-DELETE FROM configs WHERE id = ?;
+DELETE FROM configs
+WHERE id = ?;
 
--- name: GetConfigPresets :many
+-- name: SetDefaultConfig :exec
+UPDATE configs
+SET is_default = CASE WHEN id = ? THEN 1 ELSE 0 END
+WHERE mode = ?;
+
+-- name: GetDefaultConfig :one
+SELECT * FROM configs
+WHERE is_default = 1 AND mode = ?
+LIMIT 1;
+
+-- name: IncrementConfigUsage :exec
+UPDATE configs
+SET times_used = times_used + 1,
+    last_used_at = CURRENT_TIMESTAMP
+WHERE id = ?;
+
+-- name: GetPreset :one
+SELECT * FROM config_presets
+WHERE name = ?
+LIMIT 1;
+
+-- name: ListPresets :many
 SELECT * FROM config_presets
 WHERE is_active = 1
 ORDER BY sort_order ASC;
-
--- name: GetConfigPresetByName :one
-SELECT * FROM config_presets
-WHERE name = ? AND is_active = 1
-LIMIT 1;

@@ -3,58 +3,97 @@ package services
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
+	"github.com/garnizeh/luckyfive/internal/store/results"
 	"github.com/garnizeh/luckyfive/pkg/predictor"
 )
 
 type EngineService struct {
-	predictor predictor.Predictor
-	scorer    predictor.Scorer
+	resultsQueries results.Querier
+	predictor      predictor.Predictor
+	scorer         predictor.Scorer
+	logger         *slog.Logger
 }
 
-func NewEngineService(pred predictor.Predictor) *EngineService {
-	return &EngineService{predictor: pred, scorer: predictor.NewScorer()}
+func NewEngineService(
+	resultsQueries results.Querier,
+	logger *slog.Logger,
+) *EngineService {
+	return &EngineService{
+		resultsQueries: resultsQueries,
+		scorer:         predictor.NewScorer(),
+		logger:         logger,
+	}
 }
 
 type SimulationConfig struct {
-	StartContest int
-	EndContest   int
-	SimPrevMax   int
-	SimPreds     int
-	Seed         int64
-}
-
-type ContestResult struct {
-	Contest        int
-	ActualNumbers  []int
-	BestHits       int
-	BestPrediction []int
+	StartContest    int
+	EndContest      int
+	SimPrevMax      int
+	SimPreds        int
+	Weights         predictor.Weights
+	Seed            int64
+	EnableEvolution bool
+	Generations     int
+	MutationRate    float64
 }
 
 type SimulationResult struct {
 	ContestResults []ContestResult
-	Summary        struct {
-		TotalContests int
-		QuinaHits     int
-		QuadraHits    int
-		TernoHits     int
-		AverageHits   float64
-	}
-	DurationMs int64
+	Summary        Summary
+	Config         SimulationConfig
+	DurationMs     int64
 }
 
-// RunSimulation runs a simple simulation using the provided historical draws.
-// historical should be ordered by contest ascending; the 'contest' numbers are
-// inferred from index offsets.
-func (s *EngineService) RunSimulation(ctx context.Context, cfg SimulationConfig, historical [][]int) (*SimulationResult, error) {
+type ContestResult struct {
+	Contest             int
+	ActualNumbers       []int
+	BestHits            int
+	BestPrediction      []int
+	BestPredictionIndex int
+	AllPredictions      []predictor.Prediction
+}
+
+type Summary struct {
+	TotalContests int
+	QuinaHits     int
+	QuadraHits    int
+	TernoHits     int
+	AverageHits   float64
+	HitRateQuina  float64
+	HitRateQuadra float64
+	HitRateTerno  float64
+}
+
+func (s *EngineService) RunSimulation(
+	ctx context.Context,
+	cfg SimulationConfig,
+) (*SimulationResult, error) {
 	start := time.Now()
-	if cfg.EndContest < cfg.StartContest {
-		return nil, fmt.Errorf("invalid contest range")
+
+	// Fetch historical draws
+	draws, err := s.resultsQueries.ListDrawsByContestRange(
+		ctx,
+		results.ListDrawsByContestRangeParams{
+			FromContest: int64(cfg.StartContest - cfg.SimPrevMax),
+			ToContest:   int64(cfg.EndContest),
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("fetch draws: %w", err)
 	}
 
-	var results []ContestResult
-	var summary SimulationResult
+	// Convert to predictor format
+	historicalDraws := s.convertDraws(draws)
+
+	// Initialize predictor with seed
+	pred := predictor.NewAdvancedPredictor(cfg.Seed)
+
+	// Run simulation for each contest
+	var contestResults []ContestResult
+	var summary Summary
 
 	for contest := cfg.StartContest; contest <= cfg.EndContest; contest++ {
 		select {
@@ -63,48 +102,96 @@ func (s *EngineService) RunSimulation(ctx context.Context, cfg SimulationConfig,
 		default:
 		}
 
-		// build history up to this contest (use last SimPrevMax draws)
-		// assume contest indexes map directly to history indexes (1-based)
-		idx := contest - 1
-		if idx < 0 || idx >= len(historical) {
-			continue
-		}
-		end := idx
-		startIdx := 0
-		if cfg.SimPrevMax > 0 && end-cfg.SimPrevMax+1 > 0 {
-			startIdx = end - cfg.SimPrevMax + 1
-		}
-		historySlice := make([][]int, 0, end-startIdx+1)
-		for i := startIdx; i <= end; i++ {
-			historySlice = append(historySlice, historical[i])
-		}
+		// Get historical data up to this contest
+		history := s.getHistoryUpTo(historicalDraws, contest, cfg.SimPrevMax)
 
-		preds, err := s.predictor.GeneratePredictions(ctx, predictor.PredictionParams{
-			HistoricalDraws: historySlice,
+		// Generate predictions
+		predictions, err := pred.GeneratePredictions(ctx, predictor.PredictionParams{
+			HistoricalDraws: history,
+			MaxHistory:      cfg.SimPrevMax,
 			NumPredictions:  cfg.SimPreds,
+			Weights:         cfg.Weights,
 			Seed:            cfg.Seed + int64(contest),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("generate predictions: %w", err)
 		}
-		actual := historical[idx]
-		score := s.scorer.ScorePredictions(preds, actual)
 
-		cr := ContestResult{Contest: contest, ActualNumbers: actual, BestHits: score.BestHits, BestPrediction: score.BestPrediction}
-		results = append(results, cr)
+		// Get actual result
+		actual := s.findContestInHistory(historicalDraws, contest)
+		if actual == nil {
+			continue
+		}
 
-		summary.Summary.TotalContests++
-		summary.Summary.QuinaHits += score.QuinaCount
-		summary.Summary.QuadraHits += score.QuadraCount
-		summary.Summary.TernoHits += score.TernoCount
+		// Score predictions
+		score := s.scorer.ScorePredictions(predictions, actual.Numbers)
+
+		// Record result
+		contestResults = append(contestResults, ContestResult{
+			Contest:             contest,
+			ActualNumbers:       actual.Numbers,
+			BestHits:            score.BestHits,
+			BestPrediction:      score.BestPrediction,
+			BestPredictionIndex: score.BestPredictionIdx,
+			AllPredictions:      predictions,
+		})
+
+		// Update summary
+		summary.TotalContests++
+		summary.QuinaHits += score.QuinaCount
+		summary.QuadraHits += score.QuadraCount
+		summary.TernoHits += score.TernoCount
 	}
 
-	if summary.Summary.TotalContests > 0 {
-		totalHits := summary.Summary.QuinaHits*5 + summary.Summary.QuadraHits*4 + summary.Summary.TernoHits*3
-		summary.Summary.AverageHits = float64(totalHits) / float64(summary.Summary.TotalContests)
+	// Calculate rates
+	if summary.TotalContests > 0 {
+		summary.HitRateQuina = float64(summary.QuinaHits) / float64(summary.TotalContests)
+		summary.HitRateQuadra = float64(summary.QuadraHits) / float64(summary.TotalContests)
+		summary.HitRateTerno = float64(summary.TernoHits) / float64(summary.TotalContests)
+
+		totalHits := summary.QuinaHits*5 + summary.QuadraHits*4 + summary.TernoHits*3
+		summary.AverageHits = float64(totalHits) / float64(summary.TotalContests)
 	}
 
-	summary.ContestResults = results
-	summary.DurationMs = time.Since(start).Milliseconds()
-	return &summary, nil
+	return &SimulationResult{
+		ContestResults: contestResults,
+		Summary:        summary,
+		Config:         cfg,
+		DurationMs:     time.Since(start).Milliseconds(),
+	}, nil
+}
+
+// Helper methods
+func (s *EngineService) convertDraws(draws []results.Draw) []predictor.Draw {
+	result := make([]predictor.Draw, len(draws))
+	for i, d := range draws {
+		result[i] = predictor.Draw{
+			Contest: int(d.Contest),
+			Numbers: []int{int(d.Bola1), int(d.Bola2), int(d.Bola3), int(d.Bola4), int(d.Bola5)},
+			Date:    time.Time{}, // TODO: parse DrawDate if needed
+		}
+	}
+	return result
+}
+
+func (s *EngineService) getHistoryUpTo(draws []predictor.Draw, upToContest, maxHistory int) []predictor.Draw {
+	var result []predictor.Draw
+	for _, d := range draws {
+		if d.Contest < upToContest {
+			result = append(result, d)
+		}
+	}
+	if len(result) > maxHistory {
+		result = result[len(result)-maxHistory:]
+	}
+	return result
+}
+
+func (s *EngineService) findContestInHistory(draws []predictor.Draw, contest int) *predictor.Draw {
+	for _, d := range draws {
+		if d.Contest == contest {
+			return &d
+		}
+	}
+	return nil
 }

@@ -6,35 +6,21 @@ package simulations
 
 import (
 	"context"
-	"database/sql"
 )
 
 type Querier interface {
-	CountAnalysisJobs(ctx context.Context) (int64, error)
-	CountSimulationContestResults(ctx context.Context, simulationID int64) (int64, error)
-	CountSimulations(ctx context.Context) (int64, error)
-	DeleteAnalysisJob(ctx context.Context, id int64) error
-	DeleteSimulation(ctx context.Context, id int64) error
-	GetAnalysisJob(ctx context.Context, id int64) (AnalysisJob, error)
-	// schema: migrations/002_create_simulations.sql
+	CancelSimulation(ctx context.Context, arg CancelSimulationParams) error
+	ClaimPendingSimulation(ctx context.Context, arg ClaimPendingSimulationParams) (Simulation, error)
+	CompleteSimulation(ctx context.Context, arg CompleteSimulationParams) error
+	CountSimulationsByStatus(ctx context.Context, status string) (int64, error)
+	CreateSimulation(ctx context.Context, arg CreateSimulationParams) (Simulation, error)
+	FailSimulation(ctx context.Context, arg FailSimulationParams) error
+	GetContestResults(ctx context.Context, arg GetContestResultsParams) ([]SimulationContestResult, error)
+	GetContestResultsByMinHits(ctx context.Context, arg GetContestResultsByMinHitsParams) ([]SimulationContestResult, error)
 	GetSimulation(ctx context.Context, id int64) (Simulation, error)
-	GetSimulationByRecipeName(ctx context.Context, recipeName sql.NullString) (Simulation, error)
-	GetSimulationContestResult(ctx context.Context, arg GetSimulationContestResultParams) (SimulationContestResult, error)
-	InsertAnalysisJob(ctx context.Context, arg InsertAnalysisJobParams) (AnalysisJob, error)
-	InsertSimulation(ctx context.Context, arg InsertSimulationParams) (Simulation, error)
-	InsertSimulationContestResult(ctx context.Context, arg InsertSimulationContestResultParams) (SimulationContestResult, error)
-	ListAnalysisJobs(ctx context.Context, arg ListAnalysisJobsParams) ([]AnalysisJob, error)
-	ListAnalysisJobsByStatus(ctx context.Context, arg ListAnalysisJobsByStatusParams) ([]AnalysisJob, error)
-	ListAnalysisJobsByType(ctx context.Context, arg ListAnalysisJobsByTypeParams) ([]AnalysisJob, error)
-	ListSimulationContestResults(ctx context.Context, arg ListSimulationContestResultsParams) ([]SimulationContestResult, error)
-	ListSimulationContestResultsByHits(ctx context.Context, arg ListSimulationContestResultsByHitsParams) ([]SimulationContestResult, error)
+	InsertContestResult(ctx context.Context, arg InsertContestResultParams) error
 	ListSimulations(ctx context.Context, arg ListSimulationsParams) ([]Simulation, error)
-	ListSimulationsByMode(ctx context.Context, arg ListSimulationsByModeParams) ([]Simulation, error)
 	ListSimulationsByStatus(ctx context.Context, arg ListSimulationsByStatusParams) ([]Simulation, error)
-	UpdateAnalysisJobArtifacts(ctx context.Context, arg UpdateAnalysisJobArtifactsParams) error
-	UpdateAnalysisJobProgress(ctx context.Context, arg UpdateAnalysisJobProgressParams) error
-	UpdateAnalysisJobStatus(ctx context.Context, arg UpdateAnalysisJobStatusParams) error
-	UpdateSimulationArtifacts(ctx context.Context, arg UpdateSimulationArtifactsParams) error
 	UpdateSimulationStatus(ctx context.Context, arg UpdateSimulationStatusParams) error
 }
 

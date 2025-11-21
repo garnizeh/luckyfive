@@ -10,8 +10,54 @@ import (
 	"database/sql"
 )
 
+const createConfig = `-- name: CreateConfig :one
+INSERT INTO configs (
+    name, description, recipe_json, tags, is_default, mode, created_by
+) VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, name, description, recipe_json, tags, is_default, mode, created_at, updated_at, created_by, times_used, last_used_at
+`
+
+type CreateConfigParams struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	RecipeJson  string         `json:"recipe_json"`
+	Tags        sql.NullString `json:"tags"`
+	IsDefault   sql.NullInt64  `json:"is_default"`
+	Mode        string         `json:"mode"`
+	CreatedBy   sql.NullString `json:"created_by"`
+}
+
+func (q *Queries) CreateConfig(ctx context.Context, arg CreateConfigParams) (Config, error) {
+	row := q.db.QueryRowContext(ctx, createConfig,
+		arg.Name,
+		arg.Description,
+		arg.RecipeJson,
+		arg.Tags,
+		arg.IsDefault,
+		arg.Mode,
+		arg.CreatedBy,
+	)
+	var i Config
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.RecipeJson,
+		&i.Tags,
+		&i.IsDefault,
+		&i.Mode,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.TimesUsed,
+		&i.LastUsedAt,
+	)
+	return i, err
+}
+
 const deleteConfig = `-- name: DeleteConfig :exec
-DELETE FROM configs WHERE id = ?
+DELETE FROM configs
+WHERE id = ?
 `
 
 func (q *Queries) DeleteConfig(ctx context.Context, id int64) error {
@@ -20,13 +66,11 @@ func (q *Queries) DeleteConfig(ctx context.Context, id int64) error {
 }
 
 const getConfig = `-- name: GetConfig :one
-
 SELECT id, name, description, recipe_json, tags, is_default, mode, created_at, updated_at, created_by, times_used, last_used_at FROM configs
 WHERE id = ?
 LIMIT 1
 `
 
-// schema: migrations/003_create_configs.sql
 func (q *Queries) GetConfig(ctx context.Context, id int64) (Config, error) {
 	row := q.db.QueryRowContext(ctx, getConfig, id)
 	var i Config
@@ -73,14 +117,40 @@ func (q *Queries) GetConfigByName(ctx context.Context, name string) (Config, err
 	return i, err
 }
 
-const getConfigPresetByName = `-- name: GetConfigPresetByName :one
-SELECT id, name, display_name, description, recipe_json, risk_level, is_active, sort_order FROM config_presets
-WHERE name = ? AND is_active = 1
+const getDefaultConfig = `-- name: GetDefaultConfig :one
+SELECT id, name, description, recipe_json, tags, is_default, mode, created_at, updated_at, created_by, times_used, last_used_at FROM configs
+WHERE is_default = 1 AND mode = ?
 LIMIT 1
 `
 
-func (q *Queries) GetConfigPresetByName(ctx context.Context, name string) (ConfigPreset, error) {
-	row := q.db.QueryRowContext(ctx, getConfigPresetByName, name)
+func (q *Queries) GetDefaultConfig(ctx context.Context, mode string) (Config, error) {
+	row := q.db.QueryRowContext(ctx, getDefaultConfig, mode)
+	var i Config
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.RecipeJson,
+		&i.Tags,
+		&i.IsDefault,
+		&i.Mode,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.TimesUsed,
+		&i.LastUsedAt,
+	)
+	return i, err
+}
+
+const getPreset = `-- name: GetPreset :one
+SELECT id, name, display_name, description, recipe_json, risk_level, is_active, sort_order FROM config_presets
+WHERE name = ?
+LIMIT 1
+`
+
+func (q *Queries) GetPreset(ctx context.Context, name string) (ConfigPreset, error) {
+	row := q.db.QueryRowContext(ctx, getPreset, name)
 	var i ConfigPreset
 	err := row.Scan(
 		&i.ID,
@@ -95,115 +165,21 @@ func (q *Queries) GetConfigPresetByName(ctx context.Context, name string) (Confi
 	return i, err
 }
 
-const getConfigPresets = `-- name: GetConfigPresets :many
-SELECT id, name, display_name, description, recipe_json, risk_level, is_active, sort_order FROM config_presets
-WHERE is_active = 1
-ORDER BY sort_order ASC
+const incrementConfigUsage = `-- name: IncrementConfigUsage :exec
+UPDATE configs
+SET times_used = times_used + 1,
+    last_used_at = CURRENT_TIMESTAMP
+WHERE id = ?
 `
 
-func (q *Queries) GetConfigPresets(ctx context.Context) ([]ConfigPreset, error) {
-	rows, err := q.db.QueryContext(ctx, getConfigPresets)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ConfigPreset
-	for rows.Next() {
-		var i ConfigPreset
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.DisplayName,
-			&i.Description,
-			&i.RecipeJson,
-			&i.RiskLevel,
-			&i.IsActive,
-			&i.SortOrder,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getDefaultConfigForMode = `-- name: GetDefaultConfigForMode :one
-SELECT id, name, description, recipe_json, tags, is_default, mode, created_at, updated_at, created_by, times_used, last_used_at FROM configs
-WHERE mode = ? AND is_default = 1
-LIMIT 1
-`
-
-func (q *Queries) GetDefaultConfigForMode(ctx context.Context, mode string) (Config, error) {
-	row := q.db.QueryRowContext(ctx, getDefaultConfigForMode, mode)
-	var i Config
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.RecipeJson,
-		&i.Tags,
-		&i.IsDefault,
-		&i.Mode,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.CreatedBy,
-		&i.TimesUsed,
-		&i.LastUsedAt,
-	)
-	return i, err
-}
-
-const insertConfig = `-- name: InsertConfig :one
-INSERT INTO configs (name, description, recipe_json, tags, mode, created_by)
-VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, name, description, recipe_json, tags, is_default, mode, created_at, updated_at, created_by, times_used, last_used_at
-`
-
-type InsertConfigParams struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	RecipeJson  string         `json:"recipe_json"`
-	Tags        sql.NullString `json:"tags"`
-	Mode        string         `json:"mode"`
-	CreatedBy   sql.NullString `json:"created_by"`
-}
-
-func (q *Queries) InsertConfig(ctx context.Context, arg InsertConfigParams) (Config, error) {
-	row := q.db.QueryRowContext(ctx, insertConfig,
-		arg.Name,
-		arg.Description,
-		arg.RecipeJson,
-		arg.Tags,
-		arg.Mode,
-		arg.CreatedBy,
-	)
-	var i Config
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.RecipeJson,
-		&i.Tags,
-		&i.IsDefault,
-		&i.Mode,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.CreatedBy,
-		&i.TimesUsed,
-		&i.LastUsedAt,
-	)
-	return i, err
+func (q *Queries) IncrementConfigUsage(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, incrementConfigUsage, id)
+	return err
 }
 
 const listConfigs = `-- name: ListConfigs :many
 SELECT id, name, description, recipe_json, tags, is_default, mode, created_at, updated_at, created_by, times_used, last_used_at FROM configs
-ORDER BY created_at DESC
+ORDER BY name ASC
 LIMIT ? OFFSET ?
 `
 
@@ -251,7 +227,7 @@ func (q *Queries) ListConfigs(ctx context.Context, arg ListConfigsParams) ([]Con
 const listConfigsByMode = `-- name: ListConfigsByMode :many
 SELECT id, name, description, recipe_json, tags, is_default, mode, created_at, updated_at, created_by, times_used, last_used_at FROM configs
 WHERE mode = ?
-ORDER BY created_at DESC
+ORDER BY times_used DESC, name ASC
 LIMIT ? OFFSET ?
 `
 
@@ -297,29 +273,66 @@ func (q *Queries) ListConfigsByMode(ctx context.Context, arg ListConfigsByModePa
 	return items, nil
 }
 
-const setConfigAsDefault = `-- name: SetConfigAsDefault :exec
-UPDATE configs SET is_default = CASE WHEN configs.id = ? THEN 1 ELSE 0 END
-WHERE mode = (SELECT c.mode FROM configs c WHERE c.id = ?)
+const listPresets = `-- name: ListPresets :many
+SELECT id, name, display_name, description, recipe_json, risk_level, is_active, sort_order FROM config_presets
+WHERE is_active = 1
+ORDER BY sort_order ASC
 `
 
-type SetConfigAsDefaultParams struct {
-	ID   int64 `json:"id"`
-	ID_2 int64 `json:"id_2"`
+func (q *Queries) ListPresets(ctx context.Context) ([]ConfigPreset, error) {
+	rows, err := q.db.QueryContext(ctx, listPresets)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ConfigPreset
+	for rows.Next() {
+		var i ConfigPreset
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.DisplayName,
+			&i.Description,
+			&i.RecipeJson,
+			&i.RiskLevel,
+			&i.IsActive,
+			&i.SortOrder,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-func (q *Queries) SetConfigAsDefault(ctx context.Context, arg SetConfigAsDefaultParams) error {
-	_, err := q.db.ExecContext(ctx, setConfigAsDefault, arg.ID, arg.ID_2)
+const setDefaultConfig = `-- name: SetDefaultConfig :exec
+UPDATE configs
+SET is_default = CASE WHEN id = ? THEN 1 ELSE 0 END
+WHERE mode = ?
+`
+
+type SetDefaultConfigParams struct {
+	ID   int64  `json:"id"`
+	Mode string `json:"mode"`
+}
+
+func (q *Queries) SetDefaultConfig(ctx context.Context, arg SetDefaultConfigParams) error {
+	_, err := q.db.ExecContext(ctx, setDefaultConfig, arg.ID, arg.Mode)
 	return err
 }
 
 const updateConfig = `-- name: UpdateConfig :exec
-UPDATE configs SET
-  description = ?,
-  recipe_json = ?,
-  tags = ?,
-  updated_at = CURRENT_TIMESTAMP,
-  last_used_at = CURRENT_TIMESTAMP,
-  times_used = times_used + 1
+UPDATE configs
+SET description = ?,
+    recipe_json = ?,
+    tags = ?,
+    updated_at = CURRENT_TIMESTAMP
 WHERE id = ?
 `
 

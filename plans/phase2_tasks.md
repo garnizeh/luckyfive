@@ -631,10 +631,17 @@ Evidence:
 Define SQL queries for simulations database using sqlc.
 
 **Acceptance Criteria:**
-- [ ] CRUD queries for simulations table
-- [ ] Queries for contest results
-- [ ] Status update queries
-- [ ] Querier interface generated
+- [x] CRUD queries for simulations table
+- [x] Queries for contest results
+- [x] Status update queries
+- [x] Querier interface generated
+
+**Status:** Completed — simulations.sql created and sqlc generated
+
+Evidence:
+- `internal/store/queries/simulations.sql` — all required SQL queries defined, including CRUD for simulations, contest results, status updates, and atomic job claiming.
+- `make generate` run successfully; Querier interface generated in `internal/store/simulations/querier.go`, models in `models.go`, and db.go.
+- Code compiles without errors (`go build ./internal/store/simulations` passed).
 
 **Subtasks:**
 1. Create `internal/store/queries/simulations.sql`:
@@ -745,11 +752,20 @@ Define SQL queries for simulations database using sqlc.
 Implement SimulationService using sqlc Queriers.
 
 **Acceptance Criteria:**
-- [ ] CreateSimulation method
-- [ ] ExecuteSimulation method
-- [ ] Get/List methods
-- [ ] CancelSimulation method
-- [ ] Uses Querier interfaces (mockable)
+- [x] CreateSimulation method
+- [x] ExecuteSimulation method
+- [x] Get/List methods
+- [x] CancelSimulation method
+- [x] Uses Querier interfaces (mockable)
+
+**Status:** Completed — SimulationService implemented and compiles
+
+Evidence:
+- `internal/services/simulation.go` — SimulationService with CreateSimulation, ExecuteSimulation, GetSimulation, CancelSimulation, ListSimulations, and ListSimulationsByStatus methods implemented; uses sqlc Querier interfaces for mockability.
+- `internal/services/engine.go` — Updated to full implementation with Querier integration, fetches historical data, and returns structured results.
+- `pkg/predictor/types.go` — Added Draw struct and updated PredictionParams to use []Draw for historical data.
+- `pkg/predictor/advanced.go` — Updated to convert []Draw to [][]int for compatibility.
+- Code compiles without errors (`go build ./internal/services` passed).
 
 **Subtasks:**
 1. Create `internal/services/simulation.go`:
@@ -983,10 +999,10 @@ Implement SimulationService using sqlc Queriers.
 Define SQL queries for configs database.
 
 **Acceptance Criteria:**
-- [ ] CRUD operations defined
-- [ ] Default config queries
-- [ ] Preset queries
-- [ ] Usage tracking queries
+- [x] CRUD operations defined
+- [x] Default config queries
+- [x] Preset queries
+- [x] Usage tracking queries
 
 **Subtasks:**
 1. Create `internal/store/queries/configs.sql`:
@@ -1074,11 +1090,11 @@ Define SQL queries for configs database.
 Implement ConfigService with mockable Querier.
 
 **Acceptance Criteria:**
-- [ ] CRUD operations
-- [ ] Default config management
-- [ ] Preset loading
-- [ ] Usage tracking
-- [ ] Mockable for tests
+- [x] CRUD operations
+- [x] Default config management
+- [x] Preset loading
+- [x] Usage tracking
+- [x] Mockable for tests
 
 **Subtasks:**
 1. Create `internal/services/config.go`:
@@ -1546,21 +1562,21 @@ Document new API endpoints.
 ## Phase 2 Checklist
 
 ### Sprint 2.1 (Days 1-4)
-- [ ] Task 2.1.1: Algorithm analysis complete
+- [x] Task 2.1.1: Algorithm analysis complete
 - [x] Task 2.1.2: Predictor package implemented
 - [x] Task 2.1.3: Scorer implemented
-- [ ] Task 2.1.4: Evolutionary optimizer (optional)
+- [x] Task 2.1.4: Evolutionary optimizer (optional)
 - [x] Task 2.1.4: Evolutionary optimizer (optional)
 - [x] Task 2.1.5: EngineService implemented
-- [ ] Task 2.1.5: EngineService implemented
+- [x] Task 2.1.5: EngineService implemented
 
 ### Sprint 2.2 (Days 5-7)
-- [ ] Task 2.2.1: Simulations queries defined
-- [ ] Task 2.2.2: SimulationService implemented
+- [x] Task 2.2.1: Simulations queries defined
+- [x] Task 2.2.2: SimulationService implemented
 
 ### Sprint 2.3 (Days 8-10)
-- [ ] Task 2.3.1: Configs queries defined
-- [ ] Task 2.3.2: ConfigService implemented
+- [x] Task 2.3.1: Configs queries defined
+- [x] Task 2.3.2: ConfigService implemented
 
 ### Sprint 2.4 (Days 11-14)
 - [ ] Task 2.4.1: Simple mode endpoint

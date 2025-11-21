@@ -35,6 +35,21 @@ func (m *MockQuerier) EXPECT() *MockQuerierMockRecorder {
 	return m.recorder
 }
 
+// CreateConfig mocks base method.
+func (m *MockQuerier) CreateConfig(ctx context.Context, arg configs.CreateConfigParams) (configs.Config, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateConfig", ctx, arg)
+	ret0, _ := ret[0].(configs.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateConfig indicates an expected call of CreateConfig.
+func (mr *MockQuerierMockRecorder) CreateConfig(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConfig", reflect.TypeOf((*MockQuerier)(nil).CreateConfig), ctx, arg)
+}
+
 // DeleteConfig mocks base method.
 func (m *MockQuerier) DeleteConfig(ctx context.Context, id int64) error {
 	m.ctrl.T.Helper()
@@ -79,64 +94,48 @@ func (mr *MockQuerierMockRecorder) GetConfigByName(ctx, name interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigByName", reflect.TypeOf((*MockQuerier)(nil).GetConfigByName), ctx, name)
 }
 
-// GetConfigPresetByName mocks base method.
-func (m *MockQuerier) GetConfigPresetByName(ctx context.Context, name string) (configs.ConfigPreset, error) {
+// GetDefaultConfig mocks base method.
+func (m *MockQuerier) GetDefaultConfig(ctx context.Context, mode string) (configs.Config, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConfigPresetByName", ctx, name)
+	ret := m.ctrl.Call(m, "GetDefaultConfig", ctx, mode)
+	ret0, _ := ret[0].(configs.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDefaultConfig indicates an expected call of GetDefaultConfig.
+func (mr *MockQuerierMockRecorder) GetDefaultConfig(ctx, mode interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultConfig", reflect.TypeOf((*MockQuerier)(nil).GetDefaultConfig), ctx, mode)
+}
+
+// GetPreset mocks base method.
+func (m *MockQuerier) GetPreset(ctx context.Context, name string) (configs.ConfigPreset, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPreset", ctx, name)
 	ret0, _ := ret[0].(configs.ConfigPreset)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetConfigPresetByName indicates an expected call of GetConfigPresetByName.
-func (mr *MockQuerierMockRecorder) GetConfigPresetByName(ctx, name interface{}) *gomock.Call {
+// GetPreset indicates an expected call of GetPreset.
+func (mr *MockQuerierMockRecorder) GetPreset(ctx, name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigPresetByName", reflect.TypeOf((*MockQuerier)(nil).GetConfigPresetByName), ctx, name)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPreset", reflect.TypeOf((*MockQuerier)(nil).GetPreset), ctx, name)
 }
 
-// GetConfigPresets mocks base method.
-func (m *MockQuerier) GetConfigPresets(ctx context.Context) ([]configs.ConfigPreset, error) {
+// IncrementConfigUsage mocks base method.
+func (m *MockQuerier) IncrementConfigUsage(ctx context.Context, id int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConfigPresets", ctx)
-	ret0, _ := ret[0].([]configs.ConfigPreset)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "IncrementConfigUsage", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetConfigPresets indicates an expected call of GetConfigPresets.
-func (mr *MockQuerierMockRecorder) GetConfigPresets(ctx interface{}) *gomock.Call {
+// IncrementConfigUsage indicates an expected call of IncrementConfigUsage.
+func (mr *MockQuerierMockRecorder) IncrementConfigUsage(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigPresets", reflect.TypeOf((*MockQuerier)(nil).GetConfigPresets), ctx)
-}
-
-// GetDefaultConfigForMode mocks base method.
-func (m *MockQuerier) GetDefaultConfigForMode(ctx context.Context, mode string) (configs.Config, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDefaultConfigForMode", ctx, mode)
-	ret0, _ := ret[0].(configs.Config)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetDefaultConfigForMode indicates an expected call of GetDefaultConfigForMode.
-func (mr *MockQuerierMockRecorder) GetDefaultConfigForMode(ctx, mode interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultConfigForMode", reflect.TypeOf((*MockQuerier)(nil).GetDefaultConfigForMode), ctx, mode)
-}
-
-// InsertConfig mocks base method.
-func (m *MockQuerier) InsertConfig(ctx context.Context, arg configs.InsertConfigParams) (configs.Config, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InsertConfig", ctx, arg)
-	ret0, _ := ret[0].(configs.Config)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// InsertConfig indicates an expected call of InsertConfig.
-func (mr *MockQuerierMockRecorder) InsertConfig(ctx, arg interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertConfig", reflect.TypeOf((*MockQuerier)(nil).InsertConfig), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementConfigUsage", reflect.TypeOf((*MockQuerier)(nil).IncrementConfigUsage), ctx, id)
 }
 
 // ListConfigs mocks base method.
@@ -169,18 +168,33 @@ func (mr *MockQuerierMockRecorder) ListConfigsByMode(ctx, arg interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListConfigsByMode", reflect.TypeOf((*MockQuerier)(nil).ListConfigsByMode), ctx, arg)
 }
 
-// SetConfigAsDefault mocks base method.
-func (m *MockQuerier) SetConfigAsDefault(ctx context.Context, arg configs.SetConfigAsDefaultParams) error {
+// ListPresets mocks base method.
+func (m *MockQuerier) ListPresets(ctx context.Context) ([]configs.ConfigPreset, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetConfigAsDefault", ctx, arg)
+	ret := m.ctrl.Call(m, "ListPresets", ctx)
+	ret0, _ := ret[0].([]configs.ConfigPreset)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPresets indicates an expected call of ListPresets.
+func (mr *MockQuerierMockRecorder) ListPresets(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPresets", reflect.TypeOf((*MockQuerier)(nil).ListPresets), ctx)
+}
+
+// SetDefaultConfig mocks base method.
+func (m *MockQuerier) SetDefaultConfig(ctx context.Context, arg configs.SetDefaultConfigParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDefaultConfig", ctx, arg)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SetConfigAsDefault indicates an expected call of SetConfigAsDefault.
-func (mr *MockQuerierMockRecorder) SetConfigAsDefault(ctx, arg interface{}) *gomock.Call {
+// SetDefaultConfig indicates an expected call of SetDefaultConfig.
+func (mr *MockQuerierMockRecorder) SetDefaultConfig(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfigAsDefault", reflect.TypeOf((*MockQuerier)(nil).SetConfigAsDefault), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDefaultConfig", reflect.TypeOf((*MockQuerier)(nil).SetDefaultConfig), ctx, arg)
 }
 
 // UpdateConfig mocks base method.

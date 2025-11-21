@@ -37,14 +37,20 @@ func (p *AdvancedPredictor) GeneratePredictions(ctx context.Context, params Pred
 		return []Prediction{}, nil
 	}
 
+	// Convert historical draws to [][]int
+	historical := make([][]int, len(params.HistoricalDraws))
+	for i, d := range params.HistoricalDraws {
+		historical[i] = d.Numbers
+	}
+
 	// Compute statistics from history
 	maxNum := 80
-	freq := ComputeFreq(params.HistoricalDraws, maxNum)
-	cond, _ := ComputePairwiseConditional(params.HistoricalDraws, maxNum)
-	probs := ComputeMarginalProbabilities(params.HistoricalDraws, 0.08, maxNum)
+	freq := ComputeFreq(historical, maxNum)
+	cond, _ := ComputePairwiseConditional(historical, maxNum)
+	probs := ComputeMarginalProbabilities(historical, 0.08, maxNum)
 
 	// positional frequency sums
-	posFreq := ComputePosFreq(params.HistoricalDraws, 5)
+	posFreq := ComputePosFreq(historical, 5)
 	posFreqSum := make(map[int]float64)
 	totalPos := 0.0
 	for ppos := 0; ppos < 5; ppos++ {
