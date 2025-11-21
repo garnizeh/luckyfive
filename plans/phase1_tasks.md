@@ -17,14 +17,16 @@ Current state (sprint 1.1 — moving into 1.2):
 
 - Task 1.2.1: Migration system implemented — completed. A migration runner (`internal/store/migrate.go`) and CLI (`cmd/migrate`) were added; migrations have been exercised against local DB files created under `data/db/`. The CLI supports `up`, `down`, `version`, `-only` (apply specific versions) and `-file` (apply a single migration by file). Documentation for the `migrate` CLI was added to `docs/migrate.md`.
 
+- Task 1.2.2: Results Database Schema + Queries — completed. Migrations (`migrations/001_create_results.sql`) and query files (`internal/store/queries/results.sql`) were added; `sqlc generate` was run to produce queriers and mocks, and basic verification (create/insert/select via tests) was executed locally.
+
 Commits of note:
 - 82dbd23 — initial project scaffold (created `.gitignore`, `LICENSE`, `README.md`, and initial `cmd/` files)
 - f9c0b80 — added `Makefile` with build/test/generate targets
 - 92acdda — docs: mark Task 1.1.3 done (dependencies & dev tools installed)
 - 527d9e3 — test(config/logger): add invalid concurrency and logger level tests
 
-Next immediate steps: run integration tests and implement the database access layer (see Task 1.2.6). 
-Recent work: production-ready migrations were added for results, simulations, configs and finances; SQL query files were expanded with additional useful queries; sqlc generation and mock generation were executed and mocks were added to `internal/store/*/mock/`.
+Next immediate steps: start Task 1.2.3 (Simulations schema), run integration tests, and continue work on the database access layer (see Task 1.2.6).
+Recent work: `internal/store/db.go` (Store wrapper) and `internal/store/db_test.go` were added — Open/Close helpers and unit tests were implemented and executed locally (tests passed). Remaining work for Task 1.2.6: finalize connection pooling, add higher-level transaction helpers that accept sqlc queriers (WithResultsTx, etc.), and add integration tests that run migrations and exercise generated queriers.
 
 Recent small wins:
 
@@ -466,11 +468,11 @@ Create database migration system for managing schema versions.
 Create migrations for `results.db` and SQL queries for sqlc generation.
 
 **Acceptance Criteria:**
-- [ ] `draws` table created with constraints
-- [ ] `import_history` table created
-- [ ] Indexes added for performance
-- [ ] SQL queries defined for sqlc
-- [ ] Migration file tested
+- [x] `draws` table created with constraints
+- [x] `import_history` table created
+- [x] Indexes added for performance
+- [x] SQL queries defined for sqlc
+- [x] Migration file tested
 
 **Subtasks:**
 1. Create `migrations/001_create_results.sql`:
@@ -584,6 +586,7 @@ Create migrations for `results.db` and SQL queries for sqlc generation.
 ---
 
 #### Task 1.2.3: Simulations Database Schema
+**Status:** In progress — initial table definitions and indexes are being implemented; next steps are FK and cascade tests.
 **Effort:** 4 hours  
 **Priority:** Critical  
 **Assignee:** Dev 1
@@ -1472,12 +1475,17 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
     - [x] Task 1.1.5: sqlc configured with Querier interfaces (queriers generated and mocks created)
 
 ### Sprint 1.2 (Days 4-7)
-- [ ] Task 1.2.1: Migration system working
-- [ ] Task 1.2.2: Results schema created
-- [ ] Task 1.2.3: Simulations schema created
+- [x] Task 1.2.1: Migration system working
+- [x] Task 1.2.2: Results schema created
+- [ ] Task 1.2.3: Simulations schema created (in progress)
 - [ ] Task 1.2.4: Configs schema created
 - [ ] Task 1.2.5: Finances schema created
-- [ ] Task 1.2.6: DB access layer implemented
+- [ ] Task 1.2.6: DB access layer implemented (in progress)
+
+**Progress on Task 1.2.6:**
+- Added `internal/store/db.go` implementing a `Store` wrapper with `Open`, `Close`, and `BeginTx` helpers wired to the sqlc-generated query packages (`results`, `simulations`, `configs`, `finances`).
+- Added `internal/store/db_test.go` with unit tests for file-backed and in-memory DB opening, basic DDL/DML and transaction commit; these tests pass locally (`go test ./internal/store -v`).
+- Remaining: add WithTx helpers that accept sqlc queriers, configure connection pool sizes, and add integration tests that run migrations and exercise generated queriers.
 
 ### Sprint 1.3 (Days 8-10)
 - [ ] Task 1.3.1: XLSX parser working
