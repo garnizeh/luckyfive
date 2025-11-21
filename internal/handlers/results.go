@@ -10,6 +10,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-playground/validator/v10"
+
+	"github.com/garnizeh/luckyfive/internal/models"
 	"github.com/garnizeh/luckyfive/internal/services"
 	"github.com/go-chi/chi/v5"
 )
@@ -27,10 +30,7 @@ func UploadResults(uploadSvc *services.UploadService, logger *slog.Logger) http.
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Only allow POST method
 		if r.Method != http.MethodPost {
-			WriteError(w, http.StatusMethodNotAllowed, APIError{
-				Code:    "method_not_allowed",
-				Message: "Method not allowed. Use POST.",
-			})
+			WriteError(w, r, *models.NewAPIError("method_not_allowed", "Method not allowed. Use POST."))
 			return
 		}
 
@@ -39,10 +39,7 @@ func UploadResults(uploadSvc *services.UploadService, logger *slog.Logger) http.
 		err := r.ParseMultipartForm(maxFileSize)
 		if err != nil {
 			logger.Error("Failed to parse multipart form", "error", err)
-			WriteError(w, http.StatusBadRequest, APIError{
-				Code:    "invalid_form",
-				Message: "Failed to parse multipart form",
-			})
+			WriteError(w, r, *models.NewAPIError("invalid_form", "Failed to parse multipart form"))
 			return
 		}
 
@@ -50,10 +47,7 @@ func UploadResults(uploadSvc *services.UploadService, logger *slog.Logger) http.
 		file, header, err := r.FormFile("file")
 		if err != nil {
 			logger.Error("No file provided", "error", err)
-			WriteError(w, http.StatusBadRequest, APIError{
-				Code:    "no_file",
-				Message: "No file provided in 'file' field",
-			})
+			WriteError(w, r, *models.NewAPIError("no_file", "No file provided in 'file' field"))
 			return
 		}
 		defer file.Close()
@@ -62,10 +56,7 @@ func UploadResults(uploadSvc *services.UploadService, logger *slog.Logger) http.
 		result, err := uploadSvc.UploadFile(file, header)
 		if err != nil {
 			logger.Error("File upload failed", "error", err, "filename", header.Filename)
-			WriteError(w, http.StatusBadRequest, APIError{
-				Code:    "upload_failed",
-				Message: fmt.Sprintf("Upload failed: %v", err),
-			})
+			WriteError(w, r, *models.NewAPIError("upload_failed", fmt.Sprintf("Upload failed: %v", err)))
 			return
 		}
 
@@ -83,19 +74,18 @@ func UploadResults(uploadSvc *services.UploadService, logger *slog.Logger) http.
 
 // ImportRequest represents the import request body
 type ImportRequest struct {
-	ArtifactID string `json:"artifact_id"`
+	ArtifactID string `json:"artifact_id" validate:"required"`
 	Sheet      string `json:"sheet,omitempty"` // Optional, defaults to first sheet
 }
 
 // ImportResults handles result import requests
 func ImportResults(resultsSvc *services.ResultsService, logger *slog.Logger) http.HandlerFunc {
+	validate := validator.New()
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Only allow POST method
 		if r.Method != http.MethodPost {
-			WriteError(w, http.StatusMethodNotAllowed, APIError{
-				Code:    "method_not_allowed",
-				Message: "Method not allowed. Use POST.",
-			})
+			WriteError(w, r, *models.NewAPIError("method_not_allowed", "Method not allowed. Use POST."))
 			return
 		}
 
@@ -103,19 +93,18 @@ func ImportResults(resultsSvc *services.ResultsService, logger *slog.Logger) htt
 		var req ImportRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			logger.Error("Failed to parse JSON request", "error", err)
-			WriteError(w, http.StatusBadRequest, APIError{
-				Code:    "invalid_json",
-				Message: "Invalid JSON in request body",
-			})
+			WriteError(w, r, *models.NewAPIError("invalid_json", "Invalid JSON in request body"))
 			return
 		}
 
-		// Validate required fields
-		if req.ArtifactID == "" {
-			WriteError(w, http.StatusBadRequest, APIError{
-				Code:    "missing_artifact_id",
-				Message: "artifact_id is required",
-			})
+		// Validate request
+		if err := validate.Struct(req); err != nil {
+			logger.Error("Request validation failed", "error", err)
+			fieldErrors := make(map[string]string)
+			for _, err := range err.(validator.ValidationErrors) {
+				fieldErrors[err.Field()] = fmt.Sprintf("Field validation failed on '%s' tag", err.Tag())
+			}
+			WriteValidationError(w, r, *models.NewValidationError("Request validation failed", fieldErrors))
 			return
 		}
 
@@ -132,10 +121,7 @@ func ImportResults(resultsSvc *services.ResultsService, logger *slog.Logger) htt
 		result, err := resultsSvc.ImportArtifact(ctx, req.ArtifactID, sheet)
 		if err != nil {
 			logger.Error("Import failed", "artifact_id", req.ArtifactID, "error", err)
-			WriteError(w, http.StatusInternalServerError, APIError{
-				Code:    "import_failed",
-				Message: fmt.Sprintf("Import failed: %v", err),
-			})
+			WriteError(w, r, *models.NewAPIError("import_failed", fmt.Sprintf("Import failed: %v", err)))
 			return
 		}
 
@@ -155,19 +141,13 @@ func GetDraw(resultsSvc *services.ResultsService, logger *slog.Logger) http.Hand
 	return func(w http.ResponseWriter, r *http.Request) {
 		contestStr := chi.URLParam(r, "contest")
 		if contestStr == "" {
-			WriteError(w, http.StatusBadRequest, APIError{
-				Code:    "missing_contest",
-				Message: "contest parameter is required",
-			})
+			WriteError(w, r, *models.NewAPIError("missing_contest", "contest parameter is required"))
 			return
 		}
 
 		contest, err := strconv.Atoi(contestStr)
 		if err != nil {
-			WriteError(w, http.StatusBadRequest, APIError{
-				Code:    "invalid_contest",
-				Message: "contest must be a valid number",
-			})
+			WriteError(w, r, *models.NewAPIError("invalid_contest", "contest must be a valid number"))
 			return
 		}
 
@@ -176,17 +156,11 @@ func GetDraw(resultsSvc *services.ResultsService, logger *slog.Logger) http.Hand
 		draw, err := resultsSvc.GetDraw(r.Context(), contest)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				WriteError(w, http.StatusNotFound, APIError{
-					Code:    "draw_not_found",
-					Message: "draw not found",
-				})
+				WriteError(w, r, *models.NewAPIError("draw_not_found", "draw not found"))
 				return
 			}
 			logger.Error("Failed to get draw", "error", err, "contest", contest)
-			WriteError(w, http.StatusInternalServerError, APIError{
-				Code:    "get_draw_failed",
-				Message: "failed to get draw",
-			})
+			WriteError(w, r, *models.NewAPIError("get_draw_failed", "failed to get draw"))
 			return
 		}
 
@@ -206,10 +180,7 @@ func ListDraws(resultsSvc *services.ResultsService, logger *slog.Logger) http.Ha
 			if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 1000 {
 				limit = l
 			} else {
-				WriteError(w, http.StatusBadRequest, APIError{
-					Code:    "invalid_limit",
-					Message: "limit must be a number between 1 and 1000",
-				})
+				WriteError(w, r, *models.NewAPIError("invalid_limit", "limit must be a number between 1 and 1000"))
 				return
 			}
 		}
@@ -219,10 +190,7 @@ func ListDraws(resultsSvc *services.ResultsService, logger *slog.Logger) http.Ha
 			if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
 				offset = o
 			} else {
-				WriteError(w, http.StatusBadRequest, APIError{
-					Code:    "invalid_offset",
-					Message: "offset must be a non-negative number",
-				})
+				WriteError(w, r, *models.NewAPIError("invalid_offset", "offset must be a non-negative number"))
 				return
 			}
 		}
@@ -232,10 +200,7 @@ func ListDraws(resultsSvc *services.ResultsService, logger *slog.Logger) http.Ha
 		draws, err := resultsSvc.ListDraws(r.Context(), limit, offset)
 		if err != nil {
 			logger.Error("Failed to list draws", "error", err)
-			WriteError(w, http.StatusInternalServerError, APIError{
-				Code:    "list_draws_failed",
-				Message: "failed to list draws",
-			})
+			WriteError(w, r, *models.NewAPIError("list_draws_failed", "failed to list draws"))
 			return
 		}
 

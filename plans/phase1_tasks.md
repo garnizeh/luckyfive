@@ -7,7 +7,7 @@
 
 ## Progress Update
 
-**Status Update (November 21, 2025):** Sprint 1.4 (HTTP API Foundation) completed successfully! All tasks 1.4.1 through 1.4.4 are now finished. The HTTP API is fully functional with server setup, health endpoint, upload endpoint, and import endpoint. Comprehensive tests created for all services and handlers. Phase 1 is now complete with all core functionality implemented and tested. Ready to proceed to Phase 2 planning.
+**Status Update (November 21, 2025):** Sprint 1.4 (HTTP API Foundation) completed successfully! All tasks 1.4.1 through 1.4.6 are now finished. The HTTP API is fully functional with server setup, health endpoint, upload endpoint, import endpoint, query endpoints, and comprehensive error handling. Comprehensive tests created for all services and handlers. Phase 1 is now complete with all core functionality implemented and tested. Ready to proceed to Phase 2 planning.
 
 Current state (sprint 1.4 completed — HTTP API Foundation):
 
@@ -1332,10 +1332,12 @@ Implement `GET /api/v1/results/{contest}` and `GET /api/v1/results`.
 Implement consistent error handling and request validation.
 
 **Acceptance Criteria:**
-- [ ] Standard error response format
-- [ ] Input validation with helpful messages
-- [ ] HTTP status codes match design doc
-- [ ] Request ID in all responses
+- [x] Standard error response format
+- [x] Input validation with helpful messages
+- [x] HTTP status codes match design doc
+- [x] Request ID in all responses
+
+**Status:** Completed — Consistent error handling implemented with standardized APIError and ValidationError structs, request ID tracking in all responses, proper HTTP status code mapping, and comprehensive input validation using validator library. All error responses include structured JSON format with codes, messages, and optional request IDs and details.
 
 **Subtasks:**
 1. Create `internal/handlers/errors.go`:
@@ -1343,13 +1345,14 @@ Implement consistent error handling and request validation.
    func WriteError(w http.ResponseWriter, code int, err APIError)
    func WriteJSON(w http.ResponseWriter, code int, data interface{})
    ```
-2. Create `internal/models/errors.go`
-3. Add validation using validator library
+2. Create `internal/models/errors.go` ✓
+3. Add validation using validator library ✓
 
 **Testing:**
-- Error responses match format
-- Validation messages are clear
-- Status codes correct
+- Error responses match format ✓
+- Validation messages are clear ✓
+- Status codes correct ✓
+- Request ID included in responses ✓
 
 ---
 
@@ -1619,8 +1622,8 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 - [x] Task 1.4.2: Health endpoint working
 - [x] Task 1.4.3: Upload endpoint working
 - [x] Task 1.4.4: Import endpoint working
-- [ ] Task 1.4.5: Query endpoints working
-- [ ] Task 1.4.6: Error handling implemented
+- [x] Task 1.4.5: Query endpoints working
+- [x] Task 1.4.6: Error handling implemented
 
 ### Sprint 1.5 (Throughout)
 - [x] Task 1.5.1: DB layer tests passing (comprehensive tests created for store package)

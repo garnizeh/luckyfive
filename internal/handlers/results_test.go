@@ -35,19 +35,13 @@ func GetDrawTest(resultsSvc ResultsServiceInterface, logger *slog.Logger) http.H
 	return func(w http.ResponseWriter, r *http.Request) {
 		contestStr := chi.URLParam(r, "contest")
 		if contestStr == "" {
-			WriteError(w, http.StatusBadRequest, APIError{
-				Code:    "missing_contest",
-				Message: "contest parameter is required",
-			})
+			WriteError(w, r, *models.NewAPIError("missing_contest", "contest parameter is required"))
 			return
 		}
 
 		contest, err := strconv.Atoi(contestStr)
 		if err != nil {
-			WriteError(w, http.StatusBadRequest, APIError{
-				Code:    "invalid_contest",
-				Message: "contest must be a valid number",
-			})
+			WriteError(w, r, *models.NewAPIError("invalid_contest", "contest must be a valid number"))
 			return
 		}
 
@@ -56,17 +50,11 @@ func GetDrawTest(resultsSvc ResultsServiceInterface, logger *slog.Logger) http.H
 		draw, err := resultsSvc.GetDraw(r.Context(), contest)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				WriteError(w, http.StatusNotFound, APIError{
-					Code:    "draw_not_found",
-					Message: "draw not found",
-				})
+				WriteError(w, r, *models.NewAPIError("draw_not_found", "draw not found"))
 				return
 			}
 			logger.Error("Failed to get draw", "error", err, "contest", contest)
-			WriteError(w, http.StatusInternalServerError, APIError{
-				Code:    "get_draw_failed",
-				Message: "failed to get draw",
-			})
+			WriteError(w, r, *models.NewAPIError("get_draw_failed", "failed to get draw"))
 			return
 		}
 
@@ -86,10 +74,7 @@ func ListDrawsTest(resultsSvc ResultsServiceInterface, logger *slog.Logger) http
 			if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 1000 {
 				limit = l
 			} else {
-				WriteError(w, http.StatusBadRequest, APIError{
-					Code:    "invalid_limit",
-					Message: "limit must be a number between 1 and 1000",
-				})
+				WriteError(w, r, *models.NewAPIError("invalid_limit", "limit must be a number between 1 and 1000"))
 				return
 			}
 		}
@@ -99,10 +84,7 @@ func ListDrawsTest(resultsSvc ResultsServiceInterface, logger *slog.Logger) http
 			if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
 				offset = o
 			} else {
-				WriteError(w, http.StatusBadRequest, APIError{
-					Code:    "invalid_offset",
-					Message: "offset must be a non-negative number",
-				})
+				WriteError(w, r, *models.NewAPIError("invalid_offset", "offset must be a non-negative number"))
 				return
 			}
 		}
@@ -112,10 +94,7 @@ func ListDrawsTest(resultsSvc ResultsServiceInterface, logger *slog.Logger) http
 		draws, err := resultsSvc.ListDraws(r.Context(), limit, offset)
 		if err != nil {
 			logger.Error("Failed to list draws", "error", err)
-			WriteError(w, http.StatusInternalServerError, APIError{
-				Code:    "list_draws_failed",
-				Message: "failed to list draws",
-			})
+			WriteError(w, r, *models.NewAPIError("list_draws_failed", "failed to list draws"))
 			return
 		}
 
@@ -156,7 +135,7 @@ func TestImportResults_InvalidMethod(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusMethodNotAllowed, w.Code)
 	}
 
-	var response APIError
+	var response models.APIError
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -186,7 +165,7 @@ func TestImportResults_InvalidJSON(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 
-	var response APIError
+	var response models.APIError
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -221,16 +200,19 @@ func TestImportResults_MissingArtifactID(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 
-	var response APIError
+	var response models.ValidationError
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if response.Code != "missing_artifact_id" {
-		t.Errorf("Expected code 'missing_artifact_id', got '%s'", response.Code)
+	if response.Code != "validation_error" {
+		t.Errorf("Expected code 'validation_error', got '%s'", response.Code)
 	}
-	if response.Message != "artifact_id is required" {
-		t.Errorf("Expected message 'artifact_id is required', got '%s'", response.Message)
+	if response.Message != "Request validation failed" {
+		t.Errorf("Expected message 'Request validation failed', got '%s'", response.Message)
+	}
+	if response.FieldErrors["ArtifactID"] == "" {
+		t.Errorf("Expected field error for 'ArtifactID', got %v", response.FieldErrors)
 	}
 }
 
@@ -256,13 +238,19 @@ func TestImportResults_EmptyArtifactID(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 
-	var response APIError
+	var response models.ValidationError
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	if response.Code != "missing_artifact_id" {
-		t.Errorf("Expected code 'missing_artifact_id', got '%s'", response.Code)
+	if response.Code != "validation_error" {
+		t.Errorf("Expected code 'validation_error', got '%s'", response.Code)
+	}
+	if response.Message != "Request validation failed" {
+		t.Errorf("Expected message 'Request validation failed', got '%s'", response.Message)
+	}
+	if response.FieldErrors["ArtifactID"] == "" {
+		t.Errorf("Expected field error for 'ArtifactID', got %v", response.FieldErrors)
 	}
 }
 
@@ -293,7 +281,7 @@ func TestImportResults_ValidRequest(t *testing.T) {
 		t.Errorf("Expected status %d (service error), got %d", http.StatusInternalServerError, w.Code)
 	}
 
-	var response APIError
+	var response models.APIError
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -362,7 +350,7 @@ func TestGetDraw_InvalidContest(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 
-	var response APIError
+	var response models.APIError
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -394,7 +382,7 @@ func TestGetDraw_ValidRequest(t *testing.T) {
 		t.Errorf("Expected status %d (service error), got %d", http.StatusInternalServerError, w.Code)
 	}
 
-	var response APIError
+	var response models.APIError
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -435,7 +423,7 @@ func TestListDraws_InvalidLimit(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 
-	var response APIError
+	var response models.APIError
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -464,7 +452,7 @@ func TestListDraws_InvalidOffset(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
 	}
 
-	var response APIError
+	var response models.APIError
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -496,7 +484,7 @@ func TestListDraws_ValidRequest(t *testing.T) {
 		t.Errorf("Expected status %d (service error), got %d", http.StatusInternalServerError, w.Code)
 	}
 
-	var response APIError
+	var response models.APIError
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}

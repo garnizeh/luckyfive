@@ -4,18 +4,21 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/garnizeh/luckyfive/internal/models"
 	"github.com/garnizeh/luckyfive/internal/services"
 )
 
+// SystemServiceInterface defines the interface for system service operations
+type SystemServiceInterface interface {
+	CheckHealth() (*services.HealthStatus, error)
+}
+
 // HealthCheck returns an HTTP handler for health checks
-func HealthCheck(systemSvc *services.SystemService) http.HandlerFunc {
+func HealthCheck(systemSvc SystemServiceInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		health, err := systemSvc.CheckHealth()
 		if err != nil {
-			WriteError(w, http.StatusInternalServerError, APIError{
-				Code:    "health_check_failed",
-				Message: "Health check failed",
-			})
+			WriteError(w, r, *models.NewAPIError("health_check_failed", "Health check failed"))
 			return
 		}
 
