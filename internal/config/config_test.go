@@ -24,7 +24,7 @@ func TestLoadDefaults(t *testing.T) {
 		}
 	}()
 
-	cfg, err := config.Load()
+	cfg, err := config.Load("")
 	if err != nil {
 		t.Fatalf("Load() returned error: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestLoadEnvOverrides(t *testing.T) {
 		os.Unsetenv("WORKER_CONCURRENCY")
 	}()
 
-	cfg, err := config.Load()
+	cfg, err := config.Load("")
 	if err != nil {
 		t.Fatalf("Load() returned error: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestLoadInvalidPort(t *testing.T) {
 	os.Setenv("SERVER_PORT", "notanint")
 	defer os.Unsetenv("SERVER_PORT")
 
-	_, err := config.Load()
+	_, err := config.Load("")
 	if err == nil {
 		t.Fatalf("expected error when SERVER_PORT is invalid, got nil")
 	}
@@ -99,7 +99,7 @@ func TestLoadInvalidConcurrency(t *testing.T) {
 	os.Setenv("WORKER_CONCURRENCY", "notanint")
 	defer os.Unsetenv("WORKER_CONCURRENCY")
 
-	_, err := config.Load()
+	_, err := config.Load("")
 	if err == nil {
 		t.Fatalf("expected error when WORKER_CONCURRENCY is invalid, got nil")
 	}

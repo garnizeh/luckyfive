@@ -4,6 +4,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 // Config holds application configuration loaded from environment variables.
@@ -38,8 +40,13 @@ func getEnv(key, defaultVal string) string {
 	return defaultVal
 }
 
-// Load reads configuration from environment variables and returns a Config.
-func Load() (*Config, error) {
+// Load reads configuration from environment variables and .env file, returns a Config.
+func Load(envFilePath string) (*Config, error) {
+	// Load .env file if path is provided and file exists
+	if envFilePath != "" {
+		_ = godotenv.Load(envFilePath)
+	}
+
 	portStr := getEnv("SERVER_PORT", "8080")
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
