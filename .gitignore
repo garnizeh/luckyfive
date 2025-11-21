@@ -20,6 +20,7 @@
 # Coverage
 coverage.out
 coverage.html
+coverage.txt
 
 # Node
 node_modules/

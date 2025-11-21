@@ -7,19 +7,26 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/garnizeh/luckyfive/internal/config"
 	"github.com/garnizeh/luckyfive/internal/services"
 	"github.com/garnizeh/luckyfive/internal/store"
 )
 
 func main() {
+	envFile := flag.String("env-file", ".env", "Path to .env configuration file")
 	xlsxPath := flag.String("xlsx", "data/results/Quina.xlsx", "path to XLSX file")
 	sheetName := flag.String("sheet", "QUINA", "sheet name in XLSX file")
-	resultsDB := flag.String("db", "data/db/results.db", "path to results database")
 	flag.Parse()
 
-	// Open database
+	// Load configuration from .env (if provided)
+	cfg, err := config.Load(*envFile)
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Open database (use path from .env)
 	db, err := store.Open(store.Config{
-		ResultsPath:     *resultsDB,
+		ResultsPath:     cfg.Database.ResultsPath,
 		SimulationsPath: ":memory:", // Not needed for import
 		ConfigsPath:     ":memory:",
 		FinancesPath:    ":memory:",
