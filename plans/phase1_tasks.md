@@ -17,8 +17,13 @@ Commits of note:
 - 82dbd23 — initial project scaffold (created `.gitignore`, `LICENSE`, `README.md`, and initial `cmd/` files)
 - f9c0b80 — added `Makefile` with build/test/generate targets
 - 92acdda — docs: mark Task 1.1.3 done (dependencies & dev tools installed)
+- 527d9e3 — test(config/logger): add invalid concurrency and logger level tests
 
-Next immediate steps: implement configuration & logging (`Task 1.1.4`) and configure sqlc + generate code & mocks (`Task 1.1.5`).
+Next immediate steps: configure sqlc + generate code & mocks (`Task 1.1.5`).
+
+Recent small wins:
+
+- Task 1.1.4 (Logging & Configuration) implemented. Unit tests for `internal/config` and `internal/logger` were added and run locally (they pass). See commit `527d9e3` which added the tests.
 
 ---
 
@@ -1433,12 +1438,13 @@ Update README with setup and usage instructions.
 - [x] Task 1.1.1: Project initialized
 - [x] Task 1.1.2: Makefile created
 - [x] Task 1.1.3: Dependencies installed (including sqlc)
+- [x] Task 1.1.4: Logging & configuration implemented (unit tests added)
 
-**Progress:** A `Makefile` was added to the repository with common targets (`build`, `test`, `generate`, `migrate`, `lint`). The file was committed in commit f9c0b80.
+**Progress:** The Makefile and dependency work are in place. `internal/config` and `internal/logger` were implemented and unit tests were added for both packages; those tests pass locally. The implementation files and tests are committed in the repository.
 
-**Verification:** Basic verification steps were performed:
+**Verification:**
 - `go mod tidy` ran successfully
-- `go test ./...` ran successfully (packages without tests reported as such)
+- `go test ./...` ran successfully; `internal/config` and `internal/logger` unit tests pass
 
 Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce binaries yet because corresponding `cmd/*` `main.go` files are placeholders or not fully implemented — those targets will be verified as the entrypoints are completed.
 
@@ -1446,7 +1452,7 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 - [x] Task 1.1.1: Project initialized
 - [x] Task 1.1.2: Makefile created
 - [x] Task 1.1.3: Dependencies installed (including sqlc) and documented in `README.md`
-- [ ] Task 1.1.4: Logging configured
+- [x] Task 1.1.4: Logging configured
 - [ ] Task 1.1.5: sqlc configured with Querier interfaces
 
 ### Sprint 1.2 (Days 4-7)
