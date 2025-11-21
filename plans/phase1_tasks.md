@@ -33,6 +33,10 @@ Recent small wins:
 
 - Task 1.1.4 (Logging & Configuration) implemented. Unit tests for `internal/config` and `internal/logger` were added and run locally (they pass). See commit `527d9e3` which added the tests.
 
+- Sprint 1.2 completed successfully. All database infrastructure tasks (1.2.1-1.2.6) implemented with comprehensive testing and type-safe database operations via sqlc integration.
+
+- Starting Sprint 1.3: XLSX Parser Implementation. Next focus is on implementing XLSX parsing with auto-detection of column layouts and creating the ImportService foundation.
+
 ---
 
 ## Overview
@@ -1573,7 +1577,7 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 - Added `internal/store/db_test.go` with unit tests for file-backed and in-memory DB opening, basic DDL/DML and transaction commit; these tests pass locally (`go test ./internal/store -v`).
 - Completed: added WithTx helpers that accept sqlc queriers, configured connection pool sizes, and added comprehensive tests with 87.5% coverage for transaction functions.
 
-### Sprint 1.3 (Days 8-10) — In Progress
+### Sprint 1.3 (Days 8-10) — In Progress — In Progress
 - [ ] Task 1.3.1: XLSX parser working
 - [ ] Task 1.3.2: Batch insert implemented
 - [ ] Task 1.3.3: ImportService complete

@@ -12,7 +12,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/garnizeh/luckyfive/internal/store"
+	"github.com/garnizeh/luckyfive/pkg/migrator"
 )
 
 func main() {
@@ -66,7 +66,7 @@ func main() {
 				logger.Info("using db-specific migrations directory", "db", dbPath, "dir", candidate)
 			}
 		}
-		migrator := store.NewMigrator(db, migrationsForDB, logger)
+		migrator := migrator.New(db, migrationsForDB, logger)
 		switch action {
 		case "up":
 			logger.Info("migrating up", "db", dbPath)
