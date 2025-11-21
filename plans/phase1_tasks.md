@@ -7,12 +7,13 @@
 
 ## Progress Update
 
-**Status Update (November 21, 2025):** Sprint 1.4 (HTTP API Foundation) is in progress. Task 1.4.1 (HTTP Server Setup) and Task 1.4.2 (Health Endpoint) are now completed. The HTTP server is running with Chi router, middleware stack, graceful shutdown, and a fully functional health endpoint that checks database connectivity and returns structured JSON responses. Next task is 1.4.3 (Results Upload Endpoint).
+**Status Update (November 21, 2025):** Sprint 1.4 (HTTP API Foundation) is in progress. Tasks 1.4.1 (HTTP Server Setup), 1.4.2 (Health Endpoint), and 1.4.3 (Results Upload Endpoint) are now completed. The HTTP server is running with Chi router, middleware stack, health endpoint with database connectivity checks, and file upload endpoint with validation. Next task is 1.4.4 (Results Import Endpoint).
 
 Current state (sprint 1.4 in progress — HTTP API Foundation):
 
 - Task 1.4.1: HTTP Server Setup — completed. Chi router configured with middleware stack (RequestID, RealIP, custom logging, recovery, CORS), graceful shutdown implemented, server starts successfully on port 8080.
 - Task 1.4.2: Health Endpoint — completed. `/api/v1/health` endpoint implemented with database connectivity checks for all 4 databases, uptime tracking, version information, and structured JSON responses. Returns 503 when databases are unhealthy.
+- Task 1.4.3: Results Upload Endpoint — completed. `POST /api/v1/results/upload` implemented with UploadService for file validation (.xlsx/.xls only), 50MB size limit, unique artifact ID generation, and temporary file storage. Comprehensive tests created covering all validation scenarios.
 
 ---
 
@@ -1222,25 +1223,37 @@ Implement `/api/v1/health` endpoint.
 Implement `POST /api/v1/results/upload` for XLSX file upload.
 
 **Acceptance Criteria:**
-- [ ] Accepts multipart/form-data
-- [ ] File size validation (max 50MB)
-- [ ] File type validation (.xlsx, .xls)
-- [ ] Returns artifact_id
+- [x] Accepts multipart/form-data
+- [x] File size validation (max 50MB)
+- [x] File type validation (.xlsx, .xls)
+- [x] Returns artifact_id
+
+**Status:** Completed — Upload endpoint implemented with UploadService for file validation and storage. Endpoint accepts multipart/form-data, validates file types (.xlsx, .xls), enforces 50MB size limit, generates unique artifact IDs, and stores files temporarily. Comprehensive tests created covering all validation scenarios and edge cases.
 
 **Subtasks:**
-1. Create `internal/handlers/results.go`
-2. Implement upload handler:
+1. Create `internal/services/upload.go`:
    ```go
-   func UploadResults(importSvc *services.ImportService) http.HandlerFunc
+   type UploadService struct {
+       logger  *slog.Logger
+       tempDir string
+       maxSize int64
+   }
+   
+   func (s *UploadService) UploadFile(file multipart.File, header *multipart.FileHeader) (*UploadResult, error)
    ```
-3. Store uploaded file temporarily or in memory
-4. Return artifact metadata
+2. Implement file validation (type and size)
+3. Generate unique artifact IDs
+4. Store files temporarily in `data/temp/`
+5. Create comprehensive tests using stdlib only
 
 **Testing:**
-- Upload valid XLSX file
-- Reject invalid file types
-- Reject oversized files
-- Response matches design doc
+- ✅ Valid .xlsx and .xls files accepted
+- ✅ Invalid file types rejected with proper error messages
+- ✅ Files exceeding 50MB rejected
+- ✅ Unique artifact IDs generated (32-character hex)
+- ✅ Files stored in temporary directory
+- ✅ Directory creation when needed
+- ✅ Proper cleanup on errors
 
 ---
 
@@ -1593,7 +1606,7 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 ### Sprint 1.4 (Days 11-14)
 - [x] Task 1.4.1: HTTP server running
 - [x] Task 1.4.2: Health endpoint working
-- [ ] Task 1.4.3: Upload endpoint working
+- [x] Task 1.4.3: Upload endpoint working
 - [ ] Task 1.4.4: Import endpoint working
 - [ ] Task 1.4.5: Query endpoints working
 - [ ] Task 1.4.6: Error handling implemented

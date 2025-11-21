@@ -19,6 +19,7 @@ import (
 	"github.com/garnizeh/luckyfive/internal/handlers"
 	"github.com/garnizeh/luckyfive/internal/logger"
 	"github.com/garnizeh/luckyfive/internal/middleware"
+	"github.com/garnizeh/luckyfive/internal/services"
 	"github.com/garnizeh/luckyfive/internal/store"
 )
 
@@ -52,8 +53,12 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize services
+	systemSvc := services.NewSystemService(db, startTime)
+	uploadSvc := services.NewUploadService(logger)
+
 	// Setup router
-	router := setupRouter(logger, db, startTime)
+	router := setupRouter(logger, systemSvc, uploadSvc)
 
 	// Create HTTP server
 	server := &http.Server{
@@ -88,7 +93,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(logger *slog.Logger, db *store.DB, startTime time.Time) *chi.Mux {
+func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack
@@ -99,7 +104,10 @@ func setupRouter(logger *slog.Logger, db *store.DB, startTime time.Time) *chi.Mu
 	r.Use(middleware.CORS())           // CORS headers
 
 	// Health check endpoint
-	r.Get("/api/v1/health", handlers.HealthCheck(db, startTime))
+	r.Get("/api/v1/health", handlers.HealthCheck(systemSvc))
+
+	// Results upload endpoint
+	r.Post("/api/v1/results/upload", handlers.UploadResults(uploadSvc, logger))
 
 	return r
 }
