@@ -7,13 +7,15 @@
 
 ## Progress Update
 
-Current state (sprint 1.1):
+Current state (sprint 1.1 — moving into 1.2):
 
 - Task 1.1.1: Project initialization — completed. Directories created and initial scaffold (including `.gitignore`, `README.md`, `LICENSE`) added and committed to the repository.
 - Task 1.1.2: `Makefile` created and committed (basic build/test/generate targets). A basic verification was performed: `go mod tidy` ran and `go test ./...` completed without failures. Some `build` targets which rely on fully implemented `cmd/*/main.go` will be verified as those entrypoints are implemented.
 - Task 1.1.3: Dependencies and developer tools installed and verified. Commands executed included `go get` additions, `go install` for `sqlc`, `mockgen`, and `golangci-lint`, `go mod tidy`, and quick build/test verification. See Task 1.1.3 section for tool versions and details.
 - Task 1.1.4: Logging & Configuration implemented. `internal/config` and `internal/logger` were added; unit tests for these packages were created and executed locally (tests passed for those packages).
 - Task 1.1.5: sqlc configuration and generation completed. `sqlc.yaml`, expanded SQL queries and production-ready migrations were added; `sqlc generate` and `mockgen` were run to produce queriers and mocks, and the generated artifacts were committed.
+
+- Task 1.2.1: Migration system implemented — completed. A migration runner (`internal/store/migrate.go`) and CLI (`cmd/migrate`) were added; migrations have been exercised against local DB files created under `data/db/`. The CLI supports `up`, `down`, `version`, `-only` (apply specific versions) and `-file` (apply a single migration by file). Documentation for the `migrate` CLI was added to `docs/migrate.md`.
 
 Commits of note:
 - 82dbd23 — initial project scaffold (created `.gitignore`, `LICENSE`, `README.md`, and initial `cmd/` files)
@@ -436,37 +438,22 @@ Files generated & committed (partial list):
 Create database migration system for managing schema versions.
 
 **Acceptance Criteria:**
-- [ ] Migration runner implemented
-- [ ] Up/down migrations supported
-- [ ] Migration tracking table created
-- [ ] Idempotent migrations (can run multiple times)
+- [x] Migration runner implemented
+- [x] Up/down migrations supported
+- [x] Migration tracking table created
+- [x] Idempotent migrations (can run multiple times)
 
-**Subtasks:**
-1. Create `internal/store/migrate.go`:
-   ```go
-   type Migrator struct {
-       db *sql.DB
-   }
-   
-   func NewMigrator(db *sql.DB) *Migrator
-   func (m *Migrator) Up() error
-   func (m *Migrator) Down() error
-   func (m *Migrator) Version() (int, error)
-   ```
-2. Create migration tracking table:
-   ```sql
-   CREATE TABLE IF NOT EXISTS schema_migrations (
-       version INTEGER PRIMARY KEY,
-       applied_at TEXT NOT NULL
-   );
-   ```
-3. Create `cmd/migrate/main.go`
-4. Implement migration file loading from `migrations/`
+**Subtasks completed:**
+1. `internal/store/migrate.go` implemented providing Up/Down/Version and an ApplyVersion helper.
+2. Migration tracking table (`schema_migrations`) is created by the migrator on demand.
+3. `cmd/migrate/main.go` added and supports `up`, `down`, `version`, `-only` and `-file` flags.
+4. Migration loading from `migrations/` is implemented; the CLI also supports per-DB subdirectories (`migrations/<dbname>/`) when present.
 
-**Testing:**
-- Can run migrations up and down
-- Version tracking works correctly
-- Re-running migrations is safe
+**Testing performed:**
+- Ran `./bin/migrate up` to create DB files under `data/db/` and apply migrations.
+- Ran `./bin/migrate version` to verify applied versions.
+- Ran `./bin/migrate down` repeatedly to validate rollbacks; re-applied `up` to ensure idempotency.
+
 
 ---
 
