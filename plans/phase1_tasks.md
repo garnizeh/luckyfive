@@ -1562,8 +1562,8 @@ Notes: some `build` targets (e.g., `bin/api`, `bin/worker`) may not produce bina
 - [x] Task 1.2.1: Migration system working
 - [x] Task 1.2.2: Results schema created
 - [x] Task 1.2.3: Simulations schema created
-- [ ] Task 1.2.4: Configs schema created
-- [ ] Task 1.2.5: Finances schema created
+- [x] Task 1.2.4: Configs schema created
+- [x] Task 1.2.5: Finances schema created
 - [ ] Task 1.2.6: DB access layer implemented (in progress)
 
 **Progress on Task 1.2.6:**
