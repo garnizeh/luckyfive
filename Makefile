@@ -5,10 +5,10 @@ build:
 	@echo "Building binaries..."
 	@mkdir -p bin
 	@echo "Building all cmd/* packages"
-	@go build -o bin/admin ./cmd/admin || true
-	@go build -o bin/api ./cmd/api || true
-	@go build -o bin/worker ./cmd/worker || true
-	@go build -o bin/migrate ./cmd/migrate || true
+	@go build -o bin/admin ./cmd/admin
+	@go build -o bin/api ./cmd/api
+	@go build -o bin/worker ./cmd/worker
+	@go build -o bin/migrate ./cmd/migrate
 
 test:
 	@echo "Running tests..."
@@ -32,18 +32,18 @@ clean:
 	@rm -f coverage.out coverage.html
 
 lint:
-	@golangci-lint run || true
+	@golangci-lint run
 
 sqlc-generate:
 	@echo "Generating sqlc code..."
-	@sqlc generate || true
+	@sqlc generate
 
 mock-generate: sqlc-generate
 	@echo "Generating mocks..."
-	@mockgen -source=internal/store/results/querier.go -destination=internal/store/results/mock/querier.go -package=mock || true
-	@mockgen -source=internal/store/simulations/querier.go -destination=internal/store/simulations/mock/querier.go -package=mock || true
-	@mockgen -source=internal/store/configs/querier.go -destination=internal/store/configs/mock/querier.go -package=mock || true
-	@mockgen -source=internal/store/finances/querier.go -destination=internal/store/finances/mock/querier.go -package=mock || true
+	@mockgen -source=internal/store/results/querier.go -destination=internal/store/results/mock/querier.go -package=mock
+	@mockgen -source=internal/store/simulations/querier.go -destination=internal/store/simulations/mock/querier.go -package=mock
+	@mockgen -source=internal/store/configs/querier.go -destination=internal/store/configs/mock/querier.go -package=mock
+	@mockgen -source=internal/store/finances/querier.go -destination=internal/store/finances/mock/querier.go -package=mock
 
 generate: sqlc-generate mock-generate
 	@echo "Code generation complete"
