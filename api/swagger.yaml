@@ -24,6 +24,21 @@ definitions:
     - name
     - recipe
     type: object
+  handlers.CreateSweepConfigRequest:
+    properties:
+      config:
+        $ref: '#/definitions/sweep.SweepConfig'
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - config
+    - name
+    type: object
   handlers.ImportRequest:
     properties:
       artifact_id:
@@ -33,6 +48,21 @@ definitions:
         type: string
     required:
     - artifact_id
+    type: object
+  handlers.UpdateSweepConfigRequest:
+    properties:
+      config:
+        $ref: '#/definitions/sweep.SweepConfig'
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - config
+    - name
     type: object
   handlers.UploadResponse:
     properties:
@@ -144,6 +174,55 @@ definitions:
         type: integer
       sim_prev_max:
         type: integer
+    type: object
+  sweep.Constraint:
+    properties:
+      parameters:
+        items:
+          type: string
+        type: array
+      type:
+        description: '"sum", "ratio", "min", "max"'
+        type: string
+      value:
+        type: number
+    type: object
+  sweep.ParameterSweep:
+    properties:
+      name:
+        description: e.g., "alpha", "sim_prev_max"
+        type: string
+      type:
+        description: '"range", "discrete", "exponential"'
+        type: string
+      values: {}
+    type: object
+  sweep.Recipe:
+    properties:
+      name:
+        type: string
+      parameters:
+        additionalProperties: {}
+        type: object
+      version:
+        type: string
+    type: object
+  sweep.SweepConfig:
+    properties:
+      base_recipe:
+        $ref: '#/definitions/sweep.Recipe'
+      constraints:
+        items:
+          $ref: '#/definitions/sweep.Constraint'
+        type: array
+      description:
+        type: string
+      name:
+        type: string
+      parameters:
+        items:
+          $ref: '#/definitions/sweep.ParameterSweep'
+        type: array
     type: object
 host: localhost:8080
 info:
@@ -1098,6 +1177,243 @@ paths:
       summary: Create a simple simulation using a preset
       tags:
       - simulations
+  /api/v1/sweep-configs:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of sweep configurations
+      parameters:
+      - default: 50
+        description: Maximum number of sweep configs to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of sweep configs to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of sweep configurations
+          schema:
+            properties:
+              pagination:
+                properties:
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                type: object
+              sweep_configs:
+                items:
+                  properties:
+                    config_json:
+                      type: string
+                    created_at:
+                      type: string
+                    created_by:
+                      type: string
+                    description:
+                      type: string
+                    id:
+                      type: integer
+                    last_used_at:
+                      type: string
+                    name:
+                      type: string
+                    times_used:
+                      type: integer
+                    updated_at:
+                      type: string
+                  type: object
+                type: array
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: List sweep configurations
+      tags:
+      - sweep-configs
+    post:
+      consumes:
+      - application/json
+      description: Create a new sweep configuration
+      parameters:
+      - description: Sweep configuration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateSweepConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Sweep configuration created
+          schema:
+            properties:
+              config_json:
+                type: string
+              created_at:
+                type: string
+              created_by:
+                type: string
+              description:
+                type: string
+              id:
+                type: integer
+              last_used_at:
+                type: string
+              name:
+                type: string
+              times_used:
+                type: integer
+              updated_at:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Create a sweep configuration
+      tags:
+      - sweep-configs
+  /api/v1/sweep-configs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a sweep configuration
+      parameters:
+      - description: Sweep configuration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sweep configuration deleted
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid sweep configuration ID
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "404":
+          description: Sweep configuration not found
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Delete a sweep configuration
+      tags:
+      - sweep-configs
+    get:
+      consumes:
+      - application/json
+      description: Retrieve details of a specific sweep configuration by ID
+      parameters:
+      - description: Sweep configuration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sweep configuration details
+          schema:
+            properties:
+              config_json:
+                type: string
+              created_at:
+                type: string
+              created_by:
+                type: string
+              description:
+                type: string
+              id:
+                type: integer
+              last_used_at:
+                type: string
+              name:
+                type: string
+              times_used:
+                type: integer
+              updated_at:
+                type: string
+            type: object
+        "400":
+          description: Invalid sweep configuration ID
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "404":
+          description: Sweep configuration not found
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Get sweep configuration details
+      tags:
+      - sweep-configs
+    put:
+      consumes:
+      - application/json
+      description: Update an existing sweep configuration
+      parameters:
+      - description: Sweep configuration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated sweep configuration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateSweepConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sweep configuration updated
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "404":
+          description: Sweep configuration not found
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Update a sweep configuration
+      tags:
+      - sweep-configs
 schemes:
 - http
 swagger: "2.0"

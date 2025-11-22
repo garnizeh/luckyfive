@@ -27,6 +27,7 @@ type DatabaseConfig struct {
 	SimulationsPath string
 	ConfigsPath     string
 	FinancesPath    string
+	SweepsPath      string
 }
 
 type WorkerConfig struct {
@@ -77,6 +78,7 @@ func Load(envFilePath string) (*Config, error) {
 			SimulationsPath: getEnv("DB_SIMULATIONS_PATH", "data/simulations.db"),
 			ConfigsPath:     getEnv("DB_CONFIGS_PATH", "data/configs.db"),
 			FinancesPath:    getEnv("DB_FINANCES_PATH", "data/finances.db"),
+			SweepsPath:      getEnv("DB_SWEEPS_PATH", "data/sweeps.db"),
 		},
 		Worker: WorkerConfig{
 			Concurrency:  conc,

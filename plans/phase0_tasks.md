@@ -30,11 +30,11 @@ Phase 0 contains urgent, ad-hoc tasks that need immediate attention. These are h
 Migrate sweep configuration storage from JSON files in `docs/examples/sweeps/` to database records in `configs.db`. This provides better management, version control, and integration with the API.
 
 **Acceptance Criteria:**
-- [ ] Sweep configurations stored in database
-- [ ] CRUD operations via API
-- [ ] Existing examples migrated
-- [ ] File-based storage removed
-- [ ] Documentation updated
+- [x] Sweep configurations stored in database
+- [x] CRUD operations via API
+- [x] Existing examples migrated
+- [x] File-based storage removed
+- [x] Documentation updated
 
 **Subtasks:**
 
@@ -56,32 +56,32 @@ Migrate sweep configuration storage from JSON files in `docs/examples/sweeps/` t
    - Integrate with existing config service patterns
    - Add validation using existing `pkg/sweep` package
 
-4. **Create SweepConfig API Handlers**
+4. **Create SweepConfig API Handlers** ✅
    - Add `internal/handlers/sweep_configs.go`
    - Endpoints: POST /api/v1/sweep-configs, GET /api/v1/sweep-configs/:id, GET /api/v1/sweep-configs, PUT /api/v1/sweep-configs/:id, DELETE /api/v1/sweep-configs/:id
    - Wire handlers into router
    - Add proper error handling and validation
 
-5. **Migrate Existing Examples**
+5. **Migrate Existing Examples** ✅
    - Load all JSON files from `docs/examples/sweeps/`
    - Parse and validate each configuration
    - Insert into database via new service
    - Verify data integrity after migration
    - Create migration script for production deployment
 
-6. **Update Sweep Generation to Use Database**
+6. **Update Sweep Generation to Use Database** ✅
    - Modify sweep creation process to load config from database instead of files
    - Update `pkg/sweep/generator.go` if needed
    - Ensure backward compatibility during transition
    - Test with existing sweep workflows
 
-7. **Remove File Dependencies**
+7. **Remove File Dependencies** ✅
    - Update documentation to reference database storage
    - Remove file loading code from services
    - Delete or archive `docs/examples/sweeps/` directory
    - Update any hardcoded file paths
 
-8. **Add Comprehensive Tests**
+8. **Add Comprehensive Tests** ✅
    - Unit tests for SweepConfigService
    - Integration tests for API endpoints
    - Migration tests to ensure data preservation
@@ -142,7 +142,7 @@ Standardize error handling across all services and handlers.
 
 ## Phase 0 Checklist
 
-- [ ] Task 0.1: Sweep database migration completed
+- [x] Task 0.1: Sweep database migration completed
 - [ ] Task 0.2: Database optimization done
 - [ ] Task 0.3: Error handling standardized
 - [ ] All tests passing

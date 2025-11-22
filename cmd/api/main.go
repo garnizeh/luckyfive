@@ -74,10 +74,11 @@ func main() {
 	resultsSvc := services.NewResultsService(db, logger)
 	engineSvc := services.NewEngineService(db.Results, logger)
 	configSvc := services.NewConfigService(db.Configs, db.ConfigsDB, logger)
+	sweepSvc := services.NewSweepConfigService(db.Sweeps, db.SweepsDB, logger)
 	simSvc := services.NewSimulationService(db.Simulations, db.SimulationsDB, engineSvc, logger)
 
 	// Setup router
-	router := setupRouter(logger, systemSvc, uploadSvc, resultsSvc, configSvc, simSvc)
+	router := setupRouter(logger, systemSvc, uploadSvc, resultsSvc, configSvc, sweepSvc, simSvc)
 
 	// Create HTTP server
 	server := &http.Server{
@@ -112,7 +113,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService, resultsSvc *services.ResultsService, configSvc *services.ConfigService, simSvc *services.SimulationService) *chi.Mux {
+func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService, resultsSvc *services.ResultsService, configSvc *services.ConfigService, sweepSvc *services.SweepConfigService, simSvc *services.SimulationService) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack
@@ -148,6 +149,13 @@ func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadS
 	r.Put("/api/v1/configs/{id}", handlers.UpdateConfig(configSvc))
 	r.Delete("/api/v1/configs/{id}", handlers.DeleteConfig(configSvc))
 	r.Post("/api/v1/configs/{id}/set-default", handlers.SetDefaultConfig(configSvc))
+
+	// Sweep config endpoints
+	r.Get("/api/v1/sweep-configs", handlers.ListSweepConfigs(sweepSvc))
+	r.Post("/api/v1/sweep-configs", handlers.CreateSweepConfig(sweepSvc))
+	r.Get("/api/v1/sweep-configs/{id}", handlers.GetSweepConfig(sweepSvc))
+	r.Put("/api/v1/sweep-configs/{id}", handlers.UpdateSweepConfig(sweepSvc))
+	r.Delete("/api/v1/sweep-configs/{id}", handlers.DeleteSweepConfig(sweepSvc))
 
 	// Swagger UI — serves UI and expects swagger JSON at /swagger/doc.json
 	// If you generate docs with `swag init -g cmd/api/main.go -o api`,

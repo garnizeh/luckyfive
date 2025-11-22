@@ -11,6 +11,7 @@ import (
 	"github.com/garnizeh/luckyfive/internal/store/finances"
 	"github.com/garnizeh/luckyfive/internal/store/results"
 	"github.com/garnizeh/luckyfive/internal/store/simulations"
+	"github.com/garnizeh/luckyfive/internal/store/sweeps"
 )
 
 // DB holds connections to all four SQLite databases and their corresponding sqlc queriers.
@@ -19,12 +20,14 @@ type DB struct {
 	SimulationsDB *sql.DB
 	ConfigsDB     *sql.DB
 	FinancesDB    *sql.DB
+	SweepsDB      *sql.DB
 
 	// Querier interfaces (mockable)
 	Results     results.Querier
 	Simulations simulations.Querier
 	Configs     configs.Querier
 	Finances    finances.Querier
+	Sweeps      sweeps.Querier
 }
 
 // Config holds the paths for each database.
@@ -33,6 +36,7 @@ type Config struct {
 	SimulationsPath string
 	ConfigsPath     string
 	FinancesPath    string
+	SweepsPath      string
 }
 
 // Open opens all four SQLite databases and initializes the queriers.
@@ -99,8 +103,28 @@ func Open(cfg Config) (*DB, error) {
 	db.FinancesDB = financesDB
 	db.Finances = finances.New(financesDB)
 
+	// Open Sweeps DB
+	sweepsDB, err := sql.Open("sqlite", cfg.SweepsPath)
+	if err != nil {
+		db.ResultsDB.Close()
+		db.SimulationsDB.Close()
+		db.ConfigsDB.Close()
+		db.FinancesDB.Close()
+		return nil, fmt.Errorf("open sweeps db: %w", err)
+	}
+	if err := sweepsDB.Ping(); err != nil {
+		db.ResultsDB.Close()
+		db.SimulationsDB.Close()
+		db.ConfigsDB.Close()
+		db.FinancesDB.Close()
+		sweepsDB.Close()
+		return nil, fmt.Errorf("ping sweeps db: %w", err)
+	}
+	db.SweepsDB = sweepsDB
+	db.Sweeps = sweeps.New(sweepsDB)
+
 	// Configure connection pools
-	for _, sqlDB := range []*sql.DB{resultsDB, simulationsDB, configsDB, financesDB} {
+	for _, sqlDB := range []*sql.DB{resultsDB, simulationsDB, configsDB, financesDB, sweepsDB} {
 		sqlDB.SetMaxOpenConns(25)
 		sqlDB.SetMaxIdleConns(5)
 		sqlDB.SetConnMaxLifetime(0)
@@ -133,6 +157,11 @@ func (db *DB) Close() error {
 	if db.FinancesDB != nil {
 		if err := db.FinancesDB.Close(); err != nil {
 			errs = append(errs, fmt.Errorf("close finances db: %w", err))
+		}
+	}
+	if db.SweepsDB != nil {
+		if err := db.SweepsDB.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close sweeps db: %w", err))
 		}
 	}
 	if len(errs) > 0 {
@@ -198,6 +227,22 @@ func (db *DB) WithFinancesTx(ctx context.Context, fn func(finances.Querier) erro
 	defer tx.Rollback()
 
 	q := finances.New(tx)
+	if err := fn(q); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// WithSweepsTx executes a function within a sweeps DB transaction using a querier.
+func (db *DB) WithSweepsTx(ctx context.Context, fn func(sweeps.Querier) error) error {
+	tx, err := db.SweepsDB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin sweeps tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	q := sweeps.New(tx)
 	if err := fn(q); err != nil {
 		return err
 	}
