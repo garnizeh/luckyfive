@@ -23,8 +23,12 @@ CREATE TABLE IF NOT EXISTS sweeps (
 
 CREATE INDEX IF NOT EXISTS ux_sweeps_name ON sweeps(name);
 CREATE INDEX IF NOT EXISTS idx_sweeps_created_at ON sweeps(created_at);
+CREATE INDEX IF NOT EXISTS idx_sweeps_usage ON sweeps(times_used DESC, last_used_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sweeps_updated ON sweeps(updated_at DESC);
 
 -- Down migration
+-- DROP INDEX IF EXISTS idx_sweeps_updated;
+-- DROP INDEX IF EXISTS idx_sweeps_usage;
 -- DROP INDEX IF EXISTS idx_sweeps_created_at;
 -- DROP INDEX IF EXISTS ux_sweeps_name;
 -- DROP TABLE IF EXISTS sweeps;

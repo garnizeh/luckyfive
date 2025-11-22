@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS configs (
 CREATE INDEX IF NOT EXISTS ux_configs_name ON configs(name);
 CREATE INDEX IF NOT EXISTS idx_configs_default ON configs(is_default);
 CREATE INDEX IF NOT EXISTS idx_configs_mode ON configs(mode);
+CREATE INDEX IF NOT EXISTS idx_configs_mode_usage_name ON configs(mode, times_used DESC, name ASC);
+CREATE INDEX IF NOT EXISTS idx_configs_created_at ON configs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_configs_last_used ON configs(last_used_at DESC);
 
 -- Trigger to ensure only one default per mode
 CREATE TRIGGER IF NOT EXISTS trg_one_default_per_mode
@@ -69,6 +72,9 @@ VALUES
 
 -- Down migration
 -- DROP TRIGGER IF EXISTS trg_one_default_per_mode;
+-- DROP INDEX IF EXISTS idx_configs_last_used;
+-- DROP INDEX IF EXISTS idx_configs_created_at;
+-- DROP INDEX IF EXISTS idx_configs_mode_usage_name;
 -- DROP INDEX IF EXISTS idx_configs_mode;
 -- DROP INDEX IF EXISTS idx_configs_default;
 -- DROP INDEX IF EXISTS ux_configs_name;

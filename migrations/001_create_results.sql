@@ -22,6 +22,13 @@ CREATE TABLE IF NOT EXISTS draws (
 
 CREATE INDEX IF NOT EXISTS idx_draws_draw_date ON draws(draw_date);
 CREATE INDEX IF NOT EXISTS idx_draws_imported_at ON draws(imported_at);
+CREATE INDEX IF NOT EXISTS idx_draws_contest_desc ON draws(contest DESC);
+CREATE INDEX IF NOT EXISTS idx_draws_date_contest ON draws(draw_date, contest DESC);
+CREATE INDEX IF NOT EXISTS idx_draws_bola1 ON draws(bola1);
+CREATE INDEX IF NOT EXISTS idx_draws_bola2 ON draws(bola2);
+CREATE INDEX IF NOT EXISTS idx_draws_bola3 ON draws(bola3);
+CREATE INDEX IF NOT EXISTS idx_draws_bola4 ON draws(bola4);
+CREATE INDEX IF NOT EXISTS idx_draws_bola5 ON draws(bola5);
 
 CREATE TABLE IF NOT EXISTS import_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,6 +42,13 @@ CREATE TABLE IF NOT EXISTS import_history (
 );
 
 -- Down migration
+-- DROP INDEX IF EXISTS idx_draws_bola5;
+-- DROP INDEX IF EXISTS idx_draws_bola4;
+-- DROP INDEX IF EXISTS idx_draws_bola3;
+-- DROP INDEX IF EXISTS idx_draws_bola2;
+-- DROP INDEX IF EXISTS idx_draws_bola1;
+-- DROP INDEX IF EXISTS idx_draws_date_contest;
+-- DROP INDEX IF EXISTS idx_draws_contest_desc;
 -- DROP INDEX IF EXISTS idx_draws_imported_at;
 -- DROP INDEX IF EXISTS idx_draws_draw_date;
 -- DROP TABLE IF EXISTS import_history;

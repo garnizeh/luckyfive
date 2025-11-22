@@ -47,6 +47,9 @@ CREATE INDEX IF NOT EXISTS idx_sim_status ON simulations(status);
 CREATE INDEX IF NOT EXISTS idx_sim_created ON simulations(created_at);
 CREATE INDEX IF NOT EXISTS idx_sim_recipe_name ON simulations(recipe_name);
 CREATE INDEX IF NOT EXISTS idx_sim_mode ON simulations(mode);
+CREATE INDEX IF NOT EXISTS idx_simulations_status_created ON simulations(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_simulations_worker_status ON simulations(worker_id, status);
+CREATE INDEX IF NOT EXISTS idx_simulations_date_range ON simulations(start_contest, end_contest);
 
 -- Table: simulation_contest_results
 CREATE TABLE IF NOT EXISTS simulation_contest_results (
@@ -74,6 +77,8 @@ CREATE TABLE IF NOT EXISTS simulation_contest_results (
 CREATE INDEX IF NOT EXISTS idx_scr_simulation_id ON simulation_contest_results(simulation_id);
 CREATE INDEX IF NOT EXISTS idx_scr_contest ON simulation_contest_results(contest);
 CREATE INDEX IF NOT EXISTS idx_scr_hits ON simulation_contest_results(best_hits);
+CREATE INDEX IF NOT EXISTS idx_scr_simulation_hits ON simulation_contest_results(simulation_id, best_hits DESC);
+CREATE INDEX IF NOT EXISTS idx_scr_contest_hits ON simulation_contest_results(contest, best_hits DESC);
 
 -- Table: analysis_jobs
 CREATE TABLE IF NOT EXISTS analysis_jobs (
@@ -109,9 +114,14 @@ CREATE INDEX IF NOT EXISTS idx_analysis_type ON analysis_jobs(job_type);
 -- Down migration
 -- DROP INDEX IF EXISTS idx_analysis_type;
 -- DROP INDEX IF EXISTS idx_analysis_status;
+-- DROP INDEX IF EXISTS idx_scr_contest_hits;
+-- DROP INDEX IF EXISTS idx_scr_simulation_hits;
 -- DROP INDEX IF EXISTS idx_scr_hits;
 -- DROP INDEX IF EXISTS idx_scr_contest;
 -- DROP INDEX IF EXISTS idx_scr_simulation_id;
+-- DROP INDEX IF EXISTS idx_simulations_date_range;
+-- DROP INDEX IF EXISTS idx_simulations_worker_status;
+-- DROP INDEX IF EXISTS idx_simulations_status_created;
 -- DROP INDEX IF EXISTS idx_sim_mode;
 -- DROP INDEX IF EXISTS idx_sim_recipe_name;
 -- DROP INDEX IF EXISTS idx_sim_created;

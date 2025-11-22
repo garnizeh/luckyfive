@@ -192,6 +192,52 @@ Get simulation results:
 curl "http://localhost:8080/api/v1/simulations/123/results?limit=50&offset=0"
 ```
 
+### Sweep Configurations
+
+Sweep configurations enable systematic parameter optimization. See `docs/sweep_configurations.md` for detailed documentation on creating and using sweep configurations.
+
+List sweep configurations:
+
+```bash
+curl "http://localhost:8080/api/v1/sweep-configs?limit=20&offset=0"
+```
+
+Create a sweep configuration:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sweep-configs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "alpha_optimization",
+    "description": "Find optimal alpha value",
+    "config": {
+      "name": "alpha_sweep",
+      "description": "Alpha parameter sweep",
+      "base_recipe": {
+        "version": "1.0",
+        "name": "advanced",
+        "parameters": {
+          "alpha": 0.1,
+          "sim_prev_max": 100,
+          "sim_count": 1000,
+          "scorer_type": "frequency"
+        }
+      },
+      "parameters": [
+        {
+          "name": "alpha",
+          "type": "range",
+          "values": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.1
+          }
+        }
+      ]
+    }
+  }'
+```
+
 ### Manage Configurations
 
 List configurations:
@@ -276,10 +322,10 @@ Project layout
 
 - `cmd/` - entry points (api, worker, migrate)
 - `internal/` - application code (services, handlers, store)
-- `pkg/` - reusable packages (predictor, utils)
+- `pkg/` - reusable packages (predictor, sweep, utils)
 - `data/` - SQLite database files
 - `migrations/` - SQL migration files
-- `docs/` - design and user docs
+- `docs/` - design and user docs (see `docs/sweep_configurations.md` for sweep configuration details)
 
 Dependencies & developer tools
 
