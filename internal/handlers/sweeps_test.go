@@ -80,7 +80,7 @@ func (m *mockSweepService) FindBest(ctx context.Context, sweepID int64, metric s
 		},
 		Rank:       1,
 		Percentile: 100.0,
-		VariationParams: map[string]interface{}{
+		VariationParams: map[string]any{
 			"alpha": 0.1,
 			"beta":  0.2,
 		},
@@ -97,7 +97,7 @@ func (m *mockSweepService) GetVisualizationData(ctx context.Context, sweepID int
 		Metrics:    metrics,
 		DataPoints: []services.VisualizationDataPoint{
 			{
-				Params: map[string]interface{}{
+				Params: map[string]any{
 					"alpha": 0.1,
 					"beta":  0.2,
 				},
@@ -367,7 +367,7 @@ func TestGetSweepBest_Success(t *testing.T) {
 				},
 				Rank:       1,
 				Percentile: 100.0,
-				VariationParams: map[string]interface{}{
+				VariationParams: map[string]any{
 					"alpha": 0.1,
 					"beta":  0.2,
 				},
@@ -520,7 +520,7 @@ func TestGetSweepVisualization_Success(t *testing.T) {
 				Metrics:    metrics,
 				DataPoints: []services.VisualizationDataPoint{
 					{
-						Params: map[string]interface{}{
+						Params: map[string]any{
 							"alpha": 0.1,
 							"beta":  0.2,
 						},

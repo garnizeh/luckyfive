@@ -118,12 +118,12 @@ func TestListSweepConfigs_ValidRequest(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	sweepConfigs, ok := response["sweep_configs"].([]interface{})
+	sweepConfigs, ok := response["sweep_configs"].([]any)
 	if !ok {
 		t.Fatal("Expected sweep_configs array in response")
 	}
@@ -161,7 +161,7 @@ func TestCreateSweepConfig_ValidRequest(t *testing.T) {
 			BaseRecipe: sweep.Recipe{
 				Version: "1.0",
 				Name:    "advanced",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"alpha": 0.1,
 				},
 			},
@@ -351,7 +351,7 @@ func TestUpdateSweepConfig_ValidRequest(t *testing.T) {
 			BaseRecipe: sweep.Recipe{
 				Version: "1.0",
 				Name:    "advanced",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"alpha": 0.2,
 				},
 			},

@@ -207,7 +207,7 @@ func TestListComparisons_Success(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
@@ -219,7 +219,7 @@ func TestListComparisons_Success(t *testing.T) {
 		t.Errorf("expected offset 5, got %v", response["offset"])
 	}
 
-	comparisons, ok := response["comparisons"].([]interface{})
+	comparisons, ok := response["comparisons"].([]any)
 	if !ok {
 		t.Fatal("expected comparisons array")
 	}
@@ -241,7 +241,7 @@ func TestListComparisons_DefaultParams(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}

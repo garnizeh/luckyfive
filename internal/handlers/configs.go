@@ -62,9 +62,9 @@ func ListConfigs(configSvc services.ConfigServicer) http.HandlerFunc {
 			WriteError(w, r, *models.NewAPIError("list_configs_failed", "Failed to list configs"))
 			return
 		} // Return response
-		response := map[string]interface{}{
+		response := map[string]any{
 			"configs": configs,
-			"pagination": map[string]interface{}{
+			"pagination": map[string]any{
 				"limit":  limit,
 				"offset": offset,
 			},

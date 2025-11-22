@@ -78,7 +78,7 @@ func GetLeaderboard(leaderboardSvc services.LeaderboardServicer) http.HandlerFun
 		}
 
 		response := convertLeaderboardEntriesToResponse(leaderboard)
-		WriteJSON(w, http.StatusOK, map[string]interface{}{
+		WriteJSON(w, http.StatusOK, map[string]any{
 			"leaderboard": response,
 			"total":       len(response),
 			"limit":       limit,

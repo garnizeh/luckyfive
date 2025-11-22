@@ -246,7 +246,7 @@ func TestFullSweepFlow(t *testing.T) {
 		BaseRecipe: sweep.Recipe{
 			Version: "1.0",
 			Name:    "base",
-			Parameters: map[string]interface{}{
+			Parameters: map[string]any{
 				"sim_prev_max": 10,
 				"sim_preds":    5,
 				"gamma":        0.5,

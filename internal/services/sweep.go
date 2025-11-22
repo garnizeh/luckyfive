@@ -63,13 +63,13 @@ type SweepStatus struct {
 }
 
 type BestConfiguration struct {
-	SweepID         int64                  `json:"sweep_id"`
-	SimulationID    int64                  `json:"simulation_id"`
-	Recipe          Recipe                 `json:"recipe"`
-	Metrics         map[string]float64     `json:"metrics"`
-	Rank            int                    `json:"rank"`
-	Percentile      float64                `json:"percentile"`
-	VariationParams map[string]interface{} `json:"variation_params"`
+	SweepID         int64              `json:"sweep_id"`
+	SimulationID    int64              `json:"simulation_id"`
+	Recipe          Recipe             `json:"recipe"`
+	Metrics         map[string]float64 `json:"metrics"`
+	Rank            int                `json:"rank"`
+	Percentile      float64            `json:"percentile"`
+	VariationParams map[string]any     `json:"variation_params"`
 }
 
 type VisualizationData struct {
@@ -80,8 +80,8 @@ type VisualizationData struct {
 }
 
 type VisualizationDataPoint struct {
-	Params  map[string]interface{} `json:"params"`
-	Metrics map[string]float64     `json:"metrics"`
+	Params  map[string]any     `json:"params"`
+	Metrics map[string]float64 `json:"metrics"`
 }
 
 func (s *SweepService) CreateSweep(
@@ -329,7 +329,7 @@ func (s *SweepService) FindBest(
 	// Calculate metrics for all completed simulations
 	type simResult struct {
 		simulationID    int64
-		variationParams map[string]interface{}
+		variationParams map[string]any
 		metrics         map[string]float64
 	}
 
@@ -347,7 +347,7 @@ func (s *SweepService) FindBest(
 		}
 
 		// Parse variation params
-		var variationParams map[string]interface{}
+		var variationParams map[string]any
 		if err := json.Unmarshal([]byte(sim.VariationParams), &variationParams); err != nil {
 			s.logger.Error("failed to unmarshal variation params", "simulation_id", sim.SimulationID, "error", err)
 			continue
@@ -497,7 +497,7 @@ func (s *SweepService) GetVisualizationData(
 		}
 
 		// Parse variation params
-		var variationParams map[string]interface{}
+		var variationParams map[string]any
 		if err := json.Unmarshal([]byte(sim.VariationParams), &variationParams); err != nil {
 			s.logger.Error("failed to unmarshal variation params", "simulation_id", sim.SimulationID, "error", err)
 			continue

@@ -70,7 +70,7 @@ func TestResultsService_ImportFlow(t *testing.T) {
 
 	// single row
 	contest := 9999
-	row := []interface{}{contest, "01/01/2024", 1, 2, 3, 4, 5}
+	row := []any{contest, "01/01/2024", 1, 2, 3, 4, 5}
 	for i, v := range row {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 2)
 		f.SetCellValue(sheet, cell, v)

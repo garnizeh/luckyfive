@@ -83,7 +83,7 @@ func TestSweepService_CreateSweep(t *testing.T) {
 			BaseRecipe: sweep.Recipe{
 				Version: "1.0",
 				Name:    "test",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"alpha": 0.5,
 				},
 			},
@@ -794,7 +794,7 @@ func TestSweepService_convertToServiceRecipe(t *testing.T) {
 			recipe: sweep.GeneratedRecipe{
 				ID:   "test_0",
 				Name: "test_var_0",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"alpha": 0.5,
 					"beta":  0.3,
 					"gamma": 0.2,
@@ -804,9 +804,11 @@ func TestSweepService_convertToServiceRecipe(t *testing.T) {
 				Version: "1.0",
 				Name:    "test_var_0",
 				Parameters: RecipeParameters{
-					Alpha: 0.5,
-					Beta:  0.3,
-					Gamma: 0.2,
+					Alpha:      0.5,
+					Beta:       0.3,
+					Gamma:      0.2,
+					SimPrevMax: 10, // Default value
+					SimPreds:   5,  // Default value
 				},
 			},
 		},
@@ -815,7 +817,7 @@ func TestSweepService_convertToServiceRecipe(t *testing.T) {
 			recipe: sweep.GeneratedRecipe{
 				ID:   "test_1",
 				Name: "test_var_1",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"sim_prev_max": 100.0,
 					"sim_preds":    200.0,
 				},
@@ -848,6 +850,9 @@ func TestSweepService_convertToServiceRecipe(t *testing.T) {
 			}
 			if result.Parameters.SimPrevMax != tt.expected.Parameters.SimPrevMax {
 				t.Errorf("Expected simPrevMax %d, got %d", tt.expected.Parameters.SimPrevMax, result.Parameters.SimPrevMax)
+			}
+			if result.Parameters.SimPreds != tt.expected.Parameters.SimPreds {
+				t.Errorf("Expected simPreds %d, got %d", tt.expected.Parameters.SimPreds, result.Parameters.SimPreds)
 			}
 		})
 	}

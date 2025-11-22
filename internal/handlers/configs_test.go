@@ -127,12 +127,12 @@ func TestListConfigs_ValidRequest(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	configs, ok := response["configs"].([]interface{})
+	configs, ok := response["configs"].([]any)
 	if !ok {
 		t.Fatal("Expected configs array in response")
 	}

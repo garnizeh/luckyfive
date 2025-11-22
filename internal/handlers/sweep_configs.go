@@ -63,9 +63,9 @@ func ListSweepConfigs(sweepSvc services.SweepConfigServicer) http.HandlerFunc {
 		}
 
 		// Return response
-		response := map[string]interface{}{
+		response := map[string]any{
 			"sweep_configs": sweepConfigs,
-			"pagination": map[string]interface{}{
+			"pagination": map[string]any{
 				"limit":  limit,
 				"offset": offset,
 			},

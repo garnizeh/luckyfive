@@ -123,7 +123,7 @@ func ListComparisons(comparisonSvc services.ComparisonServicer) http.HandlerFunc
 			return
 		}
 
-		WriteJSON(w, http.StatusOK, map[string]interface{}{
+		WriteJSON(w, http.StatusOK, map[string]any{
 			"comparisons": comparisons,
 			"limit":       limit,
 			"offset":      offset,

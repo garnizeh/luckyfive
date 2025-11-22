@@ -44,7 +44,7 @@ func (m *MockEngineServicer) RunSimulation(ctx context.Context, cfg SimulationCo
 }
 
 // RunSimulation indicates an expected call of RunSimulation.
-func (mr *MockEngineServicerMockRecorder) RunSimulation(ctx, cfg interface{}) *gomock.Call {
+func (mr *MockEngineServicerMockRecorder) RunSimulation(ctx, cfg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunSimulation", reflect.TypeOf((*MockEngineServicer)(nil).RunSimulation), ctx, cfg)
 }

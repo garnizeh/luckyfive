@@ -92,12 +92,12 @@ func TestGetLeaderboard_Success(t *testing.T) {
 		t.Errorf("expected status 200, got %d", w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 
-	leaderboard, ok := response["leaderboard"].([]interface{})
+	leaderboard, ok := response["leaderboard"].([]any)
 	if !ok {
 		t.Fatal("expected leaderboard array in response")
 	}

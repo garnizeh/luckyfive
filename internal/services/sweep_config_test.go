@@ -33,7 +33,7 @@ func TestSweepConfigService_Create(t *testing.T) {
 			BaseRecipe: sweep.Recipe{
 				Version: "1.0",
 				Name:    "advanced",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"alpha": 0.1,
 				},
 			},
@@ -214,7 +214,7 @@ func TestSweepConfigService_Update(t *testing.T) {
 			BaseRecipe: sweep.Recipe{
 				Version: "1.0",
 				Name:    "advanced",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"alpha": 0.2,
 				},
 			},
@@ -301,7 +301,7 @@ func TestSweepConfigService_Create_InvalidConfig(t *testing.T) {
 			BaseRecipe: sweep.Recipe{
 				Version: "1.0",
 				Name:    "advanced",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"alpha": 0.1,
 				},
 			},
@@ -344,7 +344,7 @@ func TestSweepConfigService_Update_InvalidConfig(t *testing.T) {
 			BaseRecipe: sweep.Recipe{
 				Version: "1.0",
 				Name:    "advanced",
-				Parameters: map[string]interface{}{
+				Parameters: map[string]any{
 					"alpha": 0.1,
 				},
 			},

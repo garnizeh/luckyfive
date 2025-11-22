@@ -46,20 +46,20 @@ type SweepSimulationDetailResponse struct {
 
 // BestConfigurationResponse represents the best configuration found
 type BestConfigurationResponse struct {
-	SweepID         int64                  `json:"sweep_id"`
-	SimulationID    int64                  `json:"simulation_id"`
-	Recipe          RecipeResponse         `json:"recipe"`
-	Metrics         map[string]float64     `json:"metrics"`
-	Rank            int                    `json:"rank"`
-	Percentile      float64                `json:"percentile"`
-	VariationParams map[string]interface{} `json:"variation_params"`
+	SweepID         int64              `json:"sweep_id"`
+	SimulationID    int64              `json:"simulation_id"`
+	Recipe          RecipeResponse     `json:"recipe"`
+	Metrics         map[string]float64 `json:"metrics"`
+	Rank            int                `json:"rank"`
+	Percentile      float64            `json:"percentile"`
+	VariationParams map[string]any     `json:"variation_params"`
 }
 
 // RecipeResponse represents a recipe for API responses
 type RecipeResponse struct {
-	Version    string      `json:"version"`
-	Name       string      `json:"name"`
-	Parameters interface{} `json:"parameters"`
+	Version    string `json:"version"`
+	Name       string `json:"name"`
+	Parameters any    `json:"parameters"`
 }
 
 // VisualizationDataResponse represents visualization data for API responses
@@ -72,8 +72,8 @@ type VisualizationDataResponse struct {
 
 // VisualizationDataPointResponse represents a data point for visualization
 type VisualizationDataPointResponse struct {
-	Params  map[string]interface{} `json:"params"`
-	Metrics map[string]float64     `json:"metrics"`
+	Params  map[string]any     `json:"params"`
+	Metrics map[string]float64 `json:"metrics"`
 }
 
 // LeaderboardEntryResponse represents a leaderboard entry

@@ -206,7 +206,7 @@ func TestResultsQueries_RangeAndStats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetContestRange failed: %v", err)
 	}
-	// the generated types use interface{} for min/max; convert via sql driver behavior
+	// the generated types use any for min/max; convert via sql driver behavior
 	var minContest, maxContest int64
 	switch v := cr.MinContest.(type) {
 	case int64:
