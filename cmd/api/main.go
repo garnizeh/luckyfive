@@ -141,6 +141,14 @@ func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadS
 	r.Get("/api/v1/simulations", handlers.ListSimulations(simSvc))
 	r.Post("/api/v1/simulations/{id}/cancel", handlers.CancelSimulation(simSvc))
 
+	// Config endpoints
+	r.Get("/api/v1/configs", handlers.ListConfigs(configSvc))
+	r.Post("/api/v1/configs", handlers.CreateConfig(configSvc))
+	r.Get("/api/v1/configs/{id}", handlers.GetConfig(configSvc))
+	r.Put("/api/v1/configs/{id}", handlers.UpdateConfig(configSvc))
+	r.Delete("/api/v1/configs/{id}", handlers.DeleteConfig(configSvc))
+	r.Post("/api/v1/configs/{id}/set-default", handlers.SetDefaultConfig(configSvc))
+
 	// Swagger UI — serves UI and expects swagger JSON at /swagger/doc.json
 	// If you generate docs with `swag init -g cmd/api/main.go -o api`,
 	// the generated swagger.json will be placed under ./api and served here.

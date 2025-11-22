@@ -35,6 +35,46 @@ func (m *MockConfigService) Create(ctx context.Context, req services.CreateConfi
 	return configs.Config{}, nil
 }
 
+func (m *MockConfigService) Get(ctx context.Context, id int64) (configs.Config, error) {
+	return configs.Config{}, nil
+}
+
+func (m *MockConfigService) GetByName(ctx context.Context, name string) (configs.Config, error) {
+	return configs.Config{}, nil
+}
+
+func (m *MockConfigService) List(ctx context.Context, limit, offset int64) ([]configs.Config, error) {
+	return nil, nil
+}
+
+func (m *MockConfigService) ListByMode(ctx context.Context, mode string, limit, offset int64) ([]configs.Config, error) {
+	return nil, nil
+}
+
+func (m *MockConfigService) Update(ctx context.Context, id int64, req services.CreateConfigRequest) error {
+	return nil
+}
+
+func (m *MockConfigService) Delete(ctx context.Context, id int64) error {
+	return nil
+}
+
+func (m *MockConfigService) SetDefault(ctx context.Context, id int64) error {
+	return nil
+}
+
+func (m *MockConfigService) GetDefault(ctx context.Context, mode string) (configs.Config, error) {
+	return configs.Config{}, nil
+}
+
+func (m *MockConfigService) IncrementUsage(ctx context.Context, id int64) error {
+	return nil
+}
+
+func (m *MockConfigService) ListPresets(ctx context.Context) ([]configs.ConfigPreset, error) {
+	return nil, nil
+}
+
 type MockSimulationService struct {
 	CreateSimulationFunc  func(ctx context.Context, req services.CreateSimulationRequest) (*simulations.Simulation, error)
 	GetSimulationFunc     func(ctx context.Context, id int64) (*simulations.Simulation, error)

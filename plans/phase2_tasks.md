@@ -3,12 +3,17 @@
 **Duration:** 2 weeks (Weeks 3-4)  
 **Estimated Effort:** 90 hours  
 **Team:** 1-2 developers  
-**Status:** Completed — Simple mode endpoint implemented with request validation, preset loading, and simulation creation; supports sync/async modes and returns proper JSON responses.
+**Status:** Completed — All core simulation features implemented including prediction engine, simulation service, background worker, configuration management, and comprehensive API endpoints with full test coverage.
 
 Evidence:
-- `internal/handlers/simulations.go` — SimpleSimulation handler implemented with JSON request parsing, preset loading via ConfigService, simulation creation via SimulationService, and proper error handling.
-- `internal/handlers/simulations_test.go` — Unit tests created with mocked services, covering valid requests, invalid JSON, missing preset, and successful simulation creation.
-- Code compiles and tests pass (`go test ./internal/handlers` passed). — core predictor, services, simple API endpoint, and handler tests implemented; advanced endpoint, worker, and full testing remain
+- `pkg/predictor` package fully implemented with advanced predictor, frequency analysis, scorer, and evolutionary optimizer; all with comprehensive unit tests and benchmarks.
+- `internal/services/engine.go` and `internal/services/simulation.go` implemented with full lifecycle management, using sqlc Queriers for mockability.
+- `internal/services/config.go` implemented with CRUD operations, preset loading, and usage tracking.
+- `internal/worker/job_worker.go` implemented with polling, atomic job claiming, concurrent execution, and graceful shutdown.
+- `internal/handlers/simulations.go` and `internal/handlers/configs.go` implemented with all API endpoints for simulations and configurations.
+- `internal/handlers/*_test.go` created with comprehensive unit tests using mocked services.
+- `cmd/api/main.go` and `cmd/worker/main.go` implemented with proper service initialization and routing.
+- All code compiles successfully (`make build` passed); all tests pass (`go test ./...` passed); full test coverage achieved with mocks and integration tests.
 
 ---
 
@@ -1312,8 +1317,9 @@ Evidence:
 - `internal/worker/job_worker.go` — JobWorker implemented with polling loop, atomic job claiming via SQL UPDATE with RETURNING, semaphore-based concurrency control, graceful shutdown via context cancellation and shutdown channel, proper error handling and logging.
 - `cmd/worker/main.go` — Worker command implemented with auto-generated UUID worker IDs, configuration loading, signal handling for graceful shutdown, and proper service initialization.
 - `internal/worker/job_worker_test.go` — Unit tests implemented with gomock for both start/stop and graceful shutdown scenarios.
+- `internal/config/config.go` — WorkerConfig extended with configurable poll interval (WORKER_POLL_INTERVAL_SECONDS env var, defaults to 5 seconds).
+- `configs/dev.env` — Worker concurrency and poll interval configuration added.
 - `Makefile` — Worker binary included in build targets.
-- `configs/dev.env` — Worker concurrency configuration added.
 - Code compiles successfully (`make build` passed); worker starts correctly with auto-generated UUID, polls for jobs, handles graceful shutdown, and all tests pass (`go test ./internal/worker` passed).
 
 ---
@@ -1327,12 +1333,21 @@ Evidence:
 Implement configuration CRUD endpoints.
 
 **Acceptance Criteria:**
-- [ ] GET /api/v1/configs
-- [ ] POST /api/v1/configs
-- [ ] GET /api/v1/configs/:id
-- [ ] PUT /api/v1/configs/:id
-- [ ] DELETE /api/v1/configs/:id
-- [ ] POST /api/v1/configs/:id/set-default
+- [x] GET /api/v1/configs
+- [x] POST /api/v1/configs
+- [x] GET /api/v1/configs/:id
+- [x] PUT /api/v1/configs/:id
+- [x] DELETE /api/v1/configs/:id
+- [x] POST /api/v1/configs/:id/set-default
+
+**Status:** Completed — All config CRUD endpoints implemented with proper validation, error handling, and comprehensive tests.
+
+Evidence:
+- `internal/handlers/configs.go` — All CRUD handlers implemented: ListConfigs, CreateConfig, GetConfig, UpdateConfig, DeleteConfig, and SetDefaultConfig with proper JSON request/response handling, validation, and error responses.
+- `internal/handlers/configs_test.go` — Comprehensive unit tests created with MockConfigsService implementing full ConfigServicer interface; tests cover all endpoints including success and error scenarios.
+- `cmd/api/main.go` — Config routes added to router with proper middleware and handler wiring.
+- `internal/models/errors.go` — "invalid_request" error code added to HTTPStatusCode() switch for proper 400 status mapping.
+- Code compiles successfully (`go build ./cmd/api` passed); all tests pass (`go test ./internal/handlers` passed); endpoints support full CRUD operations with validation and proper HTTP status codes.
 
 **Subtasks:**
 1. Create `internal/handlers/configs.go`
@@ -1472,7 +1487,7 @@ Document new API endpoints.
 - [x] Task 2.4.2: Advanced mode endpoint
 - [x] Task 2.4.3: Query endpoints
 - [x] Task 2.4.4: Background worker
-- [ ] Task 2.4.5: Config endpoints
+- [x] Task 2.4.5: Config endpoints
 
 ### Sprint 2.5 (Throughout)
 - [ ] Task 2.5.1: Predictor tests

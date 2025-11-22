@@ -19,6 +19,16 @@ type ConfigService struct {
 type ConfigServicer interface {
 	GetPreset(ctx context.Context, name string) (configs.ConfigPreset, error)
 	Create(ctx context.Context, req CreateConfigRequest) (configs.Config, error)
+	Get(ctx context.Context, id int64) (configs.Config, error)
+	GetByName(ctx context.Context, name string) (configs.Config, error)
+	List(ctx context.Context, limit, offset int64) ([]configs.Config, error)
+	ListByMode(ctx context.Context, mode string, limit, offset int64) ([]configs.Config, error)
+	Update(ctx context.Context, id int64, req CreateConfigRequest) error
+	Delete(ctx context.Context, id int64) error
+	SetDefault(ctx context.Context, id int64) error
+	GetDefault(ctx context.Context, mode string) (configs.Config, error)
+	IncrementUsage(ctx context.Context, id int64) error
+	ListPresets(ctx context.Context) ([]configs.ConfigPreset, error)
 }
 
 func NewConfigService(
