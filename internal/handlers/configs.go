@@ -59,7 +59,7 @@ func ListConfigs(configSvc services.ConfigServicer) http.HandlerFunc {
 		// Get configs
 		configs, err := configSvc.List(r.Context(), limit, offset)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("INTERNAL_ERROR", "Failed to list configs"))
+			WriteError(w, r, *models.NewAPIError("list_configs_failed", "Failed to list configs"))
 			return
 		} // Return response
 		response := map[string]interface{}{
@@ -117,7 +117,7 @@ func CreateConfig(configSvc services.ConfigServicer) http.HandlerFunc {
 			CreatedBy:   "api", // TODO: get from auth context
 		})
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("INTERNAL_ERROR", "Failed to create config"))
+			WriteError(w, r, *models.NewAPIError("config_creation_failed", "Failed to create config"))
 			return
 		}
 
@@ -143,14 +143,14 @@ func GetConfig(configSvc services.ConfigServicer) http.HandlerFunc {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("invalid_request", "Invalid config ID"))
+			WriteError(w, r, *models.NewAPIError("invalid_config_id", "Invalid config ID"))
 			return
 		}
 
 		// Get config
 		config, err := configSvc.Get(r.Context(), id)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("not_found", "Config not found"))
+			WriteError(w, r, *models.NewAPIError("config_not_found", "Config not found"))
 			return
 		}
 
@@ -177,7 +177,7 @@ func UpdateConfig(configSvc services.ConfigServicer) http.HandlerFunc {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("invalid_request", "Invalid config ID"))
+			WriteError(w, r, *models.NewAPIError("invalid_config_id", "Invalid config ID"))
 			return
 		}
 
@@ -200,7 +200,7 @@ func UpdateConfig(configSvc services.ConfigServicer) http.HandlerFunc {
 			Tags:        req.Tags,
 		})
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("INTERNAL_ERROR", "Failed to update config"))
+			WriteError(w, r, *models.NewAPIError("config_update_failed", "Failed to update config"))
 			return
 		}
 
@@ -226,14 +226,14 @@ func DeleteConfig(configSvc services.ConfigServicer) http.HandlerFunc {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("invalid_request", "Invalid config ID"))
+			WriteError(w, r, *models.NewAPIError("invalid_config_id", "Invalid config ID"))
 			return
 		}
 
 		// Delete config
 		err = configSvc.Delete(r.Context(), id)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("INTERNAL_ERROR", "Failed to delete config"))
+			WriteError(w, r, *models.NewAPIError("config_delete_failed", "Failed to delete config"))
 			return
 		}
 
@@ -258,14 +258,14 @@ func SetDefaultConfig(configSvc services.ConfigServicer) http.HandlerFunc {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("invalid_request", "Invalid config ID"))
+			WriteError(w, r, *models.NewAPIError("invalid_config_id", "Invalid config ID"))
 			return
 		}
 
 		// Set as default
 		err = configSvc.SetDefault(r.Context(), id)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("INTERNAL_ERROR", "Failed to set default config"))
+			WriteError(w, r, *models.NewAPIError("set_default_config_failed", "Failed to set default config"))
 			return
 		}
 

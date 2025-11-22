@@ -58,7 +58,7 @@ func ListSweepConfigs(sweepSvc services.SweepConfigServicer) http.HandlerFunc {
 		// Get sweep configs
 		sweepConfigs, err := sweepSvc.List(r.Context(), limit, offset)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("INTERNAL_ERROR", "Failed to list sweep configs"))
+			WriteError(w, r, *models.NewAPIError("list_sweep_configs_failed", "Failed to list sweep configs"))
 			return
 		}
 
@@ -112,7 +112,7 @@ func CreateSweepConfig(sweepSvc services.SweepConfigServicer) http.HandlerFunc {
 			CreatedBy:   "api", // TODO: get from auth context
 		})
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("INTERNAL_ERROR", "Failed to create sweep config"))
+			WriteError(w, r, *models.NewAPIError("sweep_config_creation_failed", "Failed to create sweep config"))
 			return
 		}
 
@@ -138,14 +138,14 @@ func GetSweepConfig(sweepSvc services.SweepConfigServicer) http.HandlerFunc {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("invalid_request", "Invalid sweep config ID"))
+			WriteError(w, r, *models.NewAPIError("invalid_sweep_config_id", "Invalid sweep config ID"))
 			return
 		}
 
 		// Get sweep config
 		sweepConfig, err := sweepSvc.Get(r.Context(), id)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("not_found", "Sweep config not found"))
+			WriteError(w, r, *models.NewAPIError("sweep_config_not_found", "Sweep config not found"))
 			return
 		}
 
@@ -172,7 +172,7 @@ func UpdateSweepConfig(sweepSvc services.SweepConfigServicer) http.HandlerFunc {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("invalid_request", "Invalid sweep config ID"))
+			WriteError(w, r, *models.NewAPIError("invalid_sweep_config_id", "Invalid sweep config ID"))
 			return
 		}
 
@@ -200,7 +200,7 @@ func UpdateSweepConfig(sweepSvc services.SweepConfigServicer) http.HandlerFunc {
 			CreatedBy:   "api", // TODO: get from auth context
 		})
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("INTERNAL_ERROR", "Failed to update sweep config"))
+			WriteError(w, r, *models.NewAPIError("sweep_config_update_failed", "Failed to update sweep config"))
 			return
 		}
 
@@ -226,14 +226,14 @@ func DeleteSweepConfig(sweepSvc services.SweepConfigServicer) http.HandlerFunc {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("invalid_request", "Invalid sweep config ID"))
+			WriteError(w, r, *models.NewAPIError("invalid_sweep_config_id", "Invalid sweep config ID"))
 			return
 		}
 
 		// Delete sweep config
 		err = sweepSvc.Delete(r.Context(), id)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("INTERNAL_ERROR", "Failed to delete sweep config"))
+			WriteError(w, r, *models.NewAPIError("sweep_config_delete_failed", "Failed to delete sweep config"))
 			return
 		}
 

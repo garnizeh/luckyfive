@@ -43,25 +43,25 @@ func SimpleSimulation(
 
 		// Validate request
 		if req.Preset == "" {
-			WriteError(w, r, *models.NewAPIError("invalid_json", "Preset is required"))
+			WriteError(w, r, *models.NewAPIError("validation_error", "Preset is required"))
 			return
 		}
 		if req.StartContest <= 0 || req.EndContest <= 0 || req.StartContest > req.EndContest {
-			WriteError(w, r, *models.NewAPIError("invalid_json", "Invalid contest range"))
+			WriteError(w, r, *models.NewAPIError("validation_error", "Invalid contest range"))
 			return
 		}
 
 		// Load preset
 		preset, err := configSvc.GetPreset(r.Context(), req.Preset)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("not_found", "Preset not found"))
+			WriteError(w, r, *models.NewAPIError("preset_not_found", "Preset not found"))
 			return
 		}
 
 		// Parse preset recipe
 		var recipe services.Recipe
 		if err := json.Unmarshal([]byte(preset.RecipeJson), &recipe); err != nil {
-			WriteError(w, r, *models.NewAPIError("upload_failed", "Invalid preset configuration"))
+			WriteError(w, r, *models.NewAPIError("invalid_request", "Invalid preset configuration"))
 			return
 		}
 
@@ -75,7 +75,7 @@ func SimpleSimulation(
 			Async:        req.Async,
 		})
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("upload_failed", "Simulation creation failed"))
+			WriteError(w, r, *models.NewAPIError("simulation_creation_failed", "Simulation creation failed"))
 			return
 		}
 
@@ -108,20 +108,20 @@ func GetSimulation(simSvc services.SimulationServicer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		if idStr == "" {
-			WriteError(w, r, *models.NewAPIError("invalid_json", "Simulation ID is required"))
+			WriteError(w, r, *models.NewAPIError("invalid_simulation_id", "Simulation ID is required"))
 			return
 		}
 
 		// Parse ID (assuming int64)
 		var id int64
 		if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
-			WriteError(w, r, *models.NewAPIError("invalid_json", "Invalid simulation ID"))
+			WriteError(w, r, *models.NewAPIError("invalid_simulation_id", "Invalid simulation ID"))
 			return
 		}
 
 		sim, err := simSvc.GetSimulation(r.Context(), id)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("not_found", "Simulation not found"))
+			WriteError(w, r, *models.NewAPIError("simulation_not_found", "Simulation not found"))
 			return
 		}
 
@@ -159,7 +159,7 @@ func ListSimulations(simSvc services.SimulationServicer) http.HandlerFunc {
 
 		sims, err := simSvc.ListSimulations(r.Context(), limit, offset)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("upload_failed", "Failed to list simulations"))
+			WriteError(w, r, *models.NewAPIError("list_simulations_failed", "Failed to list simulations"))
 			return
 		}
 
@@ -186,18 +186,18 @@ func CancelSimulation(simSvc services.SimulationServicer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		if idStr == "" {
-			WriteError(w, r, *models.NewAPIError("invalid_json", "Simulation ID is required"))
+			WriteError(w, r, *models.NewAPIError("invalid_simulation_id", "Simulation ID is required"))
 			return
 		}
 
 		var id int64
 		if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
-			WriteError(w, r, *models.NewAPIError("invalid_json", "Invalid simulation ID"))
+			WriteError(w, r, *models.NewAPIError("invalid_simulation_id", "Invalid simulation ID"))
 			return
 		}
 
 		if err := simSvc.CancelSimulation(r.Context(), id); err != nil {
-			WriteError(w, r, *models.NewAPIError("upload_failed", "Failed to cancel simulation"))
+			WriteError(w, r, *models.NewAPIError("simulation_cancel_failed", "Failed to cancel simulation"))
 			return
 		}
 
@@ -222,13 +222,13 @@ func GetContestResults(simSvc services.SimulationServicer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		if idStr == "" {
-			WriteError(w, r, *models.NewAPIError("invalid_json", "Simulation ID is required"))
+			WriteError(w, r, *models.NewAPIError("invalid_simulation_id", "Simulation ID is required"))
 			return
 		}
 
 		var id int64
 		if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
-			WriteError(w, r, *models.NewAPIError("invalid_json", "Invalid simulation ID"))
+			WriteError(w, r, *models.NewAPIError("invalid_simulation_id", "Invalid simulation ID"))
 			return
 		}
 
@@ -249,7 +249,7 @@ func GetContestResults(simSvc services.SimulationServicer) http.HandlerFunc {
 
 		results, err := simSvc.GetContestResults(r.Context(), id, limit, offset)
 		if err != nil {
-			WriteError(w, r, *models.NewAPIError("upload_failed", "Failed to get contest results"))
+			WriteError(w, r, *models.NewAPIError("get_contest_results_failed", "Failed to get contest results"))
 			return
 		}
 

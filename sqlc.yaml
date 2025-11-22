@@ -49,3 +49,13 @@ sql:
         out: "internal/store/sweeps"
         emit_interface: true
         emit_json_tags: true
+
+  - schema: ["migrations/002_create_simulations.sql", "migrations/007_create_sweep_execution.sql"]
+    queries: "internal/store/queries/sweep_execution.sql"
+    engine: "sqlite"
+    gen:
+      go:
+        package: "sweep_execution"
+        out: "internal/store/sweep_execution"
+        emit_interface: true
+        emit_json_tags: true
