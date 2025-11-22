@@ -288,3 +288,43 @@ func TestUploadService_UploadFile_CreatesTempDirectory(t *testing.T) {
 		t.Errorf("Temp directory was not created: %s", tempDir)
 	}
 }
+
+func TestUploadService_SetTempDir(t *testing.T) {
+	service, cleanup := createTestUploadService(t)
+	defer cleanup()
+
+	// Test setting a valid directory
+	service.SetTempDir("/tmp/test")
+	if service.tempDir != "/tmp/test" {
+		t.Errorf("Expected tempDir to be '/tmp/test', got '%s'", service.tempDir)
+	}
+
+	// Test setting an empty directory (should not change)
+	service.SetTempDir("")
+	if service.tempDir != "/tmp/test" {
+		t.Errorf("Expected tempDir to remain '/tmp/test', got '%s'", service.tempDir)
+	}
+}
+
+func TestUploadService_SetMaxSize(t *testing.T) {
+	service, cleanup := createTestUploadService(t)
+	defer cleanup()
+
+	// Test setting a valid max size
+	service.SetMaxSize(100 << 20) // 100MB
+	if service.maxSize != 100<<20 {
+		t.Errorf("Expected maxSize to be %d, got %d", 100<<20, service.maxSize)
+	}
+
+	// Test setting an invalid max size (should not change)
+	service.SetMaxSize(0)
+	if service.maxSize != 100<<20 {
+		t.Errorf("Expected maxSize to remain %d, got %d", 100<<20, service.maxSize)
+	}
+
+	// Test setting a negative max size (should not change)
+	service.SetMaxSize(-1)
+	if service.maxSize != 100<<20 {
+		t.Errorf("Expected maxSize to remain %d, got %d", 100<<20, service.maxSize)
+	}
+}

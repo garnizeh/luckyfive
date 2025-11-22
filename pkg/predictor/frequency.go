@@ -18,7 +18,7 @@ func ComputeFreq(prevDraws [][]int, maxNum int) map[int]int {
 // ComputePosFreq returns counts per position (0..4) for numbers.
 func ComputePosFreq(prevDraws [][]int, positions int) map[int]map[int]int {
 	pos := make(map[int]map[int]int)
-	for p := 0; p < positions; p++ {
+	for p := range positions {
 		pos[p] = make(map[int]int)
 	}
 	for _, draw := range prevDraws {
@@ -35,6 +35,10 @@ func ComputePosFreq(prevDraws [][]int, positions int) map[int]map[int]int {
 // ComputePairwiseConditional computes pairwise conditional probabilities P(j|i)
 // using simple frequency and co-occurrence counts with add-one smoothing.
 func ComputePairwiseConditional(prevDraws [][]int, maxNum int) (map[int]map[int]float64, map[int]int) {
+	if len(prevDraws) == 0 {
+		return make(map[int]map[int]float64), make(map[int]int)
+	}
+
 	freq := make(map[int]int)
 	coOcc := make(map[[2]int]int)
 	for _, draw := range prevDraws {
@@ -46,7 +50,7 @@ func ComputePairwiseConditional(prevDraws [][]int, maxNum int) (map[int]map[int]
 			}
 		}
 		// sort not required here
-		for i := 0; i < len(nums); i++ {
+		for i := range len(nums) {
 			for j := i + 1; j < len(nums); j++ {
 				a, b := nums[i], nums[j]
 				if a < b {

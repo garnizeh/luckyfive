@@ -53,7 +53,8 @@ mock-generate: sqlc-generate
 	@mockgen -source=internal/store/simulations/querier.go -destination=internal/store/simulations/mock/querier.go -package=mock
 	@mockgen -source=internal/store/configs/querier.go -destination=internal/store/configs/mock/querier.go -package=mock
 	@mockgen -source=internal/store/finances/querier.go -destination=internal/store/finances/mock/querier.go -package=mock
-	@mockgen -source=internal/services/simulation.go -destination=internal/services/mock/simulation_service.go -package=mock
+	@mockgen -source=internal/services/simulation.go -destination=internal/services/simulation_mock_service.go -package=services
+	@mockgen -source=internal/services/engine.go -destination=internal/services/engine_mock_test.go -package=services EngineServicer
 
 swagger-generate:
 	@echo "Generating OpenAPI/Swagger docs (if swag CLI is available)";

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	servicemock "github.com/garnizeh/luckyfive/internal/services/mock"
+	servicemock "github.com/garnizeh/luckyfive/internal/services"
 	"github.com/garnizeh/luckyfive/internal/store/simulations"
 	storemock "github.com/garnizeh/luckyfive/internal/store/simulations/mock"
 	"github.com/golang/mock/gomock"

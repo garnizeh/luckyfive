@@ -51,3 +51,35 @@ func TestComputePosFreq(t *testing.T) {
 		t.Fatalf("unexpected counts at position 2: %#v", pos[2])
 	}
 }
+
+func TestComputeFreq_EmptyDraws(t *testing.T) {
+	freq := ComputeFreq([][]int{}, 80)
+	if len(freq) != 0 {
+		t.Fatalf("expected empty freq map for empty draws, got %v", freq)
+	}
+}
+
+func TestComputeFreq_LargeNumbers(t *testing.T) {
+	prev := [][]int{{100, 200, 300}} // Numbers larger than maxNum
+	freq := ComputeFreq(prev, 80)
+	if len(freq) != 0 {
+		t.Fatalf("expected empty freq map for numbers > maxNum, got %v", freq)
+	}
+}
+
+func TestComputeMarginalProbabilities_EmptyDraws(t *testing.T) {
+	probs := ComputeMarginalProbabilities([][]int{}, 0.1, 80)
+	if len(probs) != 0 {
+		t.Fatalf("expected empty probs map for empty draws, got %v", probs)
+	}
+}
+
+func TestComputePairwiseConditional_EmptyDraws(t *testing.T) {
+	cond, freq := ComputePairwiseConditional([][]int{}, 80)
+	if len(cond) != 0 {
+		t.Fatalf("expected empty cond map for empty draws, got %v", cond)
+	}
+	if len(freq) != 0 {
+		t.Fatalf("expected empty freq map for empty draws, got %v", freq)
+	}
+}

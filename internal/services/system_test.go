@@ -233,6 +233,99 @@ func TestSystemService_CheckHealth_AllDatabasesUnhealthy(t *testing.T) {
 	}
 }
 
+func TestSystemService_CheckHealth_SimulationsDBUnhealthy(t *testing.T) {
+	db := createTestDB(t)
+	defer closeTestDB(t, db)
+
+	// Close only simulations database
+	if err := db.SimulationsDB.Close(); err != nil {
+		t.Fatalf("Failed to close simulations DB: %v", err)
+	}
+
+	startTime := time.Now()
+	service := NewSystemService(db, startTime)
+
+	status, err := service.CheckHealth()
+
+	if err != nil {
+		t.Fatalf("CheckHealth returned error: %v", err)
+	}
+	if status == nil {
+		t.Fatal("CheckHealth returned nil status")
+	}
+	if status.Status != "unhealthy" {
+		t.Errorf("Expected status to be 'unhealthy', got '%s'", status.Status)
+	}
+	if status.Services["database"] != "unhealthy" {
+		t.Errorf("Expected database service to be 'unhealthy', got '%s'", status.Services["database"])
+	}
+	if status.Services["api"] != "healthy" {
+		t.Errorf("Expected api service to be 'healthy', got '%s'", status.Services["api"])
+	}
+}
+
+func TestSystemService_CheckHealth_ConfigsDBUnhealthy(t *testing.T) {
+	db := createTestDB(t)
+	defer closeTestDB(t, db)
+
+	// Close only configs database
+	if err := db.ConfigsDB.Close(); err != nil {
+		t.Fatalf("Failed to close configs DB: %v", err)
+	}
+
+	startTime := time.Now()
+	service := NewSystemService(db, startTime)
+
+	status, err := service.CheckHealth()
+
+	if err != nil {
+		t.Fatalf("CheckHealth returned error: %v", err)
+	}
+	if status == nil {
+		t.Fatal("CheckHealth returned nil status")
+	}
+	if status.Status != "unhealthy" {
+		t.Errorf("Expected status to be 'unhealthy', got '%s'", status.Status)
+	}
+	if status.Services["database"] != "unhealthy" {
+		t.Errorf("Expected database service to be 'unhealthy', got '%s'", status.Services["database"])
+	}
+	if status.Services["api"] != "healthy" {
+		t.Errorf("Expected api service to be 'healthy', got '%s'", status.Services["api"])
+	}
+}
+
+func TestSystemService_CheckHealth_FinancesDBUnhealthy(t *testing.T) {
+	db := createTestDB(t)
+	defer closeTestDB(t, db)
+
+	// Close only finances database
+	if err := db.FinancesDB.Close(); err != nil {
+		t.Fatalf("Failed to close finances DB: %v", err)
+	}
+
+	startTime := time.Now()
+	service := NewSystemService(db, startTime)
+
+	status, err := service.CheckHealth()
+
+	if err != nil {
+		t.Fatalf("CheckHealth returned error: %v", err)
+	}
+	if status == nil {
+		t.Fatal("CheckHealth returned nil status")
+	}
+	if status.Status != "unhealthy" {
+		t.Errorf("Expected status to be 'unhealthy', got '%s'", status.Status)
+	}
+	if status.Services["database"] != "unhealthy" {
+		t.Errorf("Expected database service to be 'unhealthy', got '%s'", status.Services["database"])
+	}
+	if status.Services["api"] != "healthy" {
+		t.Errorf("Expected api service to be 'healthy', got '%s'", status.Services["api"])
+	}
+}
+
 func TestSystemService_CheckHealth_UptimeCalculation(t *testing.T) {
 	db := createTestDB(t)
 	defer closeTestDB(t, db)

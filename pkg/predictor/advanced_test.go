@@ -78,3 +78,75 @@ func TestAdvancedPredictor_Deterministic(t *testing.T) {
 		}
 	}
 }
+
+func TestAdvancedPredictor_EmptyHistory(t *testing.T) {
+	p := NewAdvancedPredictor(42)
+	ctx := context.Background()
+	params := PredictionParams{
+		HistoricalDraws: []Draw{}, // Empty history
+		NumPredictions:  3,
+		Weights:         Weights{Alpha: 1.0, Beta: 1.0, Gamma: 1.0, Delta: 1.0},
+		Seed:            42,
+	}
+	res, err := p.GeneratePredictions(ctx, params)
+	if err != nil {
+		t.Fatalf("unexpected error with empty history: %v", err)
+	}
+	if len(res) != 3 {
+		t.Fatalf("expected 3 predictions, got %d", len(res))
+	}
+	// Should still generate valid predictions even with no history
+	for _, pred := range res {
+		if len(pred.Numbers) != 5 {
+			t.Fatalf("expected 5 numbers per prediction, got %d", len(pred.Numbers))
+		}
+	}
+}
+
+func TestAdvancedPredictor_ZeroPredictions(t *testing.T) {
+	p := NewAdvancedPredictor(42)
+	ctx := context.Background()
+	params := PredictionParams{
+		HistoricalDraws: []Draw{
+			{Contest: 1, Numbers: []int{1, 2, 3, 4, 5}},
+		},
+		NumPredictions: 0, // Zero predictions
+		Weights:        Weights{Alpha: 1.0, Beta: 1.0, Gamma: 1.0, Delta: 1.0},
+		Seed:           42,
+	}
+	res, err := p.GeneratePredictions(ctx, params)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(res) != 0 {
+		t.Fatalf("expected 0 predictions, got %d", len(res))
+	}
+}
+
+func TestAdvancedPredictor_LargeHistory(t *testing.T) {
+	p := NewAdvancedPredictor(42)
+	ctx := context.Background()
+
+	// Create a large history (100 draws)
+	history := make([]Draw, 100)
+	for i := 0; i < 100; i++ {
+		history[i] = Draw{
+			Contest: i + 1,
+			Numbers: []int{(i % 80) + 1, ((i + 1) % 80) + 1, ((i + 2) % 80) + 1, ((i + 3) % 80) + 1, ((i + 4) % 80) + 1},
+		}
+	}
+
+	params := PredictionParams{
+		HistoricalDraws: history,
+		NumPredictions:  5,
+		Weights:         Weights{Alpha: 1.0, Beta: 1.0, Gamma: 1.0, Delta: 1.0},
+		Seed:            42,
+	}
+	res, err := p.GeneratePredictions(ctx, params)
+	if err != nil {
+		t.Fatalf("unexpected error with large history: %v", err)
+	}
+	if len(res) != 5 {
+		t.Fatalf("expected 5 predictions, got %d", len(res))
+	}
+}

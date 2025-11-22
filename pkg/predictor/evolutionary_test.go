@@ -97,3 +97,36 @@ func TestEvolvePopulation_Empty(t *testing.T) {
 		t.Fatalf("expected empty output for empty input, got %v", out)
 	}
 }
+
+func TestEvolvePopulation_SingleIndividual(t *testing.T) {
+	pop := [][]int{{1, 2, 3, 4, 5}}
+	cond := map[int]map[int]float64{}
+	freq := map[int]int{}
+	cfg := map[int]float64{}
+	pos := map[int]float64{}
+	rng := rand.New(rand.NewSource(42))
+
+	out := evolvePopulation(pop, cond, freq, cfg, pos, 5, 0.2, 1, rng)
+	if len(out) != 1 {
+		t.Fatalf("expected 1 individual for single input, got %d", len(out))
+	}
+	// Should return the same individual (elitism)
+	if keyFromSlice(out[0]) != keyFromSlice(pop[0]) {
+		t.Fatalf("expected same individual, got %v vs %v", out[0], pop[0])
+	}
+}
+
+func TestEvolvePopulation_ZeroIterations(t *testing.T) {
+	pop := [][]int{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}}
+	cond := map[int]map[int]float64{}
+	freq := map[int]int{}
+	cfg := map[int]float64{}
+	pos := map[int]float64{}
+	rng := rand.New(rand.NewSource(42))
+
+	out := evolvePopulation(pop, cond, freq, cfg, pos, 0, 0.2, 1, rng)
+	if len(out) != 2 {
+		t.Fatalf("expected 2 individuals for zero iterations, got %d", len(out))
+	}
+	// Should return deduplicated population
+}

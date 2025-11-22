@@ -15,7 +15,7 @@ import (
 type SimulationService struct {
 	simulationsQueries simulations.Querier // Mockable
 	simulationsDB      *sql.DB             // For transactions
-	engineService      *EngineService
+	engineService      EngineServicer
 	logger             *slog.Logger
 }
 
@@ -31,7 +31,7 @@ type SimulationServicer interface {
 func NewSimulationService(
 	simulationsQueries simulations.Querier,
 	simulationsDB *sql.DB,
-	engineService *EngineService,
+	engineService EngineServicer,
 	logger *slog.Logger,
 ) *SimulationService {
 	return &SimulationService{

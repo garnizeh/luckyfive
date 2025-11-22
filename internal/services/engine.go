@@ -10,6 +10,10 @@ import (
 	"github.com/garnizeh/luckyfive/pkg/predictor"
 )
 
+type EngineServicer interface {
+	RunSimulation(ctx context.Context, cfg SimulationConfig) (*SimulationResult, error)
+}
+
 type EngineService struct {
 	resultsQueries results.Querier
 	predictor      predictor.Predictor
