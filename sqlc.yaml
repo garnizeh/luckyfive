@@ -39,3 +39,13 @@ sql:
         out: "internal/store/finances"
         emit_interface: true
         emit_json_tags: true
+
+  - schema: "migrations/005_create_sweeps.sql"
+    queries: "internal/store/queries/sweeps.sql"
+    engine: "sqlite"
+    gen:
+      go:
+        package: "sweeps"
+        out: "internal/store/sweeps"
+        emit_interface: true
+        emit_json_tags: true
