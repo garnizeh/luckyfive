@@ -38,6 +38,32 @@ func (q *Queries) CountDrawsBetweenDates(ctx context.Context, arg CountDrawsBetw
 	return count, err
 }
 
+const countDrawsByBall = `-- name: CountDrawsByBall :one
+SELECT COUNT(DISTINCT contest) FROM draws
+WHERE bola1 = ? OR bola2 = ? OR bola3 = ? OR bola4 = ? OR bola5 = ?
+`
+
+type CountDrawsByBallParams struct {
+	Bola1 int64 `json:"bola1"`
+	Bola2 int64 `json:"bola2"`
+	Bola3 int64 `json:"bola3"`
+	Bola4 int64 `json:"bola4"`
+	Bola5 int64 `json:"bola5"`
+}
+
+func (q *Queries) CountDrawsByBall(ctx context.Context, arg CountDrawsByBallParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countDrawsByBall,
+		arg.Bola1,
+		arg.Bola2,
+		arg.Bola3,
+		arg.Bola4,
+		arg.Bola5,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const deleteDraw = `-- name: DeleteDraw :exec
 DELETE FROM draws WHERE contest = ?
 `

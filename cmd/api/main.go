@@ -61,6 +61,7 @@ func main() {
 		SimulationsPath: cfg.Database.SimulationsPath,
 		ConfigsPath:     cfg.Database.ConfigsPath,
 		FinancesPath:    cfg.Database.FinancesPath,
+		SweepsPath:      cfg.Database.SweepsPath,
 	})
 	if err != nil {
 		logger.Error("Failed to open database", "error", err)
@@ -70,6 +71,7 @@ func main() {
 
 	// Initialize services
 	systemSvc := services.NewSystemService(db, startTime)
+	metricsSvc := services.NewMetricsService(db, startTime)
 	uploadSvc := services.NewUploadService(logger)
 	resultsSvc := services.NewResultsService(db, logger)
 	engineSvc := services.NewEngineService(db.Results, logger)
@@ -78,7 +80,7 @@ func main() {
 	simSvc := services.NewSimulationService(db.Simulations, db.SimulationsDB, engineSvc, logger)
 
 	// Setup router
-	router := setupRouter(logger, systemSvc, uploadSvc, resultsSvc, configSvc, sweepSvc, simSvc)
+	router := setupRouter(logger, systemSvc, uploadSvc, resultsSvc, configSvc, sweepSvc, simSvc, metricsSvc)
 
 	// Create HTTP server
 	server := &http.Server{
@@ -113,18 +115,21 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService, resultsSvc *services.ResultsService, configSvc *services.ConfigService, sweepSvc *services.SweepConfigService, simSvc *services.SimulationService) *chi.Mux {
+func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService, resultsSvc *services.ResultsService, configSvc *services.ConfigService, sweepSvc *services.SweepConfigService, simSvc *services.SimulationService, metricsSvc *services.MetricsService) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack
-	r.Use(chimiddleware.RequestID)     // Request ID tracking
-	r.Use(chimiddleware.RealIP)        // Real IP detection
-	r.Use(middleware.Logging(logger))  // Custom logging
-	r.Use(middleware.Recovery(logger)) // Panic recovery
-	r.Use(middleware.CORS())           // CORS headers
+	r.Use(chimiddleware.RequestID)                // Request ID tracking
+	r.Use(chimiddleware.RealIP)                   // Real IP detection
+	r.Use(middleware.Logging(logger, metricsSvc)) // Custom logging with metrics
+	r.Use(middleware.Recovery(logger))            // Panic recovery
+	r.Use(middleware.CORS())                      // CORS headers
 
 	// Health check endpoint
 	r.Get("/api/v1/health", handlers.HealthCheck(systemSvc))
+
+	// Metrics endpoint
+	r.Get("/api/v1/metrics", handlers.GetMetrics(metricsSvc))
 
 	// Results upload endpoint
 	r.Post("/api/v1/results/upload", handlers.UploadResults(uploadSvc, logger))

@@ -15,12 +15,14 @@ WHERE name = ?
 LIMIT 1;
 
 -- name: ListConfigs :many
-SELECT * FROM configs
+SELECT id, name, description, recipe_json, tags, is_default, mode, created_at, updated_at, created_by, times_used, last_used_at
+FROM configs
 ORDER BY name ASC
 LIMIT ? OFFSET ?;
 
 -- name: ListConfigsByMode :many
-SELECT * FROM configs
+SELECT id, name, description, recipe_json, tags, is_default, mode, created_at, updated_at, created_by, times_used, last_used_at
+FROM configs
 WHERE mode = ?
 ORDER BY times_used DESC, name ASC
 LIMIT ? OFFSET ?;

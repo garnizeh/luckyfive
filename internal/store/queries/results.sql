@@ -68,7 +68,7 @@ ORDER BY contest DESC;
 DELETE FROM draws WHERE contest = ?;
 
 -- name: ListDrawsByBall :many
-SELECT * FROM draws
+SELECT contest, draw_date, bola1, bola2, bola3, bola4, bola5, source, imported_at, raw_row FROM draws
 WHERE bola1 = ? OR bola2 = ? OR bola3 = ? OR bola4 = ? OR bola5 = ?
 ORDER BY contest DESC
 LIMIT ? OFFSET ?;
@@ -76,3 +76,7 @@ LIMIT ? OFFSET ?;
 -- name: CountDrawsBetweenDates :one
 SELECT COUNT(*) FROM draws
 WHERE draw_date BETWEEN ? AND ?;
+
+-- name: CountDrawsByBall :one
+SELECT COUNT(DISTINCT contest) FROM draws
+WHERE bola1 = ? OR bola2 = ? OR bola3 = ? OR bola4 = ? OR bola5 = ?;

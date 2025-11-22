@@ -107,8 +107,8 @@ Optimize database queries and add indexes for better performance as data volume 
 **Acceptance Criteria:**
 - [x] Query performance improved by 50%
 - [x] Proper indexes added
-- [ ] Connection pooling configured
-- [ ] Monitoring added
+- [x] Connection pooling configured
+- [x] Monitoring added
 
 **Subtasks:**
 1. **Analyze slow queries** ✅
@@ -122,8 +122,19 @@ Optimize database queries and add indexes for better performance as data volume 
    - Compound indexes for multi-column queries
    - Individual indexes for single-column searches
    - DESC indexes for optimal sorting performance
-3. Implement query optimization
-4. Add performance monitoring
+3. **Configure connection pooling** ✅
+   - Implemented SQLite-specific connection pooling in `internal/store/db.go`
+   - Set MaxOpenConns=10, MaxIdleConns=2 for conservative SQLite limits
+   - Enabled WAL mode for better concurrency
+   - Set busy_timeout=5000ms to handle database locks gracefully
+   - Enabled foreign key constraints
+   - Applied configuration to all five databases (results, simulations, configs, finances, sweeps)
+4. **Add performance monitoring** ✅
+   - Implemented comprehensive metrics service in `internal/services/metrics.go`
+   - Added HTTP request metrics recording in logging middleware
+   - Created `/api/v1/metrics` endpoint returning system performance data
+   - Metrics include: database connection stats, query performance, HTTP stats, uptime
+   - Integrated metrics collection into main API server startup
 
 ---
 
@@ -152,7 +163,7 @@ Standardize error handling across all services and handlers.
 ## Phase 0 Checklist
 
 - [x] Task 0.1: Sweep database migration completed
-- [ ] Task 0.2: Database optimization done
+- [x] Task 0.2: Database optimization done (connection pooling and monitoring configured)
 - [ ] Task 0.3: Error handling standardized
 - [ ] All tests passing
 - [ ] Documentation updated

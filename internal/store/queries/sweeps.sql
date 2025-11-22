@@ -15,7 +15,8 @@ WHERE name = ?
 LIMIT 1;
 
 -- name: ListSweeps :many
-SELECT * FROM sweeps
+SELECT id, name, description, config_json, created_at, updated_at, created_by, times_used, last_used_at
+FROM sweeps
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?;
 

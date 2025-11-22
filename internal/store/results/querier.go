@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	CountDraws(ctx context.Context) (int64, error)
 	CountDrawsBetweenDates(ctx context.Context, arg CountDrawsBetweenDatesParams) (int64, error)
+	CountDrawsByBall(ctx context.Context, arg CountDrawsByBallParams) (int64, error)
 	DeleteDraw(ctx context.Context, contest int64) error
 	GetContestRange(ctx context.Context) (GetContestRangeRow, error)
 	// schema: migrations/001_create_results.sql

@@ -194,7 +194,8 @@ func (q *Queries) FailSimulation(ctx context.Context, arg FailSimulationParams) 
 }
 
 const getContestResults = `-- name: GetContestResults :many
-SELECT id, simulation_id, contest, actual_numbers, best_hits, best_prediction_index, best_prediction_numbers, predictions_json, processed_at FROM simulation_contest_results
+SELECT id, simulation_id, contest, actual_numbers, best_hits, best_prediction_index, best_prediction_numbers, predictions_json, processed_at
+FROM simulation_contest_results
 WHERE simulation_id = ?
 ORDER BY contest ASC
 LIMIT ? OFFSET ?
@@ -240,7 +241,8 @@ func (q *Queries) GetContestResults(ctx context.Context, arg GetContestResultsPa
 }
 
 const getContestResultsByMinHits = `-- name: GetContestResultsByMinHits :many
-SELECT id, simulation_id, contest, actual_numbers, best_hits, best_prediction_index, best_prediction_numbers, predictions_json, processed_at FROM simulation_contest_results
+SELECT id, simulation_id, contest, actual_numbers, best_hits, best_prediction_index, best_prediction_numbers, predictions_json, processed_at
+FROM simulation_contest_results
 WHERE simulation_id = ? AND best_hits >= ?
 ORDER BY best_hits DESC, contest ASC
 LIMIT ? OFFSET ?

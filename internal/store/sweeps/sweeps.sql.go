@@ -115,7 +115,8 @@ func (q *Queries) IncrementSweepUsage(ctx context.Context, id int64) error {
 }
 
 const listSweeps = `-- name: ListSweeps :many
-SELECT id, name, description, config_json, created_at, updated_at, created_by, times_used, last_used_at FROM sweeps
+SELECT id, name, description, config_json, created_at, updated_at, created_by, times_used, last_used_at
+FROM sweeps
 ORDER BY created_at DESC
 LIMIT ? OFFSET ?
 `

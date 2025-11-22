@@ -298,6 +298,9 @@ func (m *mockQuerier) CountDraws(ctx context.Context) (int64, error) { return 0,
 func (m *mockQuerier) CountDrawsBetweenDates(ctx context.Context, arg results.CountDrawsBetweenDatesParams) (int64, error) {
 	return 0, nil
 }
+func (m *mockQuerier) CountDrawsByBall(ctx context.Context, arg results.CountDrawsByBallParams) (int64, error) {
+	return 0, nil
+}
 func (m *mockQuerier) DeleteDraw(ctx context.Context, contest int64) error { return nil }
 func (m *mockQuerier) GetContestRange(ctx context.Context) (results.GetContestRangeRow, error) {
 	return results.GetContestRangeRow{}, nil

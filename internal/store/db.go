@@ -9,7 +9,7 @@ import (
 
 	"github.com/garnizeh/luckyfive/internal/store/configs"
 	"github.com/garnizeh/luckyfive/internal/store/finances"
-	"github.com/garnizeh/luckyfive/internal/store/results"
+	resultsStore "github.com/garnizeh/luckyfive/internal/store/results"
 	"github.com/garnizeh/luckyfive/internal/store/simulations"
 	"github.com/garnizeh/luckyfive/internal/store/sweeps"
 )
@@ -23,7 +23,7 @@ type DB struct {
 	SweepsDB      *sql.DB
 
 	// Querier interfaces (mockable)
-	Results     results.Querier
+	Results     resultsStore.Querier
 	Simulations simulations.Querier
 	Configs     configs.Querier
 	Finances    finances.Querier
@@ -53,7 +53,7 @@ func Open(cfg Config) (*DB, error) {
 		return nil, fmt.Errorf("ping results db: %w", err)
 	}
 	db.ResultsDB = resultsDB
-	db.Results = results.New(resultsDB)
+	db.Results = resultsStore.New(resultsDB)
 
 	// Open Simulations DB
 	simulationsDB, err := sql.Open("sqlite", cfg.SimulationsPath)
@@ -123,11 +123,30 @@ func Open(cfg Config) (*DB, error) {
 	db.SweepsDB = sweepsDB
 	db.Sweeps = sweeps.New(sweepsDB)
 
-	// Configure connection pools
+	// Configure connection pools for SQLite
+	// SQLite has limitations on concurrent connections, so we use conservative settings
 	for _, sqlDB := range []*sql.DB{resultsDB, simulationsDB, configsDB, financesDB, sweepsDB} {
-		sqlDB.SetMaxOpenConns(25)
-		sqlDB.SetMaxIdleConns(5)
-		sqlDB.SetConnMaxLifetime(0)
+		// SQLite can handle multiple readers but only one writer at a time
+		// Set conservative limits to avoid "database is locked" errors
+		sqlDB.SetMaxOpenConns(10)   // Reduced from 25 for SQLite safety
+		sqlDB.SetMaxIdleConns(2)    // Reduced from 5
+		sqlDB.SetConnMaxLifetime(0) // No lifetime limit for SQLite
+
+		// Enable WAL mode for better concurrency (if not already enabled)
+		if _, err := sqlDB.Exec("PRAGMA journal_mode=WAL"); err != nil {
+			// Log warning but don't fail - WAL might already be enabled
+			fmt.Printf("Warning: Could not enable WAL mode: %v\n", err)
+		}
+
+		// Set busy timeout to handle database locks gracefully
+		if _, err := sqlDB.Exec("PRAGMA busy_timeout=5000"); err != nil {
+			fmt.Printf("Warning: Could not set busy timeout: %v\n", err)
+		}
+
+		// Enable foreign key constraints
+		if _, err := sqlDB.Exec("PRAGMA foreign_keys=ON"); err != nil {
+			fmt.Printf("Warning: Could not enable foreign keys: %v\n", err)
+		}
 	}
 
 	return db, nil
@@ -171,14 +190,14 @@ func (db *DB) Close() error {
 }
 
 // WithResultsTx executes a function within a results DB transaction using a querier.
-func (db *DB) WithResultsTx(ctx context.Context, fn func(results.Querier) error) error {
+func (db *DB) WithResultsTx(ctx context.Context, fn func(resultsStore.Querier) error) error {
 	tx, err := db.ResultsDB.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin results tx: %w", err)
 	}
 	defer tx.Rollback()
 
-	q := results.New(tx)
+	q := resultsStore.New(tx)
 	if err := fn(q); err != nil {
 		return err
 	}

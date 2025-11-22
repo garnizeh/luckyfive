@@ -21,7 +21,7 @@ func TestLogging(t *testing.T) {
 	})
 
 	// Create the logging middleware
-	loggingMiddleware := Logging(logger)
+	loggingMiddleware := Logging(logger, nil)
 
 	// Create a test request
 	req := httptest.NewRequest("GET", "/test", nil)

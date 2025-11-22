@@ -6,8 +6,13 @@ import (
 	"time"
 )
 
-// Logging logs HTTP requests with structured logging.
-func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
+// MetricsRecorder defines the interface for recording metrics
+type MetricsRecorder interface {
+	RecordHTTPRequest(method string, statusCode int, duration time.Duration)
+}
+
+// Logging logs HTTP requests with structured logging and metrics recording.
+func Logging(logger *slog.Logger, metricsRecorder MetricsRecorder) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -17,11 +22,18 @@ func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 
 			next.ServeHTTP(wrapped, r)
 
+			duration := time.Since(start)
+
+			// Record metrics if recorder is provided
+			if metricsRecorder != nil {
+				metricsRecorder.RecordHTTPRequest(r.Method, wrapped.statusCode, duration)
+			}
+
 			logger.Info("HTTP request",
 				"method", r.Method,
 				"url", r.URL.Path,
 				"status", wrapped.statusCode,
-				"duration", time.Since(start),
+				"duration", duration,
 				"user_agent", r.UserAgent(),
 				"remote_addr", r.RemoteAddr,
 			)

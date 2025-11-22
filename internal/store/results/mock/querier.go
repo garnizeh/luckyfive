@@ -65,6 +65,21 @@ func (mr *MockQuerierMockRecorder) CountDrawsBetweenDates(ctx, arg interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountDrawsBetweenDates", reflect.TypeOf((*MockQuerier)(nil).CountDrawsBetweenDates), ctx, arg)
 }
 
+// CountDrawsByBall mocks base method.
+func (m *MockQuerier) CountDrawsByBall(ctx context.Context, arg results.CountDrawsByBallParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountDrawsByBall", ctx, arg)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountDrawsByBall indicates an expected call of CountDrawsByBall.
+func (mr *MockQuerierMockRecorder) CountDrawsByBall(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountDrawsByBall", reflect.TypeOf((*MockQuerier)(nil).CountDrawsByBall), ctx, arg)
+}
+
 // DeleteDraw mocks base method.
 func (m *MockQuerier) DeleteDraw(ctx context.Context, contest int64) error {
 	m.ctrl.T.Helper()
