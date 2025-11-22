@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -361,5 +363,145 @@ func TestLeaderboardService_isValidMetric(t *testing.T) {
 
 	if service.isValidMetric("invalid_metric") {
 		t.Error("expected invalid_metric to be invalid")
+	}
+}
+
+func TestLeaderboardService_fetchSimulations_ListSimulationsError(t *testing.T) {
+	mockQuerier := &mockSimulationQuerier{
+		listSimulationsFunc: func(ctx context.Context, arg simulations.ListSimulationsParams) ([]simulations.Simulation, error) {
+			return nil, fmt.Errorf("database connection failed")
+		},
+	}
+
+	service := NewLeaderboardService(mockQuerier, nil)
+
+	req := LeaderboardRequest{
+		Metric: "quina_rate",
+		Mode:   "all",
+	}
+
+	_, err := service.fetchSimulations(context.Background(), req)
+	if err == nil {
+		t.Error("expected error from ListSimulations, got nil")
+	}
+	if !strings.Contains(err.Error(), "database connection failed") {
+		t.Errorf("expected database error, got %q", err.Error())
+	}
+}
+
+func TestLeaderboardService_fetchSimulations_InvalidDateFrom(t *testing.T) {
+	mockQuerier := &mockSimulationQuerier{
+		listSimulationsFunc: func(ctx context.Context, arg simulations.ListSimulationsParams) ([]simulations.Simulation, error) {
+			return []simulations.Simulation{
+				{
+					ID:        1,
+					Status:    "completed",
+					Mode:      "simple",
+					CreatedAt: "2023-01-01T00:00:00Z",
+				},
+			}, nil
+		},
+	}
+
+	service := NewLeaderboardService(mockQuerier, nil)
+
+	req := LeaderboardRequest{
+		Metric:   "quina_rate",
+		Mode:     "all",
+		DateFrom: "invalid-date",
+	}
+
+	_, err := service.fetchSimulations(context.Background(), req)
+	if err == nil {
+		t.Error("expected error for invalid date_from, got nil")
+	}
+	if !strings.Contains(err.Error(), "invalid date_from format") {
+		t.Errorf("expected date_from error, got %q", err.Error())
+	}
+}
+
+func TestLeaderboardService_fetchSimulations_InvalidDateTo(t *testing.T) {
+	mockQuerier := &mockSimulationQuerier{
+		listSimulationsFunc: func(ctx context.Context, arg simulations.ListSimulationsParams) ([]simulations.Simulation, error) {
+			return []simulations.Simulation{
+				{
+					ID:        1,
+					Status:    "completed",
+					Mode:      "simple",
+					CreatedAt: "2023-01-01T00:00:00Z",
+				},
+			}, nil
+		},
+	}
+
+	service := NewLeaderboardService(mockQuerier, nil)
+
+	req := LeaderboardRequest{
+		Metric: "quina_rate",
+		Mode:   "all",
+		DateTo: "invalid-date",
+	}
+
+	_, err := service.fetchSimulations(context.Background(), req)
+	if err == nil {
+		t.Error("expected error for invalid date_to, got nil")
+	}
+	if !strings.Contains(err.Error(), "invalid date_to format") {
+		t.Errorf("expected date_to error, got %q", err.Error())
+	}
+}
+
+func TestLeaderboardService_fetchSimulations_DateFiltering(t *testing.T) {
+	summaryJSON, _ := json.Marshal(Summary{HitRateQuina: 0.05})
+
+	mockQuerier := &mockSimulationQuerier{
+		listSimulationsFunc: func(ctx context.Context, arg simulations.ListSimulationsParams) ([]simulations.Simulation, error) {
+			return []simulations.Simulation{
+				{
+					ID:          1,
+					Status:      "completed",
+					Mode:        "simple",
+					SummaryJson: sql.NullString{String: string(summaryJSON), Valid: true},
+					CreatedAt:   "2023-01-01T00:00:00Z",
+				},
+				{
+					ID:          2,
+					Status:      "completed",
+					Mode:        "simple",
+					SummaryJson: sql.NullString{String: string(summaryJSON), Valid: true},
+					CreatedAt:   "2023-01-15T00:00:00Z",
+				},
+				{
+					ID:          3,
+					Status:      "completed",
+					Mode:        "simple",
+					SummaryJson: sql.NullString{String: string(summaryJSON), Valid: true},
+					CreatedAt:   "2023-01-31T00:00:00Z",
+				},
+			}, nil
+		},
+	}
+
+	service := NewLeaderboardService(mockQuerier, nil)
+
+	// Test date range filtering
+	req := LeaderboardRequest{
+		Metric:   "quina_rate",
+		Mode:     "all",
+		DateFrom: "2023-01-10T00:00:00Z",
+		DateTo:   "2023-01-20T00:00:00Z",
+	}
+
+	sims, err := service.fetchSimulations(context.Background(), req)
+	if err != nil {
+		t.Fatalf("fetchSimulations failed: %v", err)
+	}
+
+	// Should only return simulation 2 (ID=2, created 2023-01-15)
+	if len(sims) != 1 {
+		t.Errorf("expected 1 simulation in date range, got %d", len(sims))
+	}
+	if len(sims) > 0 && sims[0].ID != 2 {
+		t.Errorf("expected simulation ID 2, got %d", sims[0].ID)
 	}
 }

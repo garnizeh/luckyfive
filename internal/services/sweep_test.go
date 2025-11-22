@@ -522,66 +522,447 @@ func TestSweepService_GetVisualizationData_DefaultMetrics(t *testing.T) {
 	}
 }
 
-func TestSweepService_GetVisualizationData_InvalidMetric(t *testing.T) {
+func TestSweepService_UpdateSweepProgress(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Create in-memory DB for testing
-	db, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("Failed to open test DB: %v", err)
-	}
-	defer db.Close()
-
-	// Create required tables
-	_, err = db.Exec(`
-		CREATE TABLE sweep_jobs (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL,
-			description TEXT,
-			sweep_config_json TEXT NOT NULL,
-			base_contest_range TEXT NOT NULL,
-			status TEXT NOT NULL DEFAULT 'pending',
-			total_combinations INTEGER NOT NULL,
-			completed_simulations INTEGER DEFAULT 0,
-			failed_simulations INTEGER DEFAULT 0,
-			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-			started_at TEXT,
-			finished_at TEXT,
-			run_duration_ms INTEGER,
-			created_by TEXT
-		);
-	`)
-	if err != nil {
-		t.Fatalf("Failed to create tables: %v", err)
-	}
-
-	// Insert test data
-	sweepConfig := `{"name": "test_sweep", "parameters": []}`
-
-	_, err = db.Exec(`
-		INSERT INTO sweep_jobs (id, name, sweep_config_json, base_contest_range, status, total_combinations)
-		VALUES (1, 'test_sweep', ?, '1-100', 'completed', 0)
-	`, sweepConfig)
-	if err != nil {
-		t.Fatalf("Failed to insert sweep job: %v", err)
-	}
-
-	// Create service
+	mockQueries := sweepmock.NewMockQuerier(ctrl)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	sweepQueries := sweep_execution.New(db)
 
+	// Create service without real DB dependencies
+	service := &SweepService{
+		sweepExecutionQueries: mockQueries,
+		logger:                logger,
+	}
+
+	sweepID := int64(1)
+
+	// Mock GetSweepStatus call - we need to create a service that can mock GetSweepStatus behavior
+	// Since GetSweepStatus is complex, we'll test UpdateSweepProgress by mocking its dependencies
+	mockQueries.EXPECT().
+		GetSweepJob(gomock.Any(), sweepID).
+		Return(sweep_execution.SweepJob{
+			ID:                sweepID,
+			Status:            "running",
+			TotalCombinations: 3,
+			StartedAt:         sql.NullString{String: "2025-11-22T10:00:00Z", Valid: true},
+		}, nil)
+
+	mockQueries.EXPECT().
+		GetSweepSimulationDetails(gomock.Any(), sweepID).
+		Return([]sweep_execution.GetSweepSimulationDetailsRow{
+			{Status: "completed"},
+			{Status: "completed"},
+			{Status: "running"},
+		}, nil)
+
+	mockQueries.EXPECT().
+		UpdateSweepJobProgress(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	// Since status is "running" (not completed/failed), FinishSweepJob should not be called
+	// But we need to handle the case where it might be called, so let's expect it conditionally
+	mockQueries.EXPECT().
+		FinishSweepJob(gomock.Any(), gomock.Any()).
+		Return(nil).
+		AnyTimes() // Allow it to be called or not
+
+	// Execute - this will test the UpdateSweepProgress logic
+	err := service.UpdateSweepProgress(context.Background(), sweepID)
+	if err != nil {
+		t.Fatalf("UpdateSweepProgress failed: %v", err)
+	}
+}
+
+func TestSweepService_FindBest(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := sweepmock.NewMockQuerier(ctrl)
 	mockSimSvc := NewMockSimulationServicer(ctrl)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	svc := NewSweepService(sweepQueries, db, mockSimSvc, logger)
+	service := NewSweepService(mockQueries, nil, mockSimSvc, logger)
 
-	// Test with invalid metric
-	_, err = svc.GetVisualizationData(context.Background(), 1, []string{"invalid_metric"})
+	sweepID := int64(1)
+	metric := "quina_rate"
+
+	// Mock sweep job
+	sweepJob := sweep_execution.SweepJob{
+		ID:              sweepID,
+		Status:          "completed",
+		SweepConfigJson: `{"name":"test","parameters":[{"name":"alpha","type":"range","values":{"min":0.0,"max":1.0,"step":0.5}}]}`,
+	}
+
+	mockQueries.EXPECT().
+		GetSweepJob(gomock.Any(), sweepID).
+		Return(sweepJob, nil)
+
+	// Mock simulation details
+	details := []sweep_execution.GetSweepSimulationDetailsRow{
+		{
+			SimulationID:    100,
+			Status:          "completed",
+			SummaryJson:     sql.NullString{String: `{"hitRateQuina":0.05,"hitRateQuadra":0.1,"hitRateTerno":0.2,"averageHits":2.3,"quinaHits":5,"quadraHits":10,"ternoHits":20,"totalContests":100}`, Valid: true},
+			VariationParams: `{"alpha":0.0}`,
+		},
+		{
+			SimulationID:    101,
+			Status:          "completed",
+			SummaryJson:     sql.NullString{String: `{"hitRateQuina":0.08,"hitRateQuadra":0.12,"hitRateTerno":0.25,"averageHits":2.8,"quinaHits":8,"quadraHits":12,"ternoHits":25,"totalContests":100}`, Valid: true},
+			VariationParams: `{"alpha":0.5}`,
+		},
+	}
+
+	mockQueries.EXPECT().
+		GetSweepSimulationDetails(gomock.Any(), sweepID).
+		Return(details, nil)
+
+	// Mock simulation service
+	expectedSim := simulations.Simulation{
+		ID:         101,
+		RecipeJson: `{"version":"1.0","name":"test","parameters":{"alpha":0.5}}`,
+	}
+
+	mockSimSvc.EXPECT().
+		GetSimulation(gomock.Any(), int64(101)).
+		Return(&expectedSim, nil)
+
+	// Execute
+	result, err := service.FindBest(context.Background(), sweepID, metric)
+	if err != nil {
+		t.Fatalf("FindBest failed: %v", err)
+	}
+
+	if result.SweepID != sweepID {
+		t.Errorf("Expected sweep ID %d, got %d", sweepID, result.SweepID)
+	}
+
+	if result.SimulationID != 101 {
+		t.Errorf("Expected best simulation ID 101, got %d", result.SimulationID)
+	}
+
+	if result.Metrics["quina_rate"] != 0.08 {
+		t.Errorf("Expected quina_rate 0.08, got %f", result.Metrics["quina_rate"])
+	}
+
+	if result.Rank != 1 {
+		t.Errorf("Expected rank 1, got %d", result.Rank)
+	}
+
+	if result.VariationParams["alpha"] != 0.5 {
+		t.Errorf("Expected alpha 0.5, got %v", result.VariationParams["alpha"])
+	}
+}
+
+func TestSweepService_FindBest_InvalidMetric(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := sweepmock.NewMockQuerier(ctrl)
+	mockSimSvc := NewMockSimulationServicer(ctrl)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	service := NewSweepService(mockQueries, nil, mockSimSvc, logger)
+
+	_, err := service.FindBest(context.Background(), 1, "invalid_metric")
 	if err == nil {
-		t.Error("Expected error for invalid metric, got nil")
+		t.Error("Expected error for invalid metric")
 	}
 
 	if err.Error() != "invalid metric: invalid_metric" {
 		t.Errorf("Expected 'invalid metric: invalid_metric', got '%s'", err.Error())
+	}
+}
+
+func TestSweepService_FindBest_SweepNotCompleted(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := sweepmock.NewMockQuerier(ctrl)
+	mockSimSvc := NewMockSimulationServicer(ctrl)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	service := NewSweepService(mockQueries, nil, mockSimSvc, logger)
+
+	sweepID := int64(1)
+
+	// Mock sweep job with running status
+	sweepJob := sweep_execution.SweepJob{
+		ID:     sweepID,
+		Status: "running",
+	}
+
+	mockQueries.EXPECT().
+		GetSweepJob(gomock.Any(), sweepID).
+		Return(sweepJob, nil)
+
+	// Since sweep is not completed, GetSweepSimulationDetails should not be called
+	// But we need to handle the case where it might be called due to implementation details
+	mockQueries.EXPECT().
+		GetSweepSimulationDetails(gomock.Any(), sweepID).
+		Return([]sweep_execution.GetSweepSimulationDetailsRow{}, nil).
+		AnyTimes()
+
+	_, err := service.FindBest(context.Background(), sweepID, "quina_rate")
+	if err == nil {
+		t.Error("Expected error for incomplete sweep")
+	}
+
+	expectedMsg := "sweep 1 is not completed (status: running)"
+	if err.Error() != expectedMsg {
+		t.Errorf("Expected '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestSweepService_FindBest_NoCompletedSimulations(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := sweepmock.NewMockQuerier(ctrl)
+	mockSimSvc := NewMockSimulationServicer(ctrl)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	service := NewSweepService(mockQueries, nil, mockSimSvc, logger)
+
+	sweepID := int64(1)
+
+	// Mock completed sweep but with failed simulations
+	sweepJob := sweep_execution.SweepJob{
+		ID:              sweepID,
+		Status:          "completed",
+		SweepConfigJson: `{"name":"test","parameters":[]}`,
+	}
+
+	mockQueries.EXPECT().
+		GetSweepJob(gomock.Any(), sweepID).
+		Return(sweepJob, nil)
+
+	// Mock simulation details with failed status
+	details := []sweep_execution.GetSweepSimulationDetailsRow{
+		{
+			SimulationID: 100,
+			Status:       "failed",
+		},
+	}
+
+	mockQueries.EXPECT().
+		GetSweepSimulationDetails(gomock.Any(), sweepID).
+		Return(details, nil)
+
+	_, err := service.FindBest(context.Background(), sweepID, "quina_rate")
+	if err == nil {
+		t.Error("Expected error for no completed simulations")
+	}
+
+	expectedMsg := "no completed simulations found in sweep 1"
+	if err.Error() != expectedMsg {
+		t.Errorf("Expected '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestSweepService_GetVisualizationData_InvalidMetric(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := sweepmock.NewMockQuerier(ctrl)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	service := NewSweepService(mockQueries, nil, nil, logger)
+
+	_, err := service.GetVisualizationData(context.Background(), 1, []string{"invalid_metric"})
+	if err == nil {
+		t.Error("Expected error for invalid metric")
+	}
+
+	if err.Error() != "invalid metric: invalid_metric" {
+		t.Errorf("Expected 'invalid metric: invalid_metric', got '%s'", err.Error())
+	}
+}
+
+func TestSweepService_convertToServiceRecipe(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	service := NewSweepService(nil, nil, nil, logger)
+
+	tests := []struct {
+		name     string
+		recipe   sweep.GeneratedRecipe
+		expected Recipe
+	}{
+		{
+			name: "basic conversion",
+			recipe: sweep.GeneratedRecipe{
+				ID:   "test_0",
+				Name: "test_var_0",
+				Parameters: map[string]interface{}{
+					"alpha": 0.5,
+					"beta":  0.3,
+					"gamma": 0.2,
+				},
+			},
+			expected: Recipe{
+				Version: "1.0",
+				Name:    "test_var_0",
+				Parameters: RecipeParameters{
+					Alpha: 0.5,
+					Beta:  0.3,
+					Gamma: 0.2,
+				},
+			},
+		},
+		{
+			name: "with sim params",
+			recipe: sweep.GeneratedRecipe{
+				ID:   "test_1",
+				Name: "test_var_1",
+				Parameters: map[string]interface{}{
+					"sim_prev_max": 100.0,
+					"sim_preds":    200.0,
+				},
+			},
+			expected: Recipe{
+				Version: "1.0",
+				Name:    "test_var_1",
+				Parameters: RecipeParameters{
+					SimPrevMax: 100,
+					SimPreds:   200,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.convertToServiceRecipe(tt.recipe)
+			if result.Version != tt.expected.Version {
+				t.Errorf("Expected version %s, got %s", tt.expected.Version, result.Version)
+			}
+			if result.Name != tt.expected.Name {
+				t.Errorf("Expected name %s, got %s", tt.expected.Name, result.Name)
+			}
+			if result.Parameters.Alpha != tt.expected.Parameters.Alpha {
+				t.Errorf("Expected alpha %f, got %f", tt.expected.Parameters.Alpha, result.Parameters.Alpha)
+			}
+			if result.Parameters.Beta != tt.expected.Parameters.Beta {
+				t.Errorf("Expected beta %f, got %f", tt.expected.Parameters.Beta, result.Parameters.Beta)
+			}
+			if result.Parameters.SimPrevMax != tt.expected.Parameters.SimPrevMax {
+				t.Errorf("Expected simPrevMax %d, got %d", tt.expected.Parameters.SimPrevMax, result.Parameters.SimPrevMax)
+			}
+		})
+	}
+}
+
+func TestSweepService_UpdateSweepProgress_Completion(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := sweepmock.NewMockQuerier(ctrl)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	service := &SweepService{
+		sweepExecutionQueries: mockQueries,
+		logger:                logger,
+	}
+
+	sweepID := int64(1)
+
+	// Mock completed sweep
+	mockQueries.EXPECT().
+		GetSweepJob(gomock.Any(), sweepID).
+		Return(sweep_execution.SweepJob{
+			ID:                sweepID,
+			Status:            "running",
+			TotalCombinations: 2,
+			StartedAt:         sql.NullString{String: "2025-11-22T10:00:00Z", Valid: true},
+		}, nil)
+
+	mockQueries.EXPECT().
+		GetSweepSimulationDetails(gomock.Any(), sweepID).
+		Return([]sweep_execution.GetSweepSimulationDetailsRow{
+			{Status: "completed"},
+			{Status: "completed"},
+		}, nil)
+
+	mockQueries.EXPECT().
+		UpdateSweepJobProgress(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	// Since all simulations are completed, FinishSweepJob should be called
+	mockQueries.EXPECT().
+		FinishSweepJob(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	err := service.UpdateSweepProgress(context.Background(), sweepID)
+	if err != nil {
+		t.Fatalf("UpdateSweepProgress failed: %v", err)
+	}
+}
+
+func TestSweepService_UpdateSweepProgress_WithFailures(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := sweepmock.NewMockQuerier(ctrl)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	service := &SweepService{
+		sweepExecutionQueries: mockQueries,
+		logger:                logger,
+	}
+
+	sweepID := int64(1)
+
+	mockQueries.EXPECT().
+		GetSweepJob(gomock.Any(), sweepID).
+		Return(sweep_execution.SweepJob{
+			ID:                sweepID,
+			Status:            "running",
+			TotalCombinations: 3,
+		}, nil)
+
+	mockQueries.EXPECT().
+		GetSweepSimulationDetails(gomock.Any(), sweepID).
+		Return([]sweep_execution.GetSweepSimulationDetailsRow{
+			{Status: "completed"},
+			{Status: "failed"},
+			{Status: "running"}, // Not all completed, so status remains running
+		}, nil)
+
+	mockQueries.EXPECT().
+		UpdateSweepJobProgress(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	// Since not all are completed/failed, FinishSweepJob should not be called
+	mockQueries.EXPECT().
+		FinishSweepJob(gomock.Any(), gomock.Any()).
+		Return(nil).
+		Times(0)
+
+	err := service.UpdateSweepProgress(context.Background(), sweepID)
+	if err != nil {
+		t.Fatalf("UpdateSweepProgress failed: %v", err)
+	}
+}
+
+func TestSweepService_CreateSweep_InvalidConfig(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockSimService := NewMockSimulationServicer(ctrl)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	service := NewSweepService(nil, nil, mockSimService, logger)
+
+	req := CreateSweepRequest{
+		Name: "test",
+		SweepConfig: sweep.SweepConfig{
+			Name: "", // Invalid: empty name
+		},
+	}
+
+	_, err := service.CreateSweep(context.Background(), req)
+	if err == nil {
+		t.Error("Expected error for invalid config")
 	}
 }

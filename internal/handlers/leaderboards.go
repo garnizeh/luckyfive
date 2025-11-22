@@ -21,7 +21,7 @@ import (
 // @Param date_to query string false "Filter simulations created before this date (RFC3339 format)"
 // @Param limit query int false "Maximum number of results" default(50) maximum(1000)
 // @Param offset query int false "Number of results to skip" default(0)
-// @Success 200 {object} object{leaderboard=[]services.LeaderboardEntry,total=integer,limit=integer,offset=integer} "Leaderboard results"
+// @Success 200 {object} object{leaderboard=[]models.LeaderboardEntryResponse,total=integer,limit=integer,offset=integer} "Leaderboard results"
 // @Failure 400 {object} models.APIError "Invalid parameters"
 // @Failure 500 {object} models.APIError "Internal server error"
 // @Router /api/v1/leaderboards/{metric} [get]
@@ -77,11 +77,27 @@ func GetLeaderboard(leaderboardSvc services.LeaderboardServicer) http.HandlerFun
 			return
 		}
 
+		response := convertLeaderboardEntriesToResponse(leaderboard)
 		WriteJSON(w, http.StatusOK, map[string]interface{}{
-			"leaderboard": leaderboard,
-			"total":       len(leaderboard),
+			"leaderboard": response,
+			"total":       len(response),
 			"limit":       limit,
 			"offset":      offset,
 		})
 	}
+}
+
+// convertLeaderboardEntriesToResponse converts internal LeaderboardEntry slice to API response
+func convertLeaderboardEntriesToResponse(entries []services.LeaderboardEntry) []models.LeaderboardEntryResponse {
+	response := make([]models.LeaderboardEntryResponse, len(entries))
+	for i, entry := range entries {
+		response[i] = models.LeaderboardEntryResponse{
+			Rank:         entry.Rank,
+			SimulationID: entry.SimulationID,
+			RecipeName:   entry.RecipeName,
+			MetricValue:  entry.MetricValue,
+			CreatedAt:    entry.CreatedAt,
+		}
+	}
+	return response
 }

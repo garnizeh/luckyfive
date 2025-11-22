@@ -69,6 +69,7 @@ type Summary struct {
 	HitRateQuina  float64
 	HitRateQuadra float64
 	HitRateTerno  float64
+	TotalHits     int // Add this field to track total hits across all contests
 }
 
 func (s *EngineService) RunSimulation(
@@ -145,6 +146,7 @@ func (s *EngineService) RunSimulation(
 		summary.QuinaHits += score.QuinaCount
 		summary.QuadraHits += score.QuadraCount
 		summary.TernoHits += score.TernoCount
+		summary.TotalHits += score.BestHits
 	}
 
 	// Calculate rates
@@ -153,8 +155,7 @@ func (s *EngineService) RunSimulation(
 		summary.HitRateQuadra = float64(summary.QuadraHits) / float64(summary.TotalContests)
 		summary.HitRateTerno = float64(summary.TernoHits) / float64(summary.TotalContests)
 
-		totalHits := summary.QuinaHits*5 + summary.QuadraHits*4 + summary.TernoHits*3
-		summary.AverageHits = float64(totalHits) / float64(summary.TotalContests)
+		summary.AverageHits = float64(summary.TotalHits) / float64(summary.TotalContests)
 	}
 
 	return &SimulationResult{

@@ -335,3 +335,203 @@ func BenchmarkGenerator_GenerateLargeSweep(b *testing.B) {
 		}
 	}
 }
+
+func TestGeneratedRecipe_ToServiceRecipe(t *testing.T) {
+	gr := GeneratedRecipe{
+		ID:   "test_id",
+		Name: "test_recipe",
+		Parameters: map[string]any{
+			"alpha": 0.5,
+			"beta":  0.3,
+		},
+		ParentSweep: "test_sweep",
+	}
+
+	recipe := gr.ToServiceRecipe()
+
+	if recipe.Version != "1.0" {
+		t.Errorf("Expected version 1.0, got %s", recipe.Version)
+	}
+
+	if recipe.Name != gr.Name {
+		t.Errorf("Expected name %s, got %s", gr.Name, recipe.Name)
+	}
+
+	if len(recipe.Parameters) != len(gr.Parameters) {
+		t.Errorf("Expected %d parameters, got %d", len(gr.Parameters), len(recipe.Parameters))
+	}
+
+	for k, v := range gr.Parameters {
+		if rv, ok := recipe.Parameters[k]; !ok || rv != v {
+			t.Errorf("Parameter %s: expected %v, got %v", k, v, rv)
+		}
+	}
+}
+
+func TestGenerator_Generate_WithRatioConstraint(t *testing.T) {
+	gen := NewGenerator()
+
+	cfg := SweepConfig{
+		Name: "ratio_test",
+		BaseRecipe: Recipe{
+			Version: "1.0",
+			Name:    "test",
+			Parameters: map[string]any{
+				"fixed": 1,
+			},
+		},
+		Parameters: []ParameterSweep{
+			{
+				Name:   "alpha",
+				Type:   "range",
+				Values: RangeValues{Min: 1.0, Max: 3.0, Step: 1.0},
+			},
+			{
+				Name:   "beta",
+				Type:   "range",
+				Values: RangeValues{Min: 1.0, Max: 3.0, Step: 1.0},
+			},
+		},
+		Constraints: []Constraint{
+			{
+				Type:       "ratio",
+				Parameters: []string{"alpha", "beta"},
+				Value:      2.0,
+			},
+		},
+	}
+
+	recipes, err := gen.Generate(cfg)
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+
+	// Should have combinations where alpha/beta = 2.0
+	// alpha=2, beta=1; alpha=4, beta=2 (but max is 3, so only alpha=2, beta=1)
+	expected := 1
+	if len(recipes) != expected {
+		t.Errorf("Expected %d recipes with ratio constraint, got %d", expected, len(recipes))
+	}
+
+	if len(recipes) > 0 {
+		alpha := recipes[0].Parameters["alpha"].(float64)
+		beta := recipes[0].Parameters["beta"].(float64)
+		ratio := alpha / beta
+		if ratio < 1.999 || ratio > 2.001 {
+			t.Errorf("Expected ratio 2.0, got %f", ratio)
+		}
+	}
+}
+
+func TestGenerator_Generate_WithMinMaxConstraints(t *testing.T) {
+	gen := NewGenerator()
+
+	cfg := SweepConfig{
+		Name: "minmax_test",
+		BaseRecipe: Recipe{
+			Version: "1.0",
+			Name:    "test",
+			Parameters: map[string]any{
+				"fixed": 1,
+			},
+		},
+		Parameters: []ParameterSweep{
+			{
+				Name:   "alpha",
+				Type:   "range",
+				Values: RangeValues{Min: 0.0, Max: 2.0, Step: 1.0},
+			},
+		},
+		Constraints: []Constraint{
+			{
+				Type:       "min",
+				Parameters: []string{"alpha"},
+				Value:      1.0,
+			},
+			{
+				Type:       "max",
+				Parameters: []string{"alpha"},
+				Value:      1.5,
+			},
+		},
+	}
+
+	recipes, err := gen.Generate(cfg)
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+
+	// Should only have alpha=1.0 (min=1.0, max=1.5)
+	expected := 1
+	if len(recipes) != expected {
+		t.Errorf("Expected %d recipes with min/max constraints, got %d", expected, len(recipes))
+	}
+
+	if len(recipes) > 0 {
+		alpha := recipes[0].Parameters["alpha"].(float64)
+		if alpha < 1.0 || alpha > 1.5 {
+			t.Errorf("Expected alpha between 1.0 and 1.5, got %f", alpha)
+		}
+	}
+}
+
+func TestGenerator_Generate_WithUnknownConstraint(t *testing.T) {
+	gen := NewGenerator()
+
+	cfg := SweepConfig{
+		Name: "unknown_constraint_test",
+		BaseRecipe: Recipe{
+			Version: "1.0",
+			Name:    "test",
+			Parameters: map[string]any{
+				"fixed": 1,
+			},
+		},
+		Parameters: []ParameterSweep{
+			{
+				Name:   "alpha",
+				Type:   "range",
+				Values: RangeValues{Min: 0.0, Max: 1.0, Step: 1.0},
+			},
+		},
+		Constraints: []Constraint{
+			{
+				Type:       "unknown",
+				Parameters: []string{"alpha"},
+				Value:      0.5,
+			},
+		},
+	}
+
+	_, err := gen.Generate(cfg)
+	if err == nil {
+		t.Error("Expected error for unknown constraint type")
+	}
+}
+
+func TestGenerator_expandRange_TypeError(t *testing.T) {
+	gen := NewGenerator()
+
+	_, err := gen.expandRange("invalid")
+	if err == nil {
+		t.Error("Expected error for invalid type")
+	}
+}
+
+func TestGenerator_expandDiscrete_TypeError(t *testing.T) {
+	gen := NewGenerator()
+
+	_, err := gen.expandDiscrete("invalid")
+	if err == nil {
+		t.Error("Expected error for invalid type")
+	}
+}
+
+func TestGenerator_expandExponential_TypeError(t *testing.T) {
+	gen := NewGenerator()
+
+	_, err := gen.expandExponential("invalid")
+	if err == nil {
+		t.Error("Expected error for invalid type")
+	}
+}

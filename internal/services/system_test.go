@@ -1,73 +1,12 @@
 package services
 
 import (
-	"database/sql"
 	"testing"
-	"time"
-
-	_ "modernc.org/sqlite"
-
-	"github.com/garnizeh/luckyfive/internal/store"
+	"time"	
 )
-
-// createTestDB creates an in-memory SQLite database for testing
-func createTestDB(t *testing.T) *store.DB {
-	t.Helper()
-
-	// Create in-memory databases
-	resultsDB, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("Failed to create results DB: %v", err)
-	}
-
-	simulationsDB, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("Failed to create simulations DB: %v", err)
-	}
-
-	configsDB, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("Failed to create configs DB: %v", err)
-	}
-
-	financesDB, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("Failed to create finances DB: %v", err)
-	}
-
-	// Create a mock DB struct
-	db := &store.DB{
-		ResultsDB:     resultsDB,
-		SimulationsDB: simulationsDB,
-		ConfigsDB:     configsDB,
-		FinancesDB:    financesDB,
-	}
-
-	// Configure connection pools
-	for _, sqlDB := range []*sql.DB{resultsDB, simulationsDB, configsDB, financesDB} {
-		sqlDB.SetMaxOpenConns(1)
-		sqlDB.SetMaxIdleConns(1)
-	}
-
-	return db
-}
-
-// closeTestDB closes the test database
-func closeTestDB(t *testing.T, db *store.DB) {
-	t.Helper()
-
-	if db == nil {
-		return
-	}
-
-	if err := db.Close(); err != nil {
-		t.Errorf("Failed to close test DB: %v", err)
-	}
-}
 
 func TestNewSystemService(t *testing.T) {
 	db := createTestDB(t)
-	defer closeTestDB(t, db)
 
 	startTime := time.Now()
 	service := NewSystemService(db, startTime)
@@ -85,7 +24,6 @@ func TestNewSystemService(t *testing.T) {
 
 func TestSystemService_CheckHealth_AllHealthy(t *testing.T) {
 	db := createTestDB(t)
-	defer closeTestDB(t, db)
 
 	startTime := time.Now().Add(-time.Hour) // 1 hour ago
 	service := NewSystemService(db, startTime)
@@ -122,7 +60,6 @@ func TestSystemService_CheckHealth_AllHealthy(t *testing.T) {
 
 func TestSystemService_CheckHealth_DatabaseUnhealthy(t *testing.T) {
 	db := createTestDB(t)
-	defer closeTestDB(t, db)
 
 	// Close one database to simulate unhealthy state
 	if err := db.ResultsDB.Close(); err != nil {
@@ -161,7 +98,6 @@ func TestSystemService_CheckHealth_DatabaseUnhealthy(t *testing.T) {
 
 func TestSystemService_CheckHealth_MultipleDatabasesUnhealthy(t *testing.T) {
 	db := createTestDB(t)
-	defer closeTestDB(t, db)
 
 	// Close multiple databases to simulate unhealthy state
 	if err := db.ResultsDB.Close(); err != nil {
@@ -195,7 +131,6 @@ func TestSystemService_CheckHealth_MultipleDatabasesUnhealthy(t *testing.T) {
 
 func TestSystemService_CheckHealth_AllDatabasesUnhealthy(t *testing.T) {
 	db := createTestDB(t)
-	defer closeTestDB(t, db)
 
 	// Close all databases to simulate unhealthy state
 	if err := db.ResultsDB.Close(); err != nil {
@@ -235,7 +170,6 @@ func TestSystemService_CheckHealth_AllDatabasesUnhealthy(t *testing.T) {
 
 func TestSystemService_CheckHealth_SimulationsDBUnhealthy(t *testing.T) {
 	db := createTestDB(t)
-	defer closeTestDB(t, db)
 
 	// Close only simulations database
 	if err := db.SimulationsDB.Close(); err != nil {
@@ -266,7 +200,6 @@ func TestSystemService_CheckHealth_SimulationsDBUnhealthy(t *testing.T) {
 
 func TestSystemService_CheckHealth_ConfigsDBUnhealthy(t *testing.T) {
 	db := createTestDB(t)
-	defer closeTestDB(t, db)
 
 	// Close only configs database
 	if err := db.ConfigsDB.Close(); err != nil {
@@ -297,7 +230,6 @@ func TestSystemService_CheckHealth_ConfigsDBUnhealthy(t *testing.T) {
 
 func TestSystemService_CheckHealth_FinancesDBUnhealthy(t *testing.T) {
 	db := createTestDB(t)
-	defer closeTestDB(t, db)
 
 	// Close only finances database
 	if err := db.FinancesDB.Close(); err != nil {
@@ -328,7 +260,6 @@ func TestSystemService_CheckHealth_FinancesDBUnhealthy(t *testing.T) {
 
 func TestSystemService_CheckHealth_UptimeCalculation(t *testing.T) {
 	db := createTestDB(t)
-	defer closeTestDB(t, db)
 
 	startTime := time.Now().Add(-time.Hour*2 - time.Minute*30) // 2.5 hours ago
 	service := NewSystemService(db, startTime)
@@ -348,7 +279,6 @@ func TestSystemService_CheckHealth_UptimeCalculation(t *testing.T) {
 
 func TestSystemService_CheckHealth_TimestampFormat(t *testing.T) {
 	db := createTestDB(t)
-	defer closeTestDB(t, db)
 
 	startTime := time.Now()
 	service := NewSystemService(db, startTime)

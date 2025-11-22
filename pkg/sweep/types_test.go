@@ -431,3 +431,198 @@ func TestJSONMarshaling(t *testing.T) {
 		t.Errorf("Parameters length mismatch: got %d, want %d", len(unmarshaled.Parameters), len(config.Parameters))
 	}
 }
+
+func TestJSONMarshaling_InvalidRangeValues(t *testing.T) {
+	// Test marshaling with invalid range values (min >= max)
+	config := SweepConfig{
+		Name: "invalid_range",
+		BaseRecipe: Recipe{
+			Version:    "1.0",
+			Name:       "test",
+			Parameters: map[string]any{"test": 1.0},
+		},
+		Parameters: []ParameterSweep{
+			{
+				Name: "alpha",
+				Type: "range",
+				Values: RangeValues{
+					Min:  1.0,
+					Max:  0.0, // Invalid: min >= max
+					Step: 0.1,
+				},
+			},
+		},
+	}
+
+	// This should marshal successfully (validation happens separately)
+	data, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("Failed to marshal invalid config: %v", err)
+	}
+
+	// But unmarshaling should work
+	var unmarshaled SweepConfig
+	if err := json.Unmarshal(data, &unmarshaled); err != nil {
+		t.Fatalf("Failed to unmarshal invalid config: %v", err)
+	}
+
+	// Validation should fail
+	if err := unmarshaled.Validate(); err == nil {
+		t.Error("Expected validation to fail for invalid range")
+	}
+}
+
+func TestJSONMarshaling_InvalidDiscreteValues(t *testing.T) {
+	// Test marshaling with empty discrete values
+	config := SweepConfig{
+		Name: "invalid_discrete",
+		BaseRecipe: Recipe{
+			Version:    "1.0",
+			Name:       "test",
+			Parameters: map[string]any{"test": 1.0},
+		},
+		Parameters: []ParameterSweep{
+			{
+				Name: "beta",
+				Type: "discrete",
+				Values: DiscreteValues{
+					Values: []float64{}, // Invalid: empty
+				},
+			},
+		},
+	}
+
+	// This should marshal successfully
+	data, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("Failed to marshal invalid config: %v", err)
+	}
+
+	// Unmarshaling should work
+	var unmarshaled SweepConfig
+	if err := json.Unmarshal(data, &unmarshaled); err != nil {
+		t.Fatalf("Failed to unmarshal invalid config: %v", err)
+	}
+
+	// Validation should fail
+	if err := unmarshaled.Validate(); err == nil {
+		t.Error("Expected validation to fail for empty discrete values")
+	}
+}
+
+func TestJSONMarshaling_InvalidExponentialValues(t *testing.T) {
+	// Test marshaling with invalid exponential values (start >= end)
+	config := SweepConfig{
+		Name: "invalid_exponential",
+		BaseRecipe: Recipe{
+			Version:    "1.0",
+			Name:       "test",
+			Parameters: map[string]any{"test": 1.0},
+		},
+		Parameters: []ParameterSweep{
+			{
+				Name: "gamma",
+				Type: "exponential",
+				Values: ExponentialValues{
+					Base:  10,
+					Start: 2, // Invalid: start >= end
+					End:   2,
+				},
+			},
+		},
+	}
+
+	// This should marshal successfully
+	data, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("Failed to marshal invalid config: %v", err)
+	}
+
+	// Unmarshaling should work
+	var unmarshaled SweepConfig
+	if err := json.Unmarshal(data, &unmarshaled); err != nil {
+		t.Fatalf("Failed to unmarshal invalid config: %v", err)
+	}
+
+	// Validation should fail
+	if err := unmarshaled.Validate(); err == nil {
+		t.Error("Expected validation to fail for invalid exponential values")
+	}
+}
+
+func TestJSONMarshaling_InvalidConstraint(t *testing.T) {
+	// Test marshaling with invalid constraint (no parameters)
+	config := SweepConfig{
+		Name: "invalid_constraint",
+		BaseRecipe: Recipe{
+			Version:    "1.0",
+			Name:       "test",
+			Parameters: map[string]any{"test": 1.0},
+		},
+		Parameters: []ParameterSweep{
+			{
+				Name:   "alpha",
+				Type:   "range",
+				Values: RangeValues{Min: 0.0, Max: 1.0, Step: 0.1},
+			},
+		},
+		Constraints: []Constraint{
+			{
+				Type:  "sum",
+				Value: 1.0,
+				// Invalid: no parameters
+			},
+		},
+	}
+
+	// This should marshal successfully
+	data, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("Failed to marshal invalid config: %v", err)
+	}
+
+	// Unmarshaling should work
+	var unmarshaled SweepConfig
+	if err := json.Unmarshal(data, &unmarshaled); err != nil {
+		t.Fatalf("Failed to unmarshal invalid config: %v", err)
+	}
+
+	// Validation should fail
+	if err := unmarshaled.Validate(); err == nil {
+		t.Error("Expected validation to fail for invalid constraint")
+	}
+}
+
+func TestJSONMarshaling_MalformedJSON(t *testing.T) {
+	// Test unmarshaling malformed JSON
+	malformedJSON := `{"name": "test", "base_recipe": {` // Missing closing braces
+
+	var config SweepConfig
+	err := json.Unmarshal([]byte(malformedJSON), &config)
+	if err == nil {
+		t.Error("Expected error for malformed JSON")
+	}
+}
+
+func TestJSONMarshaling_InvalidTypeValues(t *testing.T) {
+	// Test unmarshaling with wrong type for values
+	invalidJSON := `{
+		"name": "test",
+		"base_recipe": {
+			"version": "1.0",
+			"name": "test",
+			"parameters": {"test": 1.0}
+		},
+		"parameters": [{
+			"name": "alpha",
+			"type": "range",
+			"values": "invalid_string_instead_of_object"
+		}]
+	}`
+
+	var config SweepConfig
+	err := json.Unmarshal([]byte(invalidJSON), &config)
+	if err == nil {
+		t.Error("Expected error for invalid type in values field")
+	}
+}

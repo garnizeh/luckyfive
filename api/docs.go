@@ -685,6 +685,107 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/leaderboards/{metric}": {
+            "get": {
+                "description": "Get ranked list of simulations for a specific metric with optional filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "leaderboards"
+                ],
+                "summary": "Get leaderboard by metric",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Metric name (quina_rate, quadra_rate, terno_rate, avg_hits, total_quinaz, total_quadras, total_ternos, hit_efficiency)",
+                        "name": "metric",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "simple",
+                            "advanced",
+                            "sweep",
+                            "all"
+                        ],
+                        "type": "string",
+                        "default": "all",
+                        "description": "Filter by simulation mode",
+                        "name": "mode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter simulations created after this date (RFC3339 format)",
+                        "name": "date_from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter simulations created before this date (RFC3339 format)",
+                        "name": "date_to",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 1000,
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum number of results",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of results to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Leaderboard results",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "leaderboard": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/models.LeaderboardEntryResponse"
+                                    }
+                                },
+                                "limit": {
+                                    "type": "integer"
+                                },
+                                "offset": {
+                                    "type": "integer"
+                                },
+                                "total": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/metrics": {
             "get": {
                 "description": "Returns comprehensive performance metrics including database stats, query performance, and HTTP statistics",
@@ -2002,6 +2103,462 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/sweeps": {
+            "post": {
+                "description": "Create a parameter sweep job that will generate and execute multiple simulations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sweeps"
+                ],
+                "summary": "Create a new sweep job",
+                "parameters": [
+                    {
+                        "description": "Sweep creation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.CreateSweepRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Sweep job created successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "base_contest_range": {
+                                    "type": "string"
+                                },
+                                "completed_simulations": {
+                                    "type": "integer"
+                                },
+                                "created_at": {
+                                    "type": "string"
+                                },
+                                "created_by": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "failed_simulations": {
+                                    "type": "integer"
+                                },
+                                "finished_at": {
+                                    "type": "string"
+                                },
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "run_duration_ms": {
+                                    "type": "integer"
+                                },
+                                "started_at": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                },
+                                "sweep_config_json": {
+                                    "type": "string"
+                                },
+                                "total_combinations": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sweeps/{id}": {
+            "get": {
+                "description": "Retrieve details of a specific sweep job",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sweeps"
+                ],
+                "summary": "Get sweep job by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Sweep job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sweep job details",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "base_contest_range": {
+                                    "type": "string"
+                                },
+                                "completed_simulations": {
+                                    "type": "integer"
+                                },
+                                "created_at": {
+                                    "type": "string"
+                                },
+                                "created_by": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "failed_simulations": {
+                                    "type": "integer"
+                                },
+                                "finished_at": {
+                                    "type": "string"
+                                },
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "run_duration_ms": {
+                                    "type": "integer"
+                                },
+                                "started_at": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                },
+                                "sweep_config_json": {
+                                    "type": "string"
+                                },
+                                "total_combinations": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Sweep job not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sweeps/{id}/best": {
+            "get": {
+                "description": "Find the best performing configuration from a completed sweep job based on a specified metric",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sweeps"
+                ],
+                "summary": "Get best configuration from sweep",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Sweep job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optimization metric (quina_rate, quadra_rate, terno_rate, avg_hits, total_quinaz, total_quadras, total_ternos, hit_efficiency)",
+                        "name": "metric",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Best configuration found",
+                        "schema": {
+                            "$ref": "#/definitions/models.BestConfigurationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID or metric",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Sweep job not found or not completed",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sweeps/{id}/cancel": {
+            "post": {
+                "description": "Cancel a running sweep job and stop all pending simulations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sweeps"
+                ],
+                "summary": "Cancel sweep job",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Sweep job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sweep job cancelled successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Sweep job not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sweeps/{id}/results": {
+            "get": {
+                "description": "Retrieve the results and simulation details of a completed sweep job",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sweeps"
+                ],
+                "summary": "Get sweep job results",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Sweep job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sweep job results",
+                        "schema": {
+                            "$ref": "#/definitions/models.SweepStatusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Sweep job not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sweeps/{id}/status": {
+            "get": {
+                "description": "Retrieve the current status and progress of a sweep job",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sweeps"
+                ],
+                "summary": "Get sweep job status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Sweep job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sweep job status",
+                        "schema": {
+                            "$ref": "#/definitions/models.SweepStatusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Sweep job not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sweeps/{id}/visualization": {
+            "get": {
+                "description": "Export sweep data formatted for heatmaps, scatter plots, and other visualizations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sweeps"
+                ],
+                "summary": "Get sweep visualization data",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Sweep job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Metrics to include (comma-separated). Defaults to quina_rate,avg_hits",
+                        "name": "metrics",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Visualization data",
+                        "schema": {
+                            "$ref": "#/definitions/models.VisualizationDataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID or metrics",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Sweep job not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2130,6 +2687,37 @@ const docTemplate = `{
                 }
             }
         },
+        "models.BestConfigurationResponse": {
+            "type": "object",
+            "properties": {
+                "metrics": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "percentile": {
+                    "type": "number"
+                },
+                "rank": {
+                    "type": "integer"
+                },
+                "recipe": {
+                    "$ref": "#/definitions/models.RecipeResponse"
+                },
+                "simulation_id": {
+                    "type": "integer"
+                },
+                "sweep_id": {
+                    "type": "integer"
+                },
+                "variation_params": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            }
+        },
         "models.Draw": {
             "type": "object",
             "properties": {
@@ -2165,6 +2753,143 @@ const docTemplate = `{
                 }
             }
         },
+        "models.LeaderboardEntryResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "metric_value": {
+                    "type": "number"
+                },
+                "rank": {
+                    "type": "integer"
+                },
+                "recipe_name": {
+                    "type": "string"
+                },
+                "simulation_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RecipeResponse": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "parameters": {},
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.SweepJobResponse": {
+            "type": "object",
+            "properties": {
+                "base_contest_range": {
+                    "type": "string"
+                },
+                "completed_simulations": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "failed_simulations": {
+                    "type": "integer"
+                },
+                "finished_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "run_duration_ms": {
+                    "type": "integer"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "sweep_config_json": {
+                    "type": "string"
+                },
+                "total_combinations": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.SweepSimulationDetailResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "run_duration_ms": {
+                    "type": "integer"
+                },
+                "simulation_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "summary_json": {
+                    "type": "string"
+                },
+                "sweep_job_id": {
+                    "type": "integer"
+                },
+                "variation_index": {
+                    "type": "integer"
+                },
+                "variation_params": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.SweepStatusResponse": {
+            "type": "object",
+            "properties": {
+                "completed": {
+                    "type": "integer"
+                },
+                "failed": {
+                    "type": "integer"
+                },
+                "pending": {
+                    "type": "integer"
+                },
+                "running": {
+                    "type": "integer"
+                },
+                "simulations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.SweepSimulationDetailResponse"
+                    }
+                },
+                "sweep": {
+                    "$ref": "#/definitions/models.SweepJobResponse"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.ValidationError": {
             "type": "object",
             "properties": {
@@ -2186,6 +2911,48 @@ const docTemplate = `{
                 },
                 "request_id": {
                     "type": "string"
+                }
+            }
+        },
+        "models.VisualizationDataPointResponse": {
+            "type": "object",
+            "properties": {
+                "metrics": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number",
+                        "format": "float64"
+                    }
+                },
+                "params": {
+                    "type": "object",
+                    "additionalProperties": true
+                }
+            }
+        },
+        "models.VisualizationDataResponse": {
+            "type": "object",
+            "properties": {
+                "data_points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.VisualizationDataPointResponse"
+                    }
+                },
+                "metrics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "parameters": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sweep_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -2265,6 +3032,29 @@ const docTemplate = `{
                         "type": "integer",
                         "format": "int64"
                     }
+                }
+            }
+        },
+        "services.CreateSweepRequest": {
+            "type": "object",
+            "properties": {
+                "createdBy": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "endContest": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "startContest": {
+                    "type": "integer"
+                },
+                "sweepConfig": {
+                    "$ref": "#/definitions/sweep.SweepConfig"
                 }
             }
         },

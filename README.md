@@ -304,6 +304,98 @@ Set as default configuration:
 curl -X POST http://localhost:8080/api/v1/configs/456/set-default
 ```
 
+## Phase 3 Features
+
+LuckyFive Phase 3 introduces advanced optimization and analysis capabilities including parameter sweeps, simulation comparisons, and performance leaderboards.
+
+### Parameter Sweeps
+
+Execute systematic parameter optimization across multiple simulation configurations to find optimal settings. See `docs/sweep_configurations.md` for detailed sweep configuration documentation.
+
+Start a parameter sweep:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sweeps \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sweep_config_id": 1,
+    "start_contest": 1000,
+    "end_contest": 1050,
+    "async": true
+  }'
+```
+
+Check sweep status:
+
+```bash
+curl http://localhost:8080/api/v1/sweeps/123/status
+```
+
+Get sweep results and best configuration:
+
+```bash
+curl http://localhost:8080/api/v1/sweeps/123/results
+```
+
+Get sweep visualization data:
+
+```bash
+curl http://localhost:8080/api/v1/sweeps/123/visualization
+```
+
+### Simulation Comparisons
+
+Compare multiple simulation configurations across various metrics to identify superior strategies. See `docs/comparison_guide.md` for comprehensive comparison documentation.
+
+Create a comparison:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/comparisons \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Strategy Comparison",
+    "description": "Comparing conservative vs aggressive strategies",
+    "simulation_ids": [123, 456, 789],
+    "metrics": ["total_profit", "win_rate", "max_drawdown"],
+    "start_contest": 1000,
+    "end_contest": 1050
+  }'
+```
+
+Get comparison results:
+
+```bash
+curl http://localhost:8080/api/v1/comparisons/1/results
+```
+
+List comparisons:
+
+```bash
+curl "http://localhost:8080/api/v1/comparisons?limit=10&offset=0"
+```
+
+### Leaderboards
+
+Rank simulation performances and filter results by various criteria to identify top-performing configurations.
+
+Get leaderboard rankings:
+
+```bash
+curl "http://localhost:8080/api/v1/leaderboards?metric=total_profit&limit=20&order=desc"
+```
+
+Filter leaderboard by date range:
+
+```bash
+curl "http://localhost:8080/api/v1/leaderboards?start_contest=1000&end_contest=1100&metric=win_rate&limit=10"
+```
+
+Get leaderboard statistics:
+
+```bash
+curl http://localhost:8080/api/v1/leaderboards/stats
+```
+
 Contributing
 ------------
 Follow project conventions:

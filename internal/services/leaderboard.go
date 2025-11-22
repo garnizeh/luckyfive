@@ -171,9 +171,14 @@ func (s *LeaderboardService) fetchSimulations(
 			if err != nil {
 				return nil, fmt.Errorf("invalid date_from format: %w", err)
 			}
-			simTime, err := time.Parse(time.RFC3339, sim.CreatedAt)
+			// Parse sim.CreatedAt - SQLite stores as ISO 8601 format like "2025-11-22 14:30:45"
+			simTime, err := time.Parse("2006-01-02 15:04:05", sim.CreatedAt)
 			if err != nil {
-				continue // Skip if can't parse
+				// Try RFC3339 format as fallback
+				simTime, err = time.Parse(time.RFC3339, sim.CreatedAt)
+				if err != nil {
+					continue // Skip if can't parse
+				}
 			}
 			if simTime.Before(fromTime) {
 				continue
@@ -185,9 +190,14 @@ func (s *LeaderboardService) fetchSimulations(
 			if err != nil {
 				return nil, fmt.Errorf("invalid date_to format: %w", err)
 			}
-			simTime, err := time.Parse(time.RFC3339, sim.CreatedAt)
+			// Parse sim.CreatedAt - SQLite stores as ISO 8601 format like "2025-11-22 14:30:45"
+			simTime, err := time.Parse("2006-01-02 15:04:05", sim.CreatedAt)
 			if err != nil {
-				continue // Skip if can't parse
+				// Try RFC3339 format as fallback
+				simTime, err = time.Parse(time.RFC3339, sim.CreatedAt)
+				if err != nil {
+					continue // Skip if can't parse
+				}
 			}
 			if simTime.After(toTime) {
 				continue

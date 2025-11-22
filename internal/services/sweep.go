@@ -105,7 +105,30 @@ func (s *SweepService) CreateSweep(
 
 	s.logger.Info("generated recipes", "count", len(recipes))
 
-	// Start transaction
+	// Create child simulations first (outside transaction to avoid deadlocks)
+	var simulationIDs []int64
+	for i, recipe := range recipes {
+		// Convert sweep recipe to service recipe
+		serviceRecipe := s.convertToServiceRecipe(recipe)
+
+		// Create simulation (async mode)
+		sim, err := s.simulationService.CreateSimulation(ctx, CreateSimulationRequest{
+			Mode:         "simple",
+			RecipeName:   fmt.Sprintf("%s_var_%d", req.Name, i),
+			Recipe:       serviceRecipe,
+			StartContest: req.StartContest,
+			EndContest:   req.EndContest,
+			Async:        true,
+			CreatedBy:    req.CreatedBy,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("create simulation %d: %w", i, err)
+		}
+
+		simulationIDs = append(simulationIDs, sim.ID)
+	}
+
+	// Start transaction for sweep job creation and linking
 	tx, err := s.simulationsDB.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
@@ -130,30 +153,13 @@ func (s *SweepService) CreateSweep(
 		return nil, fmt.Errorf("create sweep job: %w", err)
 	}
 
-	// Create child simulations
+	// Link simulations to sweep
 	for i, recipe := range recipes {
-		// Convert sweep recipe to service recipe
-		serviceRecipe := s.convertToServiceRecipe(recipe)
-
-		// Create simulation (async mode)
-		sim, err := s.simulationService.CreateSimulation(ctx, CreateSimulationRequest{
-			Mode:         "sweep",
-			RecipeName:   fmt.Sprintf("%s_var_%d", req.Name, i),
-			Recipe:       serviceRecipe,
-			StartContest: req.StartContest,
-			EndContest:   req.EndContest,
-			Async:        true,
-			CreatedBy:    req.CreatedBy,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("create simulation %d: %w", i, err)
-		}
-
 		// Link to sweep
 		paramsJSON, _ := json.Marshal(recipe.Parameters)
 		err = txQueries.CreateSweepSimulation(ctx, sweep_execution.CreateSweepSimulationParams{
 			SweepJobID:      sweepJob.ID,
-			SimulationID:    sim.ID,
+			SimulationID:    simulationIDs[i],
 			VariationIndex:  int64(i),
 			VariationParams: string(paramsJSON),
 		})
@@ -170,7 +176,11 @@ func (s *SweepService) CreateSweep(
 }
 
 func (s *SweepService) convertToServiceRecipe(recipe sweep.GeneratedRecipe) Recipe {
-	params := RecipeParameters{}
+	params := RecipeParameters{
+		// Set defaults
+		SimPrevMax: 10,
+		SimPreds:   5,
+	}
 
 	// Extract parameters from the map
 	if alpha, ok := recipe.Parameters["alpha"].(float64); ok {

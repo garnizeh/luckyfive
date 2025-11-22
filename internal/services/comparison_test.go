@@ -613,6 +613,24 @@ func TestComparisonService_GetComparison_NoResults(t *testing.T) {
 	}
 }
 
+func TestComparisonService_GetComparison_DatabaseError(t *testing.T) {
+	mockCompQueries := &mockComparisonQueries{
+		getComparisonError: errors.New("database connection failed"),
+	}
+
+	db := &sql.DB{}
+	logger := createTestLogger()
+	service := NewComparisonService(mockCompQueries, nil, db, logger)
+
+	_, err := service.GetComparison(context.Background(), 1)
+	if err == nil {
+		t.Error("expected error for database failure, got nil")
+	}
+	if !strings.Contains(err.Error(), "database connection failed") {
+		t.Errorf("expected database error, got %q", err.Error())
+	}
+}
+
 func TestComparisonService_ListComparisons_Success(t *testing.T) {
 	expectedComparisons := []comparisons.Comparison{
 		{ID: 1, Name: "Comp1"},
@@ -741,9 +759,10 @@ func TestComparisonService_calculateMetric_AllMetrics(t *testing.T) {
 			// Check values are correctly extracted
 			var sim1Value, sim2Value float64
 			for _, rank := range ranks {
-				if rank.SimulationID == 1 {
+				switch rank.SimulationID {
+				case 1:
 					sim1Value = rank.Value
-				} else if rank.SimulationID == 2 {
+				case 2:
 					sim2Value = rank.Value
 				}
 			}
@@ -984,6 +1003,51 @@ func TestComparisonService_validateCompareRequest_EdgeCases(t *testing.T) {
 				Metrics:       []string{"quina_rate", "quadra_rate", "terno_rate", "avg_hits", "total_quinaz", "total_quadras", "total_ternos", "hit_efficiency"},
 			},
 			wantErr: false,
+		},
+		{
+			name: "empty name",
+			req: CompareRequest{
+				Name:          "",
+				SimulationIDs: []int64{1, 2},
+				Metrics:       []string{"quina_rate"},
+			},
+			wantErr: false, // Name is not validated
+		},
+		{
+			name: "no simulations",
+			req: CompareRequest{
+				Name:          "Test",
+				SimulationIDs: []int64{},
+				Metrics:       []string{"quina_rate"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "one simulation",
+			req: CompareRequest{
+				Name:          "Test",
+				SimulationIDs: []int64{1},
+				Metrics:       []string{"quina_rate"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "no metrics",
+			req: CompareRequest{
+				Name:          "Test",
+				SimulationIDs: []int64{1, 2},
+				Metrics:       []string{},
+			},
+			wantErr: false, // Defaults are applied in Compare method
+		},
+		{
+			name: "invalid metric",
+			req: CompareRequest{
+				Name:          "Test",
+				SimulationIDs: []int64{1, 2},
+				Metrics:       []string{"invalid_metric"},
+			},
+			wantErr: true,
 		},
 	}
 

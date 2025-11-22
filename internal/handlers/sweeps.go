@@ -84,7 +84,7 @@ func GetSweep(sweepSvc services.SweepServicer) http.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param id path int true "Sweep job ID"
-// @Success 200 {object} services.SweepStatus "Sweep job status"
+// @Success 200 {object} models.SweepStatusResponse "Sweep job status"
 // @Failure 400 {object} models.APIError "Invalid ID"
 // @Failure 404 {object} models.APIError "Sweep job not found"
 // @Failure 500 {object} models.APIError "Internal server error"
@@ -109,7 +109,8 @@ func GetSweepStatus(sweepSvc services.SweepServicer) http.HandlerFunc {
 			return
 		}
 
-		WriteJSON(w, http.StatusOK, status)
+		response := convertSweepStatusToResponse(status)
+		WriteJSON(w, http.StatusOK, response)
 	}
 }
 
@@ -120,7 +121,7 @@ func GetSweepStatus(sweepSvc services.SweepServicer) http.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param id path int true "Sweep job ID"
-// @Success 200 {object} services.SweepStatus "Sweep job results"
+// @Success 200 {object} models.SweepStatusResponse "Sweep job results"
 // @Failure 400 {object} models.APIError "Invalid ID"
 // @Failure 404 {object} models.APIError "Sweep job not found"
 // @Failure 500 {object} models.APIError "Internal server error"
@@ -146,7 +147,8 @@ func GetSweepResults(sweepSvc services.SweepServicer) http.HandlerFunc {
 			return
 		}
 
-		WriteJSON(w, http.StatusOK, status)
+		response := convertSweepStatusToResponse(status)
+		WriteJSON(w, http.StatusOK, response)
 	}
 }
 
@@ -198,7 +200,7 @@ func CancelSweep(sweepSvc services.SweepServicer) http.HandlerFunc {
 // @Produce json
 // @Param id path int true "Sweep job ID"
 // @Param metric query string true "Optimization metric (quina_rate, quadra_rate, terno_rate, avg_hits, total_quinaz, total_quadras, total_ternos, hit_efficiency)"
-// @Success 200 {object} services.BestConfiguration "Best configuration found"
+// @Success 200 {object} models.BestConfigurationResponse "Best configuration found"
 // @Failure 400 {object} models.APIError "Invalid ID or metric"
 // @Failure 404 {object} models.APIError "Sweep job not found or not completed"
 // @Failure 500 {object} models.APIError "Internal server error"
@@ -229,7 +231,8 @@ func GetSweepBest(sweepSvc services.SweepServicer) http.HandlerFunc {
 			return
 		}
 
-		WriteJSON(w, http.StatusOK, best)
+		response := convertBestConfigurationToResponse(best)
+		WriteJSON(w, http.StatusOK, response)
 	}
 }
 
@@ -241,7 +244,7 @@ func GetSweepBest(sweepSvc services.SweepServicer) http.HandlerFunc {
 // @Produce json
 // @Param id path int true "Sweep job ID"
 // @Param metrics query []string false "Metrics to include (comma-separated). Defaults to quina_rate,avg_hits"
-// @Success 200 {object} services.VisualizationData "Visualization data"
+// @Success 200 {object} models.VisualizationDataResponse "Visualization data"
 // @Failure 400 {object} models.APIError "Invalid ID or metrics"
 // @Failure 404 {object} models.APIError "Sweep job not found"
 // @Failure 500 {object} models.APIError "Internal server error"
@@ -277,6 +280,111 @@ func GetSweepVisualization(sweepSvc services.SweepServicer) http.HandlerFunc {
 			return
 		}
 
-		WriteJSON(w, http.StatusOK, data)
+		response := convertVisualizationDataToResponse(data)
+		WriteJSON(w, http.StatusOK, response)
 	}
+}
+
+// convertSweepStatusToResponse converts internal SweepStatus to API response
+func convertSweepStatusToResponse(status *services.SweepStatus) *models.SweepStatusResponse {
+	response := &models.SweepStatusResponse{
+		Sweep: models.SweepJobResponse{
+			ID:                status.Sweep.ID,
+			Name:              status.Sweep.Name,
+			SweepConfigJson:   status.Sweep.SweepConfigJson,
+			BaseContestRange:  status.Sweep.BaseContestRange,
+			Status:            status.Sweep.Status,
+			TotalCombinations: status.Sweep.TotalCombinations,
+		},
+		Total:     status.Total,
+		Completed: status.Completed,
+		Running:   status.Running,
+		Failed:    status.Failed,
+		Pending:   status.Pending,
+	}
+
+	// Handle nullable fields
+	if status.Sweep.Description.Valid {
+		response.Sweep.Description = status.Sweep.Description.String
+	}
+	if status.Sweep.CompletedSimulations.Valid {
+		response.Sweep.CompletedSimulations = status.Sweep.CompletedSimulations.Int64
+	}
+	if status.Sweep.FailedSimulations.Valid {
+		response.Sweep.FailedSimulations = status.Sweep.FailedSimulations.Int64
+	}
+	if status.Sweep.CreatedAt.Valid {
+		response.Sweep.CreatedAt = status.Sweep.CreatedAt.String
+	}
+	if status.Sweep.StartedAt.Valid {
+		response.Sweep.StartedAt = status.Sweep.StartedAt.String
+	}
+	if status.Sweep.FinishedAt.Valid {
+		response.Sweep.FinishedAt = status.Sweep.FinishedAt.String
+	}
+	if status.Sweep.RunDurationMs.Valid {
+		response.Sweep.RunDurationMs = status.Sweep.RunDurationMs.Int64
+	}
+	if status.Sweep.CreatedBy.Valid {
+		response.Sweep.CreatedBy = status.Sweep.CreatedBy.String
+	}
+
+	// Convert simulations
+	response.Simulations = make([]models.SweepSimulationDetailResponse, len(status.Simulations))
+	for i, sim := range status.Simulations {
+		response.Simulations[i] = models.SweepSimulationDetailResponse{
+			ID:              sim.ID,
+			SweepJobID:      sim.SweepJobID,
+			SimulationID:    sim.SimulationID,
+			VariationIndex:  sim.VariationIndex,
+			VariationParams: sim.VariationParams,
+			Status:          sim.Status,
+		}
+
+		// Handle nullable fields
+		if sim.SummaryJson.Valid {
+			response.Simulations[i].SummaryJson = sim.SummaryJson.String
+		}
+		if sim.RunDurationMs.Valid {
+			response.Simulations[i].RunDurationMs = sim.RunDurationMs.Int64
+		}
+	}
+
+	return response
+}
+
+// convertBestConfigurationToResponse converts internal BestConfiguration to API response
+func convertBestConfigurationToResponse(best *services.BestConfiguration) *models.BestConfigurationResponse {
+	return &models.BestConfigurationResponse{
+		SweepID:      best.SweepID,
+		SimulationID: best.SimulationID,
+		Recipe: models.RecipeResponse{
+			Version:    best.Recipe.Version,
+			Name:       best.Recipe.Name,
+			Parameters: best.Recipe.Parameters,
+		},
+		Metrics:         best.Metrics,
+		Rank:            best.Rank,
+		Percentile:      best.Percentile,
+		VariationParams: best.VariationParams,
+	}
+}
+
+// convertVisualizationDataToResponse converts internal VisualizationData to API response
+func convertVisualizationDataToResponse(data *services.VisualizationData) *models.VisualizationDataResponse {
+	response := &models.VisualizationDataResponse{
+		SweepID:    data.SweepID,
+		Parameters: data.Parameters,
+		Metrics:    data.Metrics,
+		DataPoints: make([]models.VisualizationDataPointResponse, len(data.DataPoints)),
+	}
+
+	for i, point := range data.DataPoints {
+		response.DataPoints[i] = models.VisualizationDataPointResponse{
+			Params:  point.Params,
+			Metrics: point.Metrics,
+		}
+	}
+
+	return response
 }
