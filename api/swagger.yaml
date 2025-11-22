@@ -1,5 +1,29 @@
 basePath: /
 definitions:
+  handlers.CreateConfigRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      mode:
+        enum:
+        - simple
+        - advanced
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      recipe:
+        $ref: '#/definitions/services.Recipe'
+      tags:
+        maxLength: 200
+        type: string
+    required:
+    - mode
+    - name
+    - recipe
+    type: object
   handlers.ImportRequest:
     properties:
       artifact_id:
@@ -91,6 +115,36 @@ definitions:
       rows_skipped:
         type: integer
     type: object
+  services.Recipe:
+    properties:
+      name:
+        type: string
+      parameters:
+        $ref: '#/definitions/services.RecipeParameters'
+      version:
+        type: string
+    type: object
+  services.RecipeParameters:
+    properties:
+      alpha:
+        type: number
+      beta:
+        type: number
+      delta:
+        type: number
+      enableEvolutionary:
+        type: boolean
+      gamma:
+        type: number
+      generations:
+        type: integer
+      mutationRate:
+        type: number
+      sim_preds:
+        type: integer
+      sim_prev_max:
+        type: integer
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -106,6 +160,306 @@ info:
   title: LuckyFive API
   version: "1.0"
 paths:
+  /api/v1/configs:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of simulation configurations
+      parameters:
+      - default: 50
+        description: Maximum number of configs to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of configs to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of configurations
+          schema:
+            properties:
+              configs:
+                items:
+                  properties:
+                    created_at:
+                      type: string
+                    created_by:
+                      type: string
+                    description:
+                      type: string
+                    id:
+                      type: integer
+                    is_default:
+                      type: integer
+                    last_used_at:
+                      type: string
+                    mode:
+                      type: string
+                    name:
+                      type: string
+                    recipe_json:
+                      type: string
+                    tags:
+                      type: string
+                    times_used:
+                      type: integer
+                    updated_at:
+                      type: string
+                  type: object
+                type: array
+              pagination:
+                properties:
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                type: object
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: List configurations
+      tags:
+      - configs
+    post:
+      consumes:
+      - application/json
+      description: Create a new simulation configuration
+      parameters:
+      - description: Configuration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Configuration created
+          schema:
+            properties:
+              created_at:
+                type: string
+              created_by:
+                type: string
+              description:
+                type: string
+              id:
+                type: integer
+              is_default:
+                type: integer
+              last_used_at:
+                type: string
+              mode:
+                type: string
+              name:
+                type: string
+              recipe_json:
+                type: string
+              tags:
+                type: string
+              times_used:
+                type: integer
+              updated_at:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Create a configuration
+      tags:
+      - configs
+  /api/v1/configs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a simulation configuration
+      parameters:
+      - description: Configuration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Configuration deleted
+        "400":
+          description: Invalid configuration ID
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "404":
+          description: Configuration not found
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Delete a configuration
+      tags:
+      - configs
+    get:
+      consumes:
+      - application/json
+      description: Retrieve details of a specific configuration by ID
+      parameters:
+      - description: Configuration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Configuration details
+          schema:
+            properties:
+              created_at:
+                type: string
+              created_by:
+                type: string
+              description:
+                type: string
+              id:
+                type: integer
+              is_default:
+                type: integer
+              last_used_at:
+                type: string
+              mode:
+                type: string
+              name:
+                type: string
+              recipe_json:
+                type: string
+              tags:
+                type: string
+              times_used:
+                type: integer
+              updated_at:
+                type: string
+            type: object
+        "400":
+          description: Invalid configuration ID
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "404":
+          description: Configuration not found
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Get configuration details
+      tags:
+      - configs
+    put:
+      consumes:
+      - application/json
+      description: Update an existing simulation configuration
+      parameters:
+      - description: Configuration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated configuration data
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            description:
+              type: string
+            name:
+              type: string
+            recipe:
+              properties:
+                algorithm:
+                  type: string
+                parameters:
+                  type: object
+                version:
+                  type: string
+              type: object
+            tags:
+              items:
+                type: string
+              type: array
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Configuration updated
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "404":
+          description: Configuration not found
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Update a configuration
+      tags:
+      - configs
+  /api/v1/configs/{id}/set-default:
+    post:
+      consumes:
+      - application/json
+      description: Set a configuration as the default for its mode
+      parameters:
+      - description: Configuration ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Default configuration set
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid configuration ID
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Set default configuration
+      tags:
+      - configs
   /api/v1/health:
     get:
       consumes:
@@ -251,6 +605,499 @@ paths:
       summary: Upload XLSX results file
       tags:
       - results
+  /api/v1/simulations:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of simulations
+      parameters:
+      - default: 10
+        description: Maximum number of simulations to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of simulations to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of simulations
+          schema:
+            properties:
+              limit:
+                type: integer
+              offset:
+                type: integer
+              simulations:
+                items:
+                  properties:
+                    created_at:
+                      type: string
+                    created_by:
+                      type: string
+                    end_contest:
+                      type: integer
+                    error_message:
+                      type: string
+                    error_stack:
+                      type: string
+                    finished_at:
+                      type: string
+                    id:
+                      type: integer
+                    log_blob:
+                      items:
+                        format: int32
+                        type: integer
+                      type: array
+                    mode:
+                      type: string
+                    output_blob:
+                      items:
+                        format: int32
+                        type: integer
+                      type: array
+                    output_name:
+                      type: string
+                    recipe_json:
+                      type: string
+                    recipe_name:
+                      type: string
+                    run_duration_ms:
+                      type: integer
+                    start_contest:
+                      type: integer
+                    started_at:
+                      type: string
+                    status:
+                      type: string
+                    summary_json:
+                      type: string
+                    worker_id:
+                      type: string
+                  type: object
+                type: array
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: List simulations
+      tags:
+      - simulations
+  /api/v1/simulations/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve details of a specific simulation by ID
+      parameters:
+      - description: Simulation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Simulation details
+          schema:
+            properties:
+              created_at:
+                type: string
+              created_by:
+                type: string
+              end_contest:
+                type: integer
+              error_message:
+                type: string
+              error_stack:
+                type: string
+              finished_at:
+                type: string
+              id:
+                type: integer
+              log_blob:
+                items:
+                  format: int32
+                  type: integer
+                type: array
+              mode:
+                type: string
+              output_blob:
+                items:
+                  format: int32
+                  type: integer
+                type: array
+              output_name:
+                type: string
+              recipe_json:
+                type: string
+              recipe_name:
+                type: string
+              run_duration_ms:
+                type: integer
+              start_contest:
+                type: integer
+              started_at:
+                type: string
+              status:
+                type: string
+              summary_json:
+                type: string
+              worker_id:
+                type: string
+            type: object
+        "400":
+          description: Invalid simulation ID
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "404":
+          description: Simulation not found
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Get simulation details
+      tags:
+      - simulations
+  /api/v1/simulations/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Cancel a pending or running simulation
+      parameters:
+      - description: Simulation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cancellation successful
+          schema:
+            properties:
+              message:
+                type: string
+            type: object
+        "400":
+          description: Invalid simulation ID
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Cancel a simulation
+      tags:
+      - simulations
+  /api/v1/simulations/{id}/results:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve paginated contest results for a specific simulation
+      parameters:
+      - description: Simulation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 50
+        description: Maximum number of results to return
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of results to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Contest results
+          schema:
+            properties:
+              limit:
+                type: integer
+              offset:
+                type: integer
+              results:
+                items:
+                  properties:
+                    actual_numbers:
+                      type: string
+                    best_hits:
+                      type: integer
+                    best_prediction_index:
+                      type: integer
+                    best_prediction_numbers:
+                      type: string
+                    contest:
+                      type: integer
+                    id:
+                      type: integer
+                    predictions_json:
+                      type: string
+                    processed_at:
+                      type: string
+                    simulation_id:
+                      type: integer
+                  type: object
+                type: array
+              simulation_id:
+                type: integer
+            type: object
+        "400":
+          description: Invalid simulation ID
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Get simulation contest results
+      tags:
+      - simulations
+  /api/v1/simulations/advanced:
+    post:
+      consumes:
+      - application/json
+      description: Create and optionally execute a simulation with custom configuration
+      parameters:
+      - description: Advanced simulation request
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            async:
+              type: boolean
+            config_description:
+              type: string
+            config_name:
+              type: string
+            end_contest:
+              type: integer
+            recipe:
+              properties:
+                algorithm:
+                  type: string
+                name:
+                  type: string
+                parameters:
+                  properties:
+                    alpha:
+                      type: number
+                    beta:
+                      type: number
+                    delta:
+                      type: number
+                    gamma:
+                      type: number
+                    sim_preds:
+                      type: integer
+                    sim_prev_max:
+                      type: integer
+                  type: object
+                version:
+                  type: string
+              type: object
+            save_as_config:
+              type: boolean
+            start_contest:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Synchronous simulation completed
+          schema:
+            properties:
+              simulation:
+                properties:
+                  created_at:
+                    type: string
+                  created_by:
+                    type: string
+                  end_contest:
+                    type: integer
+                  error_message:
+                    type: string
+                  error_stack:
+                    type: string
+                  finished_at:
+                    type: string
+                  id:
+                    type: integer
+                  log_blob:
+                    items:
+                      format: int32
+                      type: integer
+                    type: array
+                  mode:
+                    type: string
+                  output_blob:
+                    items:
+                      format: int32
+                      type: integer
+                    type: array
+                  output_name:
+                    type: string
+                  recipe_json:
+                    type: string
+                  recipe_name:
+                    type: string
+                  run_duration_ms:
+                    type: integer
+                  start_contest:
+                    type: integer
+                  started_at:
+                    type: string
+                  status:
+                    type: string
+                  summary_json:
+                    type: string
+                  worker_id:
+                    type: string
+                type: object
+              simulation_id:
+                type: integer
+              status:
+                type: string
+            type: object
+        "202":
+          description: Asynchronous simulation queued
+          schema:
+            properties:
+              message:
+                type: string
+              simulation_id:
+                type: integer
+              status:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Create an advanced simulation
+      tags:
+      - simulations
+  /api/v1/simulations/simple:
+    post:
+      consumes:
+      - application/json
+      description: Create and optionally execute a simulation using a predefined configuration
+        preset
+      parameters:
+      - description: Simulation request
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            async:
+              type: boolean
+            end_contest:
+              type: integer
+            preset:
+              type: string
+            start_contest:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Synchronous simulation completed
+          schema:
+            properties:
+              created_at:
+                type: string
+              created_by:
+                type: string
+              end_contest:
+                type: integer
+              error_message:
+                type: string
+              error_stack:
+                type: string
+              finished_at:
+                type: string
+              id:
+                type: integer
+              log_blob:
+                items:
+                  format: int32
+                  type: integer
+                type: array
+              mode:
+                type: string
+              output_blob:
+                items:
+                  format: int32
+                  type: integer
+                type: array
+              output_name:
+                type: string
+              recipe_json:
+                type: string
+              recipe_name:
+                type: string
+              run_duration_ms:
+                type: integer
+              start_contest:
+                type: integer
+              started_at:
+                type: string
+              status:
+                type: string
+              summary_json:
+                type: string
+              worker_id:
+                type: string
+            type: object
+        "202":
+          description: Asynchronous simulation queued
+          schema:
+            properties:
+              message:
+                type: string
+              simulation_id:
+                type: integer
+              status:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "404":
+          description: Preset not found
+          schema:
+            $ref: '#/definitions/models.APIError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.APIError'
+      summary: Create a simple simulation using a preset
+      tags:
+      - simulations
 schemes:
 - http
 swagger: "2.0"

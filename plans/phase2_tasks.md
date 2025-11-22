@@ -1476,9 +1476,9 @@ Evidence:
 Document new API endpoints.
 
 **Acceptance Criteria:**
-- [ ] OpenAPI spec updated
-- [ ] Examples provided
-- [ ] README updated
+- [x] OpenAPI spec updated
+- [x] Examples provided
+- [x] README updated
 
 **Subtasks:**
 1. Add simulation endpoints to OpenAPI spec
@@ -1520,7 +1520,7 @@ Document new API endpoints.
 - [x] Task 2.5.1: Predictor tests
 - [x] Task 2.5.2: Service tests with mocks
 - [x] Task 2.5.3: Integration tests
-- [ ] Task 2.5.4: API documentation
+- [x] Task 2.5.4: API documentation
 
 ### Phase Gate
 - [x] All tasks completed

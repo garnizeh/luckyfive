@@ -91,6 +91,173 @@ Notes & Troubleshooting
 - If `swag init` emits a warning like "no Go files in /path" it usually means the CLI tried to inspect a directory without Go files (for example the repo root). This is harmless when you point `-g` to `cmd/api/main.go` — the generator will still scan subpackages and produce operations. See `Makefile` target `swagger-generate` which wraps a recommended invocation.
 - If code generation (`make generate`) fails, ensure `sqlc`, `mockgen` and `swag` are installed and on your PATH.
 
+API Usage Examples
+------------------
+
+### Upload Lottery Results
+
+First, upload an XLSX file with lottery results:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/results/upload \
+  -F "file=@results.xlsx" \
+  -H "Content-Type: multipart/form-data"
+```
+
+Response:
+```json
+{
+  "artifact_id": "abc123",
+  "filename": "results.xlsx",
+  "size": 12345,
+  "message": "File uploaded successfully"
+}
+```
+
+Then import the data:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/results/import \
+  -H "Content-Type: application/json" \
+  -d '{
+    "artifact_id": "abc123",
+    "sheet": "Sheet1"
+  }'
+```
+
+### Run Simple Simulation
+
+Use a preset configuration for a quick simulation:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/simulations/simple \
+  -H "Content-Type: application/json" \
+  -d '{
+    "preset": "balanced",
+    "start_contest": 1000,
+    "end_contest": 1050,
+    "async": false
+  }'
+```
+
+### Run Advanced Simulation
+
+Create a custom simulation with full parameter control:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/simulations/advanced \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recipe": {
+      "version": "1.0",
+      "name": "Custom Simulation",
+      "parameters": {
+        "alpha": 0.3,
+        "beta": 0.4,
+        "gamma": 0.2,
+        "delta": 0.1,
+        "sim_prev_max": 20,
+        "sim_preds": 10,
+        "enableEvolutionary": false,
+        "generations": 0,
+        "mutationRate": 0.0
+      }
+    },
+    "start_contest": 1000,
+    "end_contest": 1050,
+    "async": true,
+    "save_as_config": true,
+    "config_name": "my_custom_config",
+    "config_description": "My custom simulation parameters"
+  }'
+```
+
+### Check Simulation Status
+
+Get simulation details:
+
+```bash
+curl http://localhost:8080/api/v1/simulations/123
+```
+
+List simulations:
+
+```bash
+curl "http://localhost:8080/api/v1/simulations?limit=10&offset=0"
+```
+
+Get simulation results:
+
+```bash
+curl "http://localhost:8080/api/v1/simulations/123/results?limit=50&offset=0"
+```
+
+### Manage Configurations
+
+List configurations:
+
+```bash
+curl "http://localhost:8080/api/v1/configs?limit=20&offset=0"
+```
+
+Create a new configuration:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/configs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "conservative",
+    "description": "Conservative betting strategy",
+    "mode": "advanced",
+    "recipe": {
+      "version": "1.0",
+      "name": "Conservative",
+      "parameters": {
+        "alpha": 0.2,
+        "beta": 0.3,
+        "gamma": 0.3,
+        "delta": 0.2,
+        "sim_prev_max": 15,
+        "sim_preds": 5,
+        "enableEvolutionary": false,
+        "generations": 0,
+        "mutationRate": 0.0
+      }
+    }
+  }'
+```
+
+Update a configuration:
+
+```bash
+curl -X PUT http://localhost:8080/api/v1/configs/456 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Updated conservative strategy",
+    "recipe": {
+      "version": "1.0",
+      "name": "Conservative Updated",
+      "parameters": {
+        "alpha": 0.25,
+        "beta": 0.35,
+        "gamma": 0.25,
+        "delta": 0.15,
+        "sim_prev_max": 18,
+        "sim_preds": 6,
+        "enableEvolutionary": false,
+        "generations": 0,
+        "mutationRate": 0.0
+      }
+    }
+  }'
+```
+
+Set as default configuration:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/configs/456/set-default
+```
+
 Contributing
 ------------
 Follow project conventions:

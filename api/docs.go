@@ -24,6 +24,462 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/configs": {
+            "get": {
+                "description": "Retrieve a paginated list of simulation configurations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "List configurations",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum number of configs to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of configs to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of configurations",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "configs": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "created_at": {
+                                                "type": "string"
+                                            },
+                                            "created_by": {
+                                                "type": "string"
+                                            },
+                                            "description": {
+                                                "type": "string"
+                                            },
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "is_default": {
+                                                "type": "integer"
+                                            },
+                                            "last_used_at": {
+                                                "type": "string"
+                                            },
+                                            "mode": {
+                                                "type": "string"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "recipe_json": {
+                                                "type": "string"
+                                            },
+                                            "tags": {
+                                                "type": "string"
+                                            },
+                                            "times_used": {
+                                                "type": "integer"
+                                            },
+                                            "updated_at": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "pagination": {
+                                    "type": "object",
+                                    "properties": {
+                                        "limit": {
+                                            "type": "integer"
+                                        },
+                                        "offset": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new simulation configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "Create a configuration",
+                "parameters": [
+                    {
+                        "description": "Configuration data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.CreateConfigRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Configuration created",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "created_at": {
+                                    "type": "string"
+                                },
+                                "created_by": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "is_default": {
+                                    "type": "integer"
+                                },
+                                "last_used_at": {
+                                    "type": "string"
+                                },
+                                "mode": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "recipe_json": {
+                                    "type": "string"
+                                },
+                                "tags": {
+                                    "type": "string"
+                                },
+                                "times_used": {
+                                    "type": "integer"
+                                },
+                                "updated_at": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/configs/{id}": {
+            "get": {
+                "description": "Retrieve details of a specific configuration by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "Get configuration details",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Configuration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Configuration details",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "created_at": {
+                                    "type": "string"
+                                },
+                                "created_by": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "is_default": {
+                                    "type": "integer"
+                                },
+                                "last_used_at": {
+                                    "type": "string"
+                                },
+                                "mode": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "recipe_json": {
+                                    "type": "string"
+                                },
+                                "tags": {
+                                    "type": "string"
+                                },
+                                "times_used": {
+                                    "type": "integer"
+                                },
+                                "updated_at": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid configuration ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Configuration not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update an existing simulation configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "Update a configuration",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Configuration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated configuration data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "description": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "recipe": {
+                                    "type": "object",
+                                    "properties": {
+                                        "algorithm": {
+                                            "type": "string"
+                                        },
+                                        "parameters": {
+                                            "type": "object"
+                                        },
+                                        "version": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "tags": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Configuration updated",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Configuration not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a simulation configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "Delete a configuration",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Configuration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Configuration deleted"
+                    },
+                    "400": {
+                        "description": "Invalid configuration ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Configuration not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/configs/{id}/set-default": {
+            "post": {
+                "description": "Set a configuration as the default for its mode",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "configs"
+                ],
+                "summary": "Set default configuration",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Configuration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default configuration set",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid configuration ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/health": {
             "get": {
                 "description": "Returns 200 when the service is healthy",
@@ -239,9 +695,786 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/simulations": {
+            "get": {
+                "description": "Retrieve a paginated list of simulations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "simulations"
+                ],
+                "summary": "List simulations",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Maximum number of simulations to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of simulations to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of simulations",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "limit": {
+                                    "type": "integer"
+                                },
+                                "offset": {
+                                    "type": "integer"
+                                },
+                                "simulations": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "created_at": {
+                                                "type": "string"
+                                            },
+                                            "created_by": {
+                                                "type": "string"
+                                            },
+                                            "end_contest": {
+                                                "type": "integer"
+                                            },
+                                            "error_message": {
+                                                "type": "string"
+                                            },
+                                            "error_stack": {
+                                                "type": "string"
+                                            },
+                                            "finished_at": {
+                                                "type": "string"
+                                            },
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "log_blob": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "integer",
+                                                    "format": "int32"
+                                                }
+                                            },
+                                            "mode": {
+                                                "type": "string"
+                                            },
+                                            "output_blob": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "integer",
+                                                    "format": "int32"
+                                                }
+                                            },
+                                            "output_name": {
+                                                "type": "string"
+                                            },
+                                            "recipe_json": {
+                                                "type": "string"
+                                            },
+                                            "recipe_name": {
+                                                "type": "string"
+                                            },
+                                            "run_duration_ms": {
+                                                "type": "integer"
+                                            },
+                                            "start_contest": {
+                                                "type": "integer"
+                                            },
+                                            "started_at": {
+                                                "type": "string"
+                                            },
+                                            "status": {
+                                                "type": "string"
+                                            },
+                                            "summary_json": {
+                                                "type": "string"
+                                            },
+                                            "worker_id": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/simulations/advanced": {
+            "post": {
+                "description": "Create and optionally execute a simulation with custom configuration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "simulations"
+                ],
+                "summary": "Create an advanced simulation",
+                "parameters": [
+                    {
+                        "description": "Advanced simulation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "async": {
+                                    "type": "boolean"
+                                },
+                                "config_description": {
+                                    "type": "string"
+                                },
+                                "config_name": {
+                                    "type": "string"
+                                },
+                                "end_contest": {
+                                    "type": "integer"
+                                },
+                                "recipe": {
+                                    "type": "object",
+                                    "properties": {
+                                        "algorithm": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "parameters": {
+                                            "type": "object",
+                                            "properties": {
+                                                "alpha": {
+                                                    "type": "number"
+                                                },
+                                                "beta": {
+                                                    "type": "number"
+                                                },
+                                                "delta": {
+                                                    "type": "number"
+                                                },
+                                                "gamma": {
+                                                    "type": "number"
+                                                },
+                                                "sim_preds": {
+                                                    "type": "integer"
+                                                },
+                                                "sim_prev_max": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        },
+                                        "version": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "save_as_config": {
+                                    "type": "boolean"
+                                },
+                                "start_contest": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Synchronous simulation completed",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "simulation": {
+                                    "type": "object",
+                                    "properties": {
+                                        "created_at": {
+                                            "type": "string"
+                                        },
+                                        "created_by": {
+                                            "type": "string"
+                                        },
+                                        "end_contest": {
+                                            "type": "integer"
+                                        },
+                                        "error_message": {
+                                            "type": "string"
+                                        },
+                                        "error_stack": {
+                                            "type": "string"
+                                        },
+                                        "finished_at": {
+                                            "type": "string"
+                                        },
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "log_blob": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer",
+                                                "format": "int32"
+                                            }
+                                        },
+                                        "mode": {
+                                            "type": "string"
+                                        },
+                                        "output_blob": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "integer",
+                                                "format": "int32"
+                                            }
+                                        },
+                                        "output_name": {
+                                            "type": "string"
+                                        },
+                                        "recipe_json": {
+                                            "type": "string"
+                                        },
+                                        "recipe_name": {
+                                            "type": "string"
+                                        },
+                                        "run_duration_ms": {
+                                            "type": "integer"
+                                        },
+                                        "start_contest": {
+                                            "type": "integer"
+                                        },
+                                        "started_at": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "type": "string"
+                                        },
+                                        "summary_json": {
+                                            "type": "string"
+                                        },
+                                        "worker_id": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "simulation_id": {
+                                    "type": "integer"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "202": {
+                        "description": "Asynchronous simulation queued",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                },
+                                "simulation_id": {
+                                    "type": "integer"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/simulations/simple": {
+            "post": {
+                "description": "Create and optionally execute a simulation using a predefined configuration preset",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "simulations"
+                ],
+                "summary": "Create a simple simulation using a preset",
+                "parameters": [
+                    {
+                        "description": "Simulation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "async": {
+                                    "type": "boolean"
+                                },
+                                "end_contest": {
+                                    "type": "integer"
+                                },
+                                "preset": {
+                                    "type": "string"
+                                },
+                                "start_contest": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Synchronous simulation completed",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "created_at": {
+                                    "type": "string"
+                                },
+                                "created_by": {
+                                    "type": "string"
+                                },
+                                "end_contest": {
+                                    "type": "integer"
+                                },
+                                "error_message": {
+                                    "type": "string"
+                                },
+                                "error_stack": {
+                                    "type": "string"
+                                },
+                                "finished_at": {
+                                    "type": "string"
+                                },
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "log_blob": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "integer",
+                                        "format": "int32"
+                                    }
+                                },
+                                "mode": {
+                                    "type": "string"
+                                },
+                                "output_blob": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "integer",
+                                        "format": "int32"
+                                    }
+                                },
+                                "output_name": {
+                                    "type": "string"
+                                },
+                                "recipe_json": {
+                                    "type": "string"
+                                },
+                                "recipe_name": {
+                                    "type": "string"
+                                },
+                                "run_duration_ms": {
+                                    "type": "integer"
+                                },
+                                "start_contest": {
+                                    "type": "integer"
+                                },
+                                "started_at": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                },
+                                "summary_json": {
+                                    "type": "string"
+                                },
+                                "worker_id": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "202": {
+                        "description": "Asynchronous simulation queued",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                },
+                                "simulation_id": {
+                                    "type": "integer"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Preset not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/simulations/{id}": {
+            "get": {
+                "description": "Retrieve details of a specific simulation by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "simulations"
+                ],
+                "summary": "Get simulation details",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Simulation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Simulation details",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "created_at": {
+                                    "type": "string"
+                                },
+                                "created_by": {
+                                    "type": "string"
+                                },
+                                "end_contest": {
+                                    "type": "integer"
+                                },
+                                "error_message": {
+                                    "type": "string"
+                                },
+                                "error_stack": {
+                                    "type": "string"
+                                },
+                                "finished_at": {
+                                    "type": "string"
+                                },
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "log_blob": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "integer",
+                                        "format": "int32"
+                                    }
+                                },
+                                "mode": {
+                                    "type": "string"
+                                },
+                                "output_blob": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "integer",
+                                        "format": "int32"
+                                    }
+                                },
+                                "output_name": {
+                                    "type": "string"
+                                },
+                                "recipe_json": {
+                                    "type": "string"
+                                },
+                                "recipe_name": {
+                                    "type": "string"
+                                },
+                                "run_duration_ms": {
+                                    "type": "integer"
+                                },
+                                "start_contest": {
+                                    "type": "integer"
+                                },
+                                "started_at": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                },
+                                "summary_json": {
+                                    "type": "string"
+                                },
+                                "worker_id": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid simulation ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Simulation not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/simulations/{id}/cancel": {
+            "post": {
+                "description": "Cancel a pending or running simulation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "simulations"
+                ],
+                "summary": "Cancel a simulation",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Simulation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cancellation successful",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid simulation ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/simulations/{id}/results": {
+            "get": {
+                "description": "Retrieve paginated contest results for a specific simulation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "simulations"
+                ],
+                "summary": "Get simulation contest results",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Simulation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum number of results to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of results to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Contest results",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "limit": {
+                                    "type": "integer"
+                                },
+                                "offset": {
+                                    "type": "integer"
+                                },
+                                "results": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "actual_numbers": {
+                                                "type": "string"
+                                            },
+                                            "best_hits": {
+                                                "type": "integer"
+                                            },
+                                            "best_prediction_index": {
+                                                "type": "integer"
+                                            },
+                                            "best_prediction_numbers": {
+                                                "type": "string"
+                                            },
+                                            "contest": {
+                                                "type": "integer"
+                                            },
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "predictions_json": {
+                                                "type": "string"
+                                            },
+                                            "processed_at": {
+                                                "type": "string"
+                                            },
+                                            "simulation_id": {
+                                                "type": "integer"
+                                            }
+                                        }
+                                    }
+                                },
+                                "simulation_id": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid simulation ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "handlers.CreateConfigRequest": {
+            "type": "object",
+            "required": [
+                "mode",
+                "name",
+                "recipe"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "simple",
+                        "advanced"
+                    ]
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "recipe": {
+                    "$ref": "#/definitions/services.Recipe"
+                },
+                "tags": {
+                    "type": "string",
+                    "maxLength": 200
+                }
+            }
+        },
         "handlers.ImportRequest": {
             "type": "object",
             "required": [
@@ -376,6 +1609,52 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "rows_skipped": {
+                    "type": "integer"
+                }
+            }
+        },
+        "services.Recipe": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "parameters": {
+                    "$ref": "#/definitions/services.RecipeParameters"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.RecipeParameters": {
+            "type": "object",
+            "properties": {
+                "alpha": {
+                    "type": "number"
+                },
+                "beta": {
+                    "type": "number"
+                },
+                "delta": {
+                    "type": "number"
+                },
+                "enableEvolutionary": {
+                    "type": "boolean"
+                },
+                "gamma": {
+                    "type": "number"
+                },
+                "generations": {
+                    "type": "integer"
+                },
+                "mutationRate": {
+                    "type": "number"
+                },
+                "sim_preds": {
+                    "type": "integer"
+                },
+                "sim_prev_max": {
                     "type": "integer"
                 }
             }

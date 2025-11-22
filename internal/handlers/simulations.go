@@ -11,6 +11,19 @@ import (
 	"github.com/garnizeh/luckyfive/internal/services"
 )
 
+// SimpleSimulation godoc
+// @Summary Create a simple simulation using a preset
+// @Description Create and optionally execute a simulation using a predefined configuration preset
+// @Tags simulations
+// @Accept json
+// @Produce json
+// @Param request body object{preset=string,start_contest=integer,end_contest=integer,async=boolean} true "Simulation request"
+// @Success 200 {object} object{id=integer,created_at=string,started_at=string,finished_at=string,status=string,recipe_name=string,recipe_json=string,mode=string,start_contest=integer,end_contest=integer,worker_id=string,run_duration_ms=integer,summary_json=string,output_blob=[]byte,output_name=string,log_blob=[]byte,error_message=string,error_stack=string,created_by=string} "Synchronous simulation completed"
+// @Success 202 {object} object{simulation_id=integer,status=string,message=string} "Asynchronous simulation queued"
+// @Failure 400 {object} models.APIError "Invalid request"
+// @Failure 404 {object} models.APIError "Preset not found"
+// @Failure 500 {object} models.APIError "Internal server error"
+// @Router /api/v1/simulations/simple [post]
 func SimpleSimulation(
 	configSvc services.ConfigServicer,
 	simSvc services.SimulationServicer,
@@ -79,6 +92,18 @@ func SimpleSimulation(
 	}
 }
 
+// GetSimulation godoc
+// @Summary Get simulation details
+// @Description Retrieve details of a specific simulation by ID
+// @Tags simulations
+// @Accept json
+// @Produce json
+// @Param id path integer true "Simulation ID"
+// @Success 200 {object} object{id=integer,created_at=string,started_at=string,finished_at=string,status=string,recipe_name=string,recipe_json=string,mode=string,start_contest=integer,end_contest=integer,worker_id=string,run_duration_ms=integer,summary_json=string,output_blob=[]byte,output_name=string,log_blob=[]byte,error_message=string,error_stack=string,created_by=string} "Simulation details"
+// @Failure 400 {object} models.APIError "Invalid simulation ID"
+// @Failure 404 {object} models.APIError "Simulation not found"
+// @Failure 500 {object} models.APIError "Internal server error"
+// @Router /api/v1/simulations/{id} [get]
 func GetSimulation(simSvc services.SimulationServicer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
@@ -104,6 +129,17 @@ func GetSimulation(simSvc services.SimulationServicer) http.HandlerFunc {
 	}
 }
 
+// ListSimulations godoc
+// @Summary List simulations
+// @Description Retrieve a paginated list of simulations
+// @Tags simulations
+// @Accept json
+// @Produce json
+// @Param limit query integer false "Maximum number of simulations to return" default(10)
+// @Param offset query integer false "Number of simulations to skip" default(0)
+// @Success 200 {object} object{simulations=[]object{id=integer,created_at=string,started_at=string,finished_at=string,status=string,recipe_name=string,recipe_json=string,mode=string,start_contest=integer,end_contest=integer,worker_id=string,run_duration_ms=integer,summary_json=string,output_blob=[]byte,output_name=string,log_blob=[]byte,error_message=string,error_stack=string,created_by=string},limit=integer,offset=integer} "List of simulations"
+// @Failure 500 {object} models.APIError "Internal server error"
+// @Router /api/v1/simulations [get]
 func ListSimulations(simSvc services.SimulationServicer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse query parameters for pagination
@@ -135,6 +171,17 @@ func ListSimulations(simSvc services.SimulationServicer) http.HandlerFunc {
 	}
 }
 
+// CancelSimulation godoc
+// @Summary Cancel a simulation
+// @Description Cancel a pending or running simulation
+// @Tags simulations
+// @Accept json
+// @Produce json
+// @Param id path integer true "Simulation ID"
+// @Success 200 {object} object{message=string} "Cancellation successful"
+// @Failure 400 {object} models.APIError "Invalid simulation ID"
+// @Failure 500 {object} models.APIError "Internal server error"
+// @Router /api/v1/simulations/{id}/cancel [post]
 func CancelSimulation(simSvc services.SimulationServicer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
@@ -158,6 +205,19 @@ func CancelSimulation(simSvc services.SimulationServicer) http.HandlerFunc {
 	}
 }
 
+// GetContestResults godoc
+// @Summary Get simulation contest results
+// @Description Retrieve paginated contest results for a specific simulation
+// @Tags simulations
+// @Accept json
+// @Produce json
+// @Param id path integer true "Simulation ID"
+// @Param limit query integer false "Maximum number of results to return" default(50)
+// @Param offset query integer false "Number of results to skip" default(0)
+// @Success 200 {object} object{simulation_id=integer,results=[]object{id=integer,simulation_id=integer,contest=integer,actual_numbers=string,best_hits=integer,best_prediction_index=integer,best_prediction_numbers=string,predictions_json=string,processed_at=string},limit=integer,offset=integer} "Contest results"
+// @Failure 400 {object} models.APIError "Invalid simulation ID"
+// @Failure 500 {object} models.APIError "Internal server error"
+// @Router /api/v1/simulations/{id}/results [get]
 func GetContestResults(simSvc services.SimulationServicer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
@@ -221,6 +281,18 @@ func validateRecipe(recipe services.Recipe) error {
 	return nil
 }
 
+// AdvancedSimulation godoc
+// @Summary Create an advanced simulation
+// @Description Create and optionally execute a simulation with custom configuration
+// @Tags simulations
+// @Accept json
+// @Produce json
+// @Param request body object{recipe=object{version=string,name=string,algorithm=string,parameters=object{sim_prev_max=integer,sim_preds=integer,alpha=number,beta=number,gamma=number,delta=number}},start_contest=integer,end_contest=integer,async=boolean,save_as_config=boolean,config_name=string,config_description=string} true "Advanced simulation request"
+// @Success 200 {object} object{simulation_id=integer,status=string,simulation=object{id=integer,created_at=string,started_at=string,finished_at=string,status=string,recipe_name=string,recipe_json=string,mode=string,start_contest=integer,end_contest=integer,worker_id=string,run_duration_ms=integer,summary_json=string,output_blob=[]byte,output_name=string,log_blob=[]byte,error_message=string,error_stack=string,created_by=string}} "Synchronous simulation completed"
+// @Success 202 {object} object{simulation_id=integer,status=string,message=string} "Asynchronous simulation queued"
+// @Failure 400 {object} models.APIError "Invalid request"
+// @Failure 500 {object} models.APIError "Internal server error"
+// @Router /api/v1/simulations/advanced [post]
 func AdvancedSimulation(
 	configSvc services.ConfigServicer,
 	simSvc services.SimulationServicer,
