@@ -72,9 +72,12 @@ func main() {
 	systemSvc := services.NewSystemService(db, startTime)
 	uploadSvc := services.NewUploadService(logger)
 	resultsSvc := services.NewResultsService(db, logger)
+	engineSvc := services.NewEngineService(db.Results, logger)
+	configSvc := services.NewConfigService(db.Configs, db.ConfigsDB, logger)
+	simSvc := services.NewSimulationService(db.Simulations, db.SimulationsDB, engineSvc, logger)
 
 	// Setup router
-	router := setupRouter(logger, systemSvc, uploadSvc, resultsSvc)
+	router := setupRouter(logger, systemSvc, uploadSvc, resultsSvc, configSvc, simSvc)
 
 	// Create HTTP server
 	server := &http.Server{
@@ -109,7 +112,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService, resultsSvc *services.ResultsService) *chi.Mux {
+func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService, resultsSvc *services.ResultsService, configSvc *services.ConfigService, simSvc *services.SimulationService) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack
@@ -131,6 +134,12 @@ func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadS
 	// Results query endpoints
 	r.Get("/api/v1/results/{contest}", handlers.GetDraw(resultsSvc, logger))
 	r.Get("/api/v1/results", handlers.ListDraws(resultsSvc, logger))
+
+	// Simulation endpoints
+	r.Post("/api/v1/simulations/simple", handlers.SimpleSimulation(configSvc, simSvc))
+	r.Get("/api/v1/simulations/{id}", handlers.GetSimulation(simSvc))
+	r.Get("/api/v1/simulations", handlers.ListSimulations(simSvc))
+	r.Post("/api/v1/simulations/{id}/cancel", handlers.CancelSimulation(simSvc))
 
 	// Swagger UI — serves UI and expects swagger JSON at /swagger/doc.json
 	// If you generate docs with `swag init -g cmd/api/main.go -o api`,

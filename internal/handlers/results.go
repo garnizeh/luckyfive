@@ -211,7 +211,7 @@ func GetDraw(resultsSvc *services.ResultsService, logger *slog.Logger) http.Hand
 // @Produce json
 // @Param limit query int false "Limit"
 // @Param offset query int false "Offset"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} map[string]any
 // @Failure 400 {object} models.APIError
 // @Failure 500 {object} models.APIError
 // @Router /api/v1/results [get]
@@ -250,7 +250,7 @@ func ListDraws(resultsSvc *services.ResultsService, logger *slog.Logger) http.Ha
 			return
 		}
 
-		response := map[string]interface{}{
+		response := map[string]any{
 			"draws":  draws,
 			"limit":  limit,
 			"offset": offset,

@@ -6,10 +6,10 @@ import (
 
 // APIError represents a standardized API error response
 type APIError struct {
-	Code      string                 `json:"code"`
-	Message   string                 `json:"message"`
-	RequestID string                 `json:"request_id,omitempty"`
-	Details   map[string]interface{} `json:"details,omitempty"`
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	RequestID string         `json:"request_id,omitempty"`
+	Details   map[string]any `json:"details,omitempty"`
 }
 
 // NewAPIError creates a new APIError with the given code and message
@@ -27,7 +27,7 @@ func (e *APIError) WithRequestID(requestID string) *APIError {
 }
 
 // WithDetails adds additional details to the error
-func (e *APIError) WithDetails(details map[string]interface{}) *APIError {
+func (e *APIError) WithDetails(details map[string]any) *APIError {
 	e.Details = details
 	return e
 }

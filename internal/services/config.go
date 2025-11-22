@@ -16,6 +16,11 @@ type ConfigService struct {
 	logger         *slog.Logger
 }
 
+type ConfigServicer interface {
+	GetPreset(ctx context.Context, name string) (configs.ConfigPreset, error)
+	Create(ctx context.Context, req CreateConfigRequest) (configs.Config, error)
+}
+
 func NewConfigService(
 	configsQueries configs.Querier,
 	configsDB *sql.DB,

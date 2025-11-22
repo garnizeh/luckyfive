@@ -10,6 +10,7 @@ build:
 	@go build -o bin/api ./cmd/api
 	@go build -o bin/import ./cmd/import
 	@go build -o bin/migrate ./cmd/migrate
+	@go build -o bin/worker ./cmd/worker
 
 test:
 	@echo "Running tests..."
@@ -52,6 +53,7 @@ mock-generate: sqlc-generate
 	@mockgen -source=internal/store/simulations/querier.go -destination=internal/store/simulations/mock/querier.go -package=mock
 	@mockgen -source=internal/store/configs/querier.go -destination=internal/store/configs/mock/querier.go -package=mock
 	@mockgen -source=internal/store/finances/querier.go -destination=internal/store/finances/mock/querier.go -package=mock
+	@mockgen -source=internal/services/simulation.go -destination=internal/services/mock/simulation_service.go -package=mock
 
 swagger-generate:
 	@echo "Generating OpenAPI/Swagger docs (if swag CLI is available)";

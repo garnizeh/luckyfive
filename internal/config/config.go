@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -29,7 +30,8 @@ type DatabaseConfig struct {
 }
 
 type WorkerConfig struct {
-	Concurrency int
+	Concurrency  int
+	PollInterval time.Duration
 }
 
 // getEnv returns the value for key or defaultVal if not present.
@@ -59,6 +61,12 @@ func Load(envFilePath string) (*Config, error) {
 		return nil, err
 	}
 
+	pollIntervalStr := getEnv("WORKER_POLL_INTERVAL_SECONDS", "5")
+	pollIntervalSec, err := strconv.Atoi(pollIntervalStr)
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := &Config{
 		Server: ServerConfig{
 			Host: getEnv("SERVER_HOST", "localhost"),
@@ -71,7 +79,8 @@ func Load(envFilePath string) (*Config, error) {
 			FinancesPath:    getEnv("DB_FINANCES_PATH", "data/finances.db"),
 		},
 		Worker: WorkerConfig{
-			Concurrency: conc,
+			Concurrency:  conc,
+			PollInterval: time.Duration(pollIntervalSec) * time.Second,
 		},
 		LogLevel: strings.ToUpper(getEnv("LOG_LEVEL", "INFO")),
 	}

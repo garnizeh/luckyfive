@@ -279,7 +279,7 @@
                 },
                 "details": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "message": {
                     "type": "string"
@@ -332,7 +332,7 @@
                 },
                 "details": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "field_errors": {
                     "type": "object",

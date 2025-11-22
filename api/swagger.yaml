@@ -26,7 +26,7 @@ definitions:
       code:
         type: string
       details:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       message:
         type: string
@@ -61,7 +61,7 @@ definitions:
       code:
         type: string
       details:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
       field_errors:
         additionalProperties:

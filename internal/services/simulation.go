@@ -19,6 +19,15 @@ type SimulationService struct {
 	logger             *slog.Logger
 }
 
+type SimulationServicer interface {
+	CreateSimulation(ctx context.Context, req CreateSimulationRequest) (*simulations.Simulation, error)
+	GetSimulation(ctx context.Context, id int64) (*simulations.Simulation, error)
+	ListSimulations(ctx context.Context, limit, offset int) ([]simulations.Simulation, error)
+	CancelSimulation(ctx context.Context, id int64) error
+	GetContestResults(ctx context.Context, simulationID int64, limit, offset int) ([]simulations.SimulationContestResult, error)
+	ExecuteSimulation(ctx context.Context, simID int64) error
+}
+
 func NewSimulationService(
 	simulationsQueries simulations.Querier,
 	simulationsDB *sql.DB,
@@ -208,6 +217,14 @@ func (s *SimulationService) CancelSimulation(ctx context.Context, id int64) erro
 	return s.simulationsQueries.CancelSimulation(ctx, simulations.CancelSimulationParams{
 		ID:         id,
 		FinishedAt: sql.NullString{String: time.Now().Format(time.RFC3339), Valid: true},
+	})
+}
+
+func (s *SimulationService) GetContestResults(ctx context.Context, simulationID int64, limit, offset int) ([]simulations.SimulationContestResult, error) {
+	return s.simulationsQueries.GetContestResults(ctx, simulations.GetContestResultsParams{
+		SimulationID: simulationID,
+		Limit:        int64(limit),
+		Offset:       int64(offset),
 	})
 }
 

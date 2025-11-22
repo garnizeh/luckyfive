@@ -10,7 +10,7 @@ import (
 )
 
 // WriteJSON writes a JSON response
-func WriteJSON(w http.ResponseWriter, code int, data interface{}) {
+func WriteJSON(w http.ResponseWriter, code int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(data)

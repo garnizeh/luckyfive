@@ -98,7 +98,7 @@ func ListDrawsTest(resultsSvc ResultsServiceInterface, logger *slog.Logger) http
 			return
 		}
 
-		response := map[string]interface{}{
+		response := map[string]any{
 			"draws":  draws,
 			"limit":  limit,
 			"offset": offset,
@@ -185,7 +185,7 @@ func TestImportResults_MissingArtifactID(t *testing.T) {
 	handler := ImportResults(resultsSvc, logger)
 
 	// Test missing artifact_id
-	requestBody := map[string]interface{}{
+	requestBody := map[string]any{
 		"sheet": "Sheet1",
 	}
 	jsonBody, _ := json.Marshal(requestBody)
@@ -223,7 +223,7 @@ func TestImportResults_EmptyArtifactID(t *testing.T) {
 	handler := ImportResults(resultsSvc, logger)
 
 	// Test empty artifact_id
-	requestBody := map[string]interface{}{
+	requestBody := map[string]any{
 		"artifact_id": "",
 	}
 	jsonBody, _ := json.Marshal(requestBody)
@@ -263,7 +263,7 @@ func TestImportResults_ValidRequest(t *testing.T) {
 	handler := ImportResults(resultsSvc, logger)
 
 	// Test valid request
-	requestBody := map[string]interface{}{
+	requestBody := map[string]any{
 		"artifact_id": "abc123",
 		"sheet":       "Sheet1",
 	}
@@ -298,7 +298,7 @@ func TestImportResults_DefaultSheet(t *testing.T) {
 	handler := ImportResults(resultsSvc, logger)
 
 	// Test request without sheet (should default to empty string)
-	requestBody := map[string]interface{}{
+	requestBody := map[string]any{
 		"artifact_id": "abc123",
 	}
 	jsonBody, _ := json.Marshal(requestBody)

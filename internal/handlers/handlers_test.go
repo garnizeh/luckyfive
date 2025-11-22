@@ -13,7 +13,7 @@ import (
 
 func TestWriteJSON(t *testing.T) {
 	// Test data
-	testData := map[string]interface{}{
+	testData := map[string]any{
 		"message": "success",
 		"data": map[string]string{
 			"key": "value",
@@ -38,7 +38,7 @@ func TestWriteJSON(t *testing.T) {
 	}
 
 	// Check response body
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response JSON: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestWriteJSON(t *testing.T) {
 		t.Errorf("Expected message 'success', got '%v'", response["message"])
 	}
 
-	data, ok := response["data"].(map[string]interface{})
+	data, ok := response["data"].(map[string]any)
 	if !ok {
 		t.Fatal("Expected 'data' to be a map")
 	}
@@ -135,7 +135,7 @@ func TestWriteError_WithRequestID(t *testing.T) {
 func TestWriteError_WithDetails(t *testing.T) {
 	// Create error with details
 	apiErr := models.NewAPIError("validation_error", "Invalid input").
-		WithDetails(map[string]interface{}{
+		WithDetails(map[string]any{
 			"field":  "username",
 			"reason": "required",
 		})

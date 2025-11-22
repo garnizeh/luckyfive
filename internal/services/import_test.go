@@ -32,7 +32,7 @@ func TestImportService_ParseXLSX(t *testing.T) {
 	}
 
 	// Set test data
-	testData := [][]interface{}{
+	testData := [][]any{
 		{1, "02/01/2024", 5, 12, 23, 34, 45},
 		{2, "09/01/2024", 3, 15, 27, 38, 49},
 		{3, "16/01/2024", 7, 18, 29, 41, 52},
@@ -133,13 +133,13 @@ func TestImportService_ParseXLSX_ColumnDetection(t *testing.T) {
 	testCases := []struct {
 		name     string
 		headers  []string
-		data     []interface{}
+		data     []any
 		expected models.Draw
 	}{
 		{
 			name:    "Portuguese headers",
 			headers: []string{"Concurso", "Data Sorteio", "Bola1", "Bola2", "Bola3", "Bola4", "Bola5"},
-			data:    []interface{}{100, "15/03/2024", 10, 20, 30, 40, 50},
+			data:    []any{100, "15/03/2024", 10, 20, 30, 40, 50},
 			expected: models.Draw{
 				Contest:  100,
 				DrawDate: time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC),
@@ -149,7 +149,7 @@ func TestImportService_ParseXLSX_ColumnDetection(t *testing.T) {
 		{
 			name:    "English headers",
 			headers: []string{"Contest", "Draw Date", "Ball1", "Ball2", "Ball3", "Ball4", "Ball5"},
-			data:    []interface{}{101, "2024-03-22", 5, 15, 25, 35, 45},
+			data:    []any{101, "2024-03-22", 5, 15, 25, 35, 45},
 			expected: models.Draw{
 				Contest:  101,
 				DrawDate: time.Date(2024, 3, 22, 0, 0, 0, 0, time.UTC),
@@ -159,7 +159,7 @@ func TestImportService_ParseXLSX_ColumnDetection(t *testing.T) {
 		{
 			name:    "Position-based detection",
 			headers: []string{"ID", "Date", "N1", "N2", "N3", "N4", "N5"},
-			data:    []interface{}{102, "30/03/2024", 2, 12, 22, 32, 42},
+			data:    []any{102, "30/03/2024", 2, 12, 22, 32, 42},
 			expected: models.Draw{
 				Contest:  102,
 				DrawDate: time.Date(2024, 3, 30, 0, 0, 0, 0, time.UTC),
@@ -239,7 +239,7 @@ func TestImportService_ParseXLSX_InvalidData(t *testing.T) {
 	}
 
 	// Set invalid data
-	invalidData := [][]interface{}{
+	invalidData := [][]any{
 		{"invalid", "02/01/2024", 5, 12, 23, 34, 45}, // Invalid contest
 		{1, "invalid date", 5, 12, 23, 34, 45},       // Invalid date
 		{2, "02/01/2024", 0, 12, 23, 34, 45},         // Ball out of range
@@ -452,7 +452,7 @@ func TestImportService_ImportArtifact(t *testing.T) {
 		f.SetCellValue(sheetName, cell, header)
 	}
 
-	testData := []interface{}{1, "02/01/2024", 5, 12, 23, 34, 45}
+	testData := []any{1, "02/01/2024", 5, 12, 23, 34, 45}
 	for i, value := range testData {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 2)
 		f.SetCellValue(sheetName, cell, value)

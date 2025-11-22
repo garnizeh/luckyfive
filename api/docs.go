@@ -282,7 +282,7 @@ const docTemplate = `{
                 },
                 "details": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "message": {
                     "type": "string"
@@ -335,7 +335,7 @@ const docTemplate = `{
                 },
                 "details": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 },
                 "field_errors": {
                     "type": "object",
