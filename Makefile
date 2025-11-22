@@ -31,7 +31,7 @@ run-api:
 	@go run ./cmd/api/main.go --env-file=configs/dev.env
 
 run-worker:
-	@go run ./cmd/worker/main.go
+	@go run ./cmd/worker/main.go --env-file=configs/dev.env
 
 migrate:
 	@go run ./cmd/migrate/main.go --env-file=configs/dev.env up
