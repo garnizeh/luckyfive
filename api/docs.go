@@ -2714,7 +2714,7 @@ const docTemplate = `{
                 },
                 "variation_params": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 }
             }
         },
@@ -2926,7 +2926,7 @@ const docTemplate = `{
                 },
                 "params": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 }
             }
         },

@@ -8,17 +8,138 @@ import (
 	"database/sql"
 )
 
-type FinancialSummary struct {
-	Account      string          `json:"account"`
-	BalanceCents sql.NullFloat64 `json:"balance_cents"`
-	Entries      int64           `json:"entries"`
+type AnalysisJob struct {
+	ID                   int64          `json:"id"`
+	CreatedAt            string         `json:"created_at"`
+	StartedAt            sql.NullString `json:"started_at"`
+	FinishedAt           sql.NullString `json:"finished_at"`
+	Status               string         `json:"status"`
+	JobType              string         `json:"job_type"`
+	ConfigJson           string         `json:"config_json"`
+	TotalSimulations     sql.NullInt64  `json:"total_simulations"`
+	CompletedSimulations sql.NullInt64  `json:"completed_simulations"`
+	FailedSimulations    sql.NullInt64  `json:"failed_simulations"`
+	TopConfigsJson       sql.NullString `json:"top_configs_json"`
+	ReportBlob           []byte         `json:"report_blob"`
+	ReportName           sql.NullString `json:"report_name"`
+	ErrorMessage         sql.NullString `json:"error_message"`
 }
 
-type Ledger struct {
-	ID          int64          `json:"id"`
-	Account     string         `json:"account"`
-	AmountCents int64          `json:"amount_cents"`
-	Currency    string         `json:"currency"`
-	Description sql.NullString `json:"description"`
-	CreatedAt   string         `json:"created_at"`
+type BetCost struct {
+	ID            int64          `json:"id"`
+	EffectiveFrom string         `json:"effective_from"`
+	EffectiveTo   sql.NullString `json:"effective_to"`
+	CostCents     int64          `json:"cost_cents"`
+	NumbersCount  sql.NullInt64  `json:"numbers_count"`
+	Region        sql.NullString `json:"region"`
+	Notes         sql.NullString `json:"notes"`
+}
+
+type Budget struct {
+	ID               int64          `json:"id"`
+	Name             string         `json:"name"`
+	Description      sql.NullString `json:"description"`
+	TotalAmountCents int64          `json:"total_amount_cents"`
+	SpentCents       sql.NullInt64  `json:"spent_cents"`
+	RemainingCents   sql.NullInt64  `json:"remaining_cents"`
+	StartDate        string         `json:"start_date"`
+	EndDate          sql.NullString `json:"end_date"`
+	Status           sql.NullString `json:"status"`
+	CreatedAt        sql.NullString `json:"created_at"`
+	UpdatedAt        sql.NullString `json:"updated_at"`
+}
+
+type BudgetAllocation struct {
+	ID             int64          `json:"id"`
+	BudgetID       int64          `json:"budget_id"`
+	SimulationID   sql.NullInt64  `json:"simulation_id"`
+	SweepID        sql.NullInt64  `json:"sweep_id"`
+	AllocatedCents int64          `json:"allocated_cents"`
+	SpentCents     sql.NullInt64  `json:"spent_cents"`
+	CreatedAt      sql.NullString `json:"created_at"`
+}
+
+type ContestBet struct {
+	ID           int64          `json:"id"`
+	SimulationID int64          `json:"simulation_id"`
+	Contest      int64          `json:"contest"`
+	BetNumbers   string         `json:"bet_numbers"`
+	CostCents    int64          `json:"cost_cents"`
+	Hits         sql.NullInt64  `json:"hits"`
+	PrizeType    sql.NullString `json:"prize_type"`
+	PrizeCents   sql.NullInt64  `json:"prize_cents"`
+	PlacedAt     sql.NullString `json:"placed_at"`
+}
+
+type LedgerEntry struct {
+	ID              int64          `json:"id"`
+	TransactionDate string         `json:"transaction_date"`
+	TransactionType string         `json:"transaction_type"`
+	AmountCents     int64          `json:"amount_cents"`
+	SimulationID    sql.NullInt64  `json:"simulation_id"`
+	Contest         sql.NullInt64  `json:"contest"`
+	Description     sql.NullString `json:"description"`
+	MetadataJson    sql.NullString `json:"metadata_json"`
+	CreatedAt       sql.NullString `json:"created_at"`
+}
+
+type PrizeRule struct {
+	ID                  int64          `json:"id"`
+	Contest             int64          `json:"contest"`
+	PrizeType           string         `json:"prize_type"`
+	AmountCents         int64          `json:"amount_cents"`
+	Winners             sql.NullInt64  `json:"winners"`
+	TotalCollectedCents sql.NullInt64  `json:"total_collected_cents"`
+	Notes               sql.NullString `json:"notes"`
+}
+
+type Simulation struct {
+	ID            int64          `json:"id"`
+	CreatedAt     string         `json:"created_at"`
+	StartedAt     sql.NullString `json:"started_at"`
+	FinishedAt    sql.NullString `json:"finished_at"`
+	Status        string         `json:"status"`
+	RecipeName    sql.NullString `json:"recipe_name"`
+	RecipeJson    string         `json:"recipe_json"`
+	Mode          string         `json:"mode"`
+	StartContest  int64          `json:"start_contest"`
+	EndContest    int64          `json:"end_contest"`
+	WorkerID      sql.NullString `json:"worker_id"`
+	RunDurationMs sql.NullInt64  `json:"run_duration_ms"`
+	SummaryJson   sql.NullString `json:"summary_json"`
+	OutputBlob    []byte         `json:"output_blob"`
+	OutputName    sql.NullString `json:"output_name"`
+	LogBlob       []byte         `json:"log_blob"`
+	ErrorMessage  sql.NullString `json:"error_message"`
+	ErrorStack    sql.NullString `json:"error_stack"`
+	CreatedBy     sql.NullString `json:"created_by"`
+}
+
+type SimulationContestResult struct {
+	ID                    int64          `json:"id"`
+	SimulationID          int64          `json:"simulation_id"`
+	Contest               int64          `json:"contest"`
+	ActualNumbers         string         `json:"actual_numbers"`
+	BestHits              int64          `json:"best_hits"`
+	BestPredictionIndex   sql.NullInt64  `json:"best_prediction_index"`
+	BestPredictionNumbers sql.NullString `json:"best_prediction_numbers"`
+	PredictionsJson       string         `json:"predictions_json"`
+	ProcessedAt           string         `json:"processed_at"`
+}
+
+type SimulationFinance struct {
+	ID               int64          `json:"id"`
+	SimulationID     int64          `json:"simulation_id"`
+	TotalBets        int64          `json:"total_bets"`
+	TotalCostCents   int64          `json:"total_cost_cents"`
+	TotalPrizesCents int64          `json:"total_prizes_cents"`
+	NetProfitCents   int64          `json:"net_profit_cents"`
+	RoiPercentage    float64        `json:"roi_percentage"`
+	BreakEvenContest sql.NullInt64  `json:"break_even_contest"`
+	BestPrizeCents   sql.NullInt64  `json:"best_prize_cents"`
+	BestPrizeContest sql.NullInt64  `json:"best_prize_contest"`
+	QuinaWins        sql.NullInt64  `json:"quina_wins"`
+	QuadraWins       sql.NullInt64  `json:"quadra_wins"`
+	TernoWins        sql.NullInt64  `json:"terno_wins"`
+	UpdatedAt        sql.NullString `json:"updated_at"`
 }

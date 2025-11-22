@@ -2711,7 +2711,7 @@
                 },
                 "variation_params": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 }
             }
         },
@@ -2923,7 +2923,7 @@
                 },
                 "params": {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": {}
                 }
             }
         },

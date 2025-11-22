@@ -105,7 +105,7 @@ definitions:
       sweep_id:
         type: integer
       variation_params:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
     type: object
   models.Draw:
@@ -245,7 +245,7 @@ definitions:
           type: number
         type: object
       params:
-        additionalProperties: true
+        additionalProperties: {}
         type: object
     type: object
   models.VisualizationDataResponse:

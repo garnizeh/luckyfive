@@ -44,7 +44,7 @@ func (m *MockSimulationServicer) CancelSimulation(ctx context.Context, id int64)
 }
 
 // CancelSimulation indicates an expected call of CancelSimulation.
-func (mr *MockSimulationServicerMockRecorder) CancelSimulation(ctx, id any) *gomock.Call {
+func (mr *MockSimulationServicerMockRecorder) CancelSimulation(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelSimulation", reflect.TypeOf((*MockSimulationServicer)(nil).CancelSimulation), ctx, id)
 }
@@ -59,7 +59,7 @@ func (m *MockSimulationServicer) CreateSimulation(ctx context.Context, req Creat
 }
 
 // CreateSimulation indicates an expected call of CreateSimulation.
-func (mr *MockSimulationServicerMockRecorder) CreateSimulation(ctx, req any) *gomock.Call {
+func (mr *MockSimulationServicerMockRecorder) CreateSimulation(ctx, req interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSimulation", reflect.TypeOf((*MockSimulationServicer)(nil).CreateSimulation), ctx, req)
 }
@@ -73,7 +73,7 @@ func (m *MockSimulationServicer) ExecuteSimulation(ctx context.Context, simID in
 }
 
 // ExecuteSimulation indicates an expected call of ExecuteSimulation.
-func (mr *MockSimulationServicerMockRecorder) ExecuteSimulation(ctx, simID any) *gomock.Call {
+func (mr *MockSimulationServicerMockRecorder) ExecuteSimulation(ctx, simID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteSimulation", reflect.TypeOf((*MockSimulationServicer)(nil).ExecuteSimulation), ctx, simID)
 }
@@ -88,7 +88,7 @@ func (m *MockSimulationServicer) GetContestResults(ctx context.Context, simulati
 }
 
 // GetContestResults indicates an expected call of GetContestResults.
-func (mr *MockSimulationServicerMockRecorder) GetContestResults(ctx, simulationID, limit, offset any) *gomock.Call {
+func (mr *MockSimulationServicerMockRecorder) GetContestResults(ctx, simulationID, limit, offset interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContestResults", reflect.TypeOf((*MockSimulationServicer)(nil).GetContestResults), ctx, simulationID, limit, offset)
 }
@@ -103,7 +103,7 @@ func (m *MockSimulationServicer) GetSimulation(ctx context.Context, id int64) (*
 }
 
 // GetSimulation indicates an expected call of GetSimulation.
-func (mr *MockSimulationServicerMockRecorder) GetSimulation(ctx, id any) *gomock.Call {
+func (mr *MockSimulationServicerMockRecorder) GetSimulation(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSimulation", reflect.TypeOf((*MockSimulationServicer)(nil).GetSimulation), ctx, id)
 }
@@ -118,7 +118,7 @@ func (m *MockSimulationServicer) ListSimulations(ctx context.Context, limit, off
 }
 
 // ListSimulations indicates an expected call of ListSimulations.
-func (mr *MockSimulationServicerMockRecorder) ListSimulations(ctx, limit, offset any) *gomock.Call {
+func (mr *MockSimulationServicerMockRecorder) ListSimulations(ctx, limit, offset interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSimulations", reflect.TypeOf((*MockSimulationServicer)(nil).ListSimulations), ctx, limit, offset)
 }

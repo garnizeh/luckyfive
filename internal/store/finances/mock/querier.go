@@ -36,92 +36,342 @@ func (m *MockQuerier) EXPECT() *MockQuerierMockRecorder {
 	return m.recorder
 }
 
-// GetAccountBalance mocks base method.
-func (m *MockQuerier) GetAccountBalance(ctx context.Context, account string) (finances.FinancialSummary, error) {
+// AllocateBudget mocks base method.
+func (m *MockQuerier) AllocateBudget(ctx context.Context, arg finances.AllocateBudgetParams) (finances.BudgetAllocation, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccountBalance", ctx, account)
-	ret0, _ := ret[0].(finances.FinancialSummary)
+	ret := m.ctrl.Call(m, "AllocateBudget", ctx, arg)
+	ret0, _ := ret[0].(finances.BudgetAllocation)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAccountBalance indicates an expected call of GetAccountBalance.
-func (mr *MockQuerierMockRecorder) GetAccountBalance(ctx, account interface{}) *gomock.Call {
+// AllocateBudget indicates an expected call of AllocateBudget.
+func (mr *MockQuerierMockRecorder) AllocateBudget(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountBalance", reflect.TypeOf((*MockQuerier)(nil).GetAccountBalance), ctx, account)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocateBudget", reflect.TypeOf((*MockQuerier)(nil).AllocateBudget), ctx, arg)
 }
 
-// GetLedgerEntry mocks base method.
-func (m *MockQuerier) GetLedgerEntry(ctx context.Context, id int64) (finances.Ledger, error) {
+// CreateBetCost mocks base method.
+func (m *MockQuerier) CreateBetCost(ctx context.Context, arg finances.CreateBetCostParams) (finances.BetCost, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLedgerEntry", ctx, id)
-	ret0, _ := ret[0].(finances.Ledger)
+	ret := m.ctrl.Call(m, "CreateBetCost", ctx, arg)
+	ret0, _ := ret[0].(finances.BetCost)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetLedgerEntry indicates an expected call of GetLedgerEntry.
-func (mr *MockQuerierMockRecorder) GetLedgerEntry(ctx, id interface{}) *gomock.Call {
+// CreateBetCost indicates an expected call of CreateBetCost.
+func (mr *MockQuerierMockRecorder) CreateBetCost(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLedgerEntry", reflect.TypeOf((*MockQuerier)(nil).GetLedgerEntry), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBetCost", reflect.TypeOf((*MockQuerier)(nil).CreateBetCost), ctx, arg)
 }
 
-// InsertLedgerEntry mocks base method.
-func (m *MockQuerier) InsertLedgerEntry(ctx context.Context, arg finances.InsertLedgerEntryParams) (finances.Ledger, error) {
+// CreateBudget mocks base method.
+func (m *MockQuerier) CreateBudget(ctx context.Context, arg finances.CreateBudgetParams) (finances.Budget, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InsertLedgerEntry", ctx, arg)
-	ret0, _ := ret[0].(finances.Ledger)
+	ret := m.ctrl.Call(m, "CreateBudget", ctx, arg)
+	ret0, _ := ret[0].(finances.Budget)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// InsertLedgerEntry indicates an expected call of InsertLedgerEntry.
-func (mr *MockQuerierMockRecorder) InsertLedgerEntry(ctx, arg interface{}) *gomock.Call {
+// CreateBudget indicates an expected call of CreateBudget.
+func (mr *MockQuerierMockRecorder) CreateBudget(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertLedgerEntry", reflect.TypeOf((*MockQuerier)(nil).InsertLedgerEntry), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBudget", reflect.TypeOf((*MockQuerier)(nil).CreateBudget), ctx, arg)
 }
 
-// ListLedgerEntries mocks base method.
-func (m *MockQuerier) ListLedgerEntries(ctx context.Context, arg finances.ListLedgerEntriesParams) ([]finances.Ledger, error) {
+// CreateContestBet mocks base method.
+func (m *MockQuerier) CreateContestBet(ctx context.Context, arg finances.CreateContestBetParams) (finances.ContestBet, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListLedgerEntries", ctx, arg)
-	ret0, _ := ret[0].([]finances.Ledger)
+	ret := m.ctrl.Call(m, "CreateContestBet", ctx, arg)
+	ret0, _ := ret[0].(finances.ContestBet)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListLedgerEntries indicates an expected call of ListLedgerEntries.
-func (mr *MockQuerierMockRecorder) ListLedgerEntries(ctx, arg interface{}) *gomock.Call {
+// CreateContestBet indicates an expected call of CreateContestBet.
+func (mr *MockQuerierMockRecorder) CreateContestBet(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLedgerEntries", reflect.TypeOf((*MockQuerier)(nil).ListLedgerEntries), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateContestBet", reflect.TypeOf((*MockQuerier)(nil).CreateContestBet), ctx, arg)
 }
 
-// ListLedgerForAccount mocks base method.
-func (m *MockQuerier) ListLedgerForAccount(ctx context.Context, arg finances.ListLedgerForAccountParams) ([]finances.Ledger, error) {
+// CreateLedgerEntry mocks base method.
+func (m *MockQuerier) CreateLedgerEntry(ctx context.Context, arg finances.CreateLedgerEntryParams) (finances.LedgerEntry, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListLedgerForAccount", ctx, arg)
-	ret0, _ := ret[0].([]finances.Ledger)
+	ret := m.ctrl.Call(m, "CreateLedgerEntry", ctx, arg)
+	ret0, _ := ret[0].(finances.LedgerEntry)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListLedgerForAccount indicates an expected call of ListLedgerForAccount.
-func (mr *MockQuerierMockRecorder) ListLedgerForAccount(ctx, arg interface{}) *gomock.Call {
+// CreateLedgerEntry indicates an expected call of CreateLedgerEntry.
+func (mr *MockQuerierMockRecorder) CreateLedgerEntry(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLedgerForAccount", reflect.TypeOf((*MockQuerier)(nil).ListLedgerForAccount), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLedgerEntry", reflect.TypeOf((*MockQuerier)(nil).CreateLedgerEntry), ctx, arg)
 }
 
-// SumLedgerBetweenDates mocks base method.
-func (m *MockQuerier) SumLedgerBetweenDates(ctx context.Context, arg finances.SumLedgerBetweenDatesParams) (sql.NullFloat64, error) {
+// CreateSimulationFinances mocks base method.
+func (m *MockQuerier) CreateSimulationFinances(ctx context.Context, arg finances.CreateSimulationFinancesParams) (finances.SimulationFinance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SumLedgerBetweenDates", ctx, arg)
-	ret0, _ := ret[0].(sql.NullFloat64)
+	ret := m.ctrl.Call(m, "CreateSimulationFinances", ctx, arg)
+	ret0, _ := ret[0].(finances.SimulationFinance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// SumLedgerBetweenDates indicates an expected call of SumLedgerBetweenDates.
-func (mr *MockQuerierMockRecorder) SumLedgerBetweenDates(ctx, arg interface{}) *gomock.Call {
+// CreateSimulationFinances indicates an expected call of CreateSimulationFinances.
+func (mr *MockQuerierMockRecorder) CreateSimulationFinances(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SumLedgerBetweenDates", reflect.TypeOf((*MockQuerier)(nil).SumLedgerBetweenDates), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSimulationFinances", reflect.TypeOf((*MockQuerier)(nil).CreateSimulationFinances), ctx, arg)
+}
+
+// GetActiveBetCost mocks base method.
+func (m *MockQuerier) GetActiveBetCost(ctx context.Context, arg finances.GetActiveBetCostParams) (finances.BetCost, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActiveBetCost", ctx, arg)
+	ret0, _ := ret[0].(finances.BetCost)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetActiveBetCost indicates an expected call of GetActiveBetCost.
+func (mr *MockQuerierMockRecorder) GetActiveBetCost(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveBetCost", reflect.TypeOf((*MockQuerier)(nil).GetActiveBetCost), ctx, arg)
+}
+
+// GetBudget mocks base method.
+func (m *MockQuerier) GetBudget(ctx context.Context, id int64) (finances.Budget, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBudget", ctx, id)
+	ret0, _ := ret[0].(finances.Budget)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBudget indicates an expected call of GetBudget.
+func (mr *MockQuerierMockRecorder) GetBudget(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBudget", reflect.TypeOf((*MockQuerier)(nil).GetBudget), ctx, id)
+}
+
+// GetBudgetAllocations mocks base method.
+func (m *MockQuerier) GetBudgetAllocations(ctx context.Context, budgetID int64) ([]finances.BudgetAllocation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBudgetAllocations", ctx, budgetID)
+	ret0, _ := ret[0].([]finances.BudgetAllocation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBudgetAllocations indicates an expected call of GetBudgetAllocations.
+func (mr *MockQuerierMockRecorder) GetBudgetAllocations(ctx, budgetID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBudgetAllocations", reflect.TypeOf((*MockQuerier)(nil).GetBudgetAllocations), ctx, budgetID)
+}
+
+// GetContestBetByContest mocks base method.
+func (m *MockQuerier) GetContestBetByContest(ctx context.Context, arg finances.GetContestBetByContestParams) (finances.ContestBet, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetContestBetByContest", ctx, arg)
+	ret0, _ := ret[0].(finances.ContestBet)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetContestBetByContest indicates an expected call of GetContestBetByContest.
+func (mr *MockQuerierMockRecorder) GetContestBetByContest(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContestBetByContest", reflect.TypeOf((*MockQuerier)(nil).GetContestBetByContest), ctx, arg)
+}
+
+// GetContestBets mocks base method.
+func (m *MockQuerier) GetContestBets(ctx context.Context, simulationID int64) ([]finances.ContestBet, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetContestBets", ctx, simulationID)
+	ret0, _ := ret[0].([]finances.ContestBet)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetContestBets indicates an expected call of GetContestBets.
+func (mr *MockQuerierMockRecorder) GetContestBets(ctx, simulationID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContestBets", reflect.TypeOf((*MockQuerier)(nil).GetContestBets), ctx, simulationID)
+}
+
+// GetLedgerBalance mocks base method.
+func (m *MockQuerier) GetLedgerBalance(ctx context.Context, simulationID sql.NullInt64) (interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLedgerBalance", ctx, simulationID)
+	ret0, _ := ret[0].(interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLedgerBalance indicates an expected call of GetLedgerBalance.
+func (mr *MockQuerierMockRecorder) GetLedgerBalance(ctx, simulationID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLedgerBalance", reflect.TypeOf((*MockQuerier)(nil).GetLedgerBalance), ctx, simulationID)
+}
+
+// GetLedgerByDateRange mocks base method.
+func (m *MockQuerier) GetLedgerByDateRange(ctx context.Context, arg finances.GetLedgerByDateRangeParams) ([]finances.LedgerEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLedgerByDateRange", ctx, arg)
+	ret0, _ := ret[0].([]finances.LedgerEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLedgerByDateRange indicates an expected call of GetLedgerByDateRange.
+func (mr *MockQuerierMockRecorder) GetLedgerByDateRange(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLedgerByDateRange", reflect.TypeOf((*MockQuerier)(nil).GetLedgerByDateRange), ctx, arg)
+}
+
+// GetLedgerEntries mocks base method.
+func (m *MockQuerier) GetLedgerEntries(ctx context.Context, arg finances.GetLedgerEntriesParams) ([]finances.LedgerEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLedgerEntries", ctx, arg)
+	ret0, _ := ret[0].([]finances.LedgerEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLedgerEntries indicates an expected call of GetLedgerEntries.
+func (mr *MockQuerierMockRecorder) GetLedgerEntries(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLedgerEntries", reflect.TypeOf((*MockQuerier)(nil).GetLedgerEntries), ctx, arg)
+}
+
+// GetPrizeRule mocks base method.
+func (m *MockQuerier) GetPrizeRule(ctx context.Context, arg finances.GetPrizeRuleParams) (finances.PrizeRule, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPrizeRule", ctx, arg)
+	ret0, _ := ret[0].(finances.PrizeRule)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPrizeRule indicates an expected call of GetPrizeRule.
+func (mr *MockQuerierMockRecorder) GetPrizeRule(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrizeRule", reflect.TypeOf((*MockQuerier)(nil).GetPrizeRule), ctx, arg)
+}
+
+// GetSimulationFinances mocks base method.
+func (m *MockQuerier) GetSimulationFinances(ctx context.Context, simulationID int64) (finances.SimulationFinance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSimulationFinances", ctx, simulationID)
+	ret0, _ := ret[0].(finances.SimulationFinance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSimulationFinances indicates an expected call of GetSimulationFinances.
+func (mr *MockQuerierMockRecorder) GetSimulationFinances(ctx, simulationID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSimulationFinances", reflect.TypeOf((*MockQuerier)(nil).GetSimulationFinances), ctx, simulationID)
+}
+
+// ListPrizeRules mocks base method.
+func (m *MockQuerier) ListPrizeRules(ctx context.Context, arg finances.ListPrizeRulesParams) ([]finances.PrizeRule, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPrizeRules", ctx, arg)
+	ret0, _ := ret[0].([]finances.PrizeRule)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPrizeRules indicates an expected call of ListPrizeRules.
+func (mr *MockQuerierMockRecorder) ListPrizeRules(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPrizeRules", reflect.TypeOf((*MockQuerier)(nil).ListPrizeRules), ctx, arg)
+}
+
+// ListTopSimulationsByROI mocks base method.
+func (m *MockQuerier) ListTopSimulationsByROI(ctx context.Context, arg finances.ListTopSimulationsByROIParams) ([]finances.ListTopSimulationsByROIRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTopSimulationsByROI", ctx, arg)
+	ret0, _ := ret[0].([]finances.ListTopSimulationsByROIRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListTopSimulationsByROI indicates an expected call of ListTopSimulationsByROI.
+func (mr *MockQuerierMockRecorder) ListTopSimulationsByROI(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTopSimulationsByROI", reflect.TypeOf((*MockQuerier)(nil).ListTopSimulationsByROI), ctx, arg)
+}
+
+// UpdateAllocationSpent mocks base method.
+func (m *MockQuerier) UpdateAllocationSpent(ctx context.Context, arg finances.UpdateAllocationSpentParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAllocationSpent", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateAllocationSpent indicates an expected call of UpdateAllocationSpent.
+func (mr *MockQuerierMockRecorder) UpdateAllocationSpent(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAllocationSpent", reflect.TypeOf((*MockQuerier)(nil).UpdateAllocationSpent), ctx, arg)
+}
+
+// UpdateBudgetSpent mocks base method.
+func (m *MockQuerier) UpdateBudgetSpent(ctx context.Context, arg finances.UpdateBudgetSpentParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBudgetSpent", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateBudgetSpent indicates an expected call of UpdateBudgetSpent.
+func (mr *MockQuerierMockRecorder) UpdateBudgetSpent(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBudgetSpent", reflect.TypeOf((*MockQuerier)(nil).UpdateBudgetSpent), ctx, arg)
+}
+
+// UpdateContestBetPrize mocks base method.
+func (m *MockQuerier) UpdateContestBetPrize(ctx context.Context, arg finances.UpdateContestBetPrizeParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateContestBetPrize", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateContestBetPrize indicates an expected call of UpdateContestBetPrize.
+func (mr *MockQuerierMockRecorder) UpdateContestBetPrize(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateContestBetPrize", reflect.TypeOf((*MockQuerier)(nil).UpdateContestBetPrize), ctx, arg)
+}
+
+// UpdateSimulationFinances mocks base method.
+func (m *MockQuerier) UpdateSimulationFinances(ctx context.Context, arg finances.UpdateSimulationFinancesParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSimulationFinances", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSimulationFinances indicates an expected call of UpdateSimulationFinances.
+func (mr *MockQuerierMockRecorder) UpdateSimulationFinances(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSimulationFinances", reflect.TypeOf((*MockQuerier)(nil).UpdateSimulationFinances), ctx, arg)
+}
+
+// UpsertPrizeRule mocks base method.
+func (m *MockQuerier) UpsertPrizeRule(ctx context.Context, arg finances.UpsertPrizeRuleParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertPrizeRule", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpsertPrizeRule indicates an expected call of UpsertPrizeRule.
+func (mr *MockQuerierMockRecorder) UpsertPrizeRule(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertPrizeRule", reflect.TypeOf((*MockQuerier)(nil).UpsertPrizeRule), ctx, arg)
 }

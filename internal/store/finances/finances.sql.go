@@ -10,100 +10,676 @@ import (
 	"database/sql"
 )
 
-const getAccountBalance = `-- name: GetAccountBalance :one
-SELECT account, balance_cents, entries FROM financial_summary WHERE account = ?
+const allocateBudget = `-- name: AllocateBudget :one
+INSERT INTO budget_allocations (
+    budget_id, simulation_id, sweep_id, allocated_cents
+) VALUES (?, ?, ?, ?)
+RETURNING id, budget_id, simulation_id, sweep_id, allocated_cents, spent_cents, created_at
 `
 
-func (q *Queries) GetAccountBalance(ctx context.Context, account string) (FinancialSummary, error) {
-	row := q.db.QueryRowContext(ctx, getAccountBalance, account)
-	var i FinancialSummary
-	err := row.Scan(&i.Account, &i.BalanceCents, &i.Entries)
+type AllocateBudgetParams struct {
+	BudgetID       int64         `json:"budget_id"`
+	SimulationID   sql.NullInt64 `json:"simulation_id"`
+	SweepID        sql.NullInt64 `json:"sweep_id"`
+	AllocatedCents int64         `json:"allocated_cents"`
+}
+
+func (q *Queries) AllocateBudget(ctx context.Context, arg AllocateBudgetParams) (BudgetAllocation, error) {
+	row := q.db.QueryRowContext(ctx, allocateBudget,
+		arg.BudgetID,
+		arg.SimulationID,
+		arg.SweepID,
+		arg.AllocatedCents,
+	)
+	var i BudgetAllocation
+	err := row.Scan(
+		&i.ID,
+		&i.BudgetID,
+		&i.SimulationID,
+		&i.SweepID,
+		&i.AllocatedCents,
+		&i.SpentCents,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
-const getLedgerEntry = `-- name: GetLedgerEntry :one
+const createBetCost = `-- name: CreateBetCost :one
+INSERT INTO bet_costs (
+    effective_from, effective_to, cost_cents, numbers_count, region, notes
+) VALUES (?, ?, ?, ?, ?, ?)
+RETURNING id, effective_from, effective_to, cost_cents, numbers_count, region, notes
+`
 
-SELECT id, account, amount_cents, currency, description, created_at FROM ledger
-WHERE id = ?
+type CreateBetCostParams struct {
+	EffectiveFrom string         `json:"effective_from"`
+	EffectiveTo   sql.NullString `json:"effective_to"`
+	CostCents     int64          `json:"cost_cents"`
+	NumbersCount  sql.NullInt64  `json:"numbers_count"`
+	Region        sql.NullString `json:"region"`
+	Notes         sql.NullString `json:"notes"`
+}
+
+// Bet costs
+func (q *Queries) CreateBetCost(ctx context.Context, arg CreateBetCostParams) (BetCost, error) {
+	row := q.db.QueryRowContext(ctx, createBetCost,
+		arg.EffectiveFrom,
+		arg.EffectiveTo,
+		arg.CostCents,
+		arg.NumbersCount,
+		arg.Region,
+		arg.Notes,
+	)
+	var i BetCost
+	err := row.Scan(
+		&i.ID,
+		&i.EffectiveFrom,
+		&i.EffectiveTo,
+		&i.CostCents,
+		&i.NumbersCount,
+		&i.Region,
+		&i.Notes,
+	)
+	return i, err
+}
+
+const createBudget = `-- name: CreateBudget :one
+INSERT INTO budgets (
+    name, description, total_amount_cents, start_date, end_date
+) VALUES (?, ?, ?, ?, ?)
+RETURNING id, name, description, total_amount_cents, spent_cents, remaining_cents, start_date, end_date, status, created_at, updated_at
+`
+
+type CreateBudgetParams struct {
+	Name             string         `json:"name"`
+	Description      sql.NullString `json:"description"`
+	TotalAmountCents int64          `json:"total_amount_cents"`
+	StartDate        string         `json:"start_date"`
+	EndDate          sql.NullString `json:"end_date"`
+}
+
+// Budgets
+func (q *Queries) CreateBudget(ctx context.Context, arg CreateBudgetParams) (Budget, error) {
+	row := q.db.QueryRowContext(ctx, createBudget,
+		arg.Name,
+		arg.Description,
+		arg.TotalAmountCents,
+		arg.StartDate,
+		arg.EndDate,
+	)
+	var i Budget
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.TotalAmountCents,
+		&i.SpentCents,
+		&i.RemainingCents,
+		&i.StartDate,
+		&i.EndDate,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createContestBet = `-- name: CreateContestBet :one
+INSERT INTO contest_bets (
+    simulation_id, contest, bet_numbers, cost_cents, hits, prize_type, prize_cents
+) VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, simulation_id, contest, bet_numbers, cost_cents, hits, prize_type, prize_cents, placed_at
+`
+
+type CreateContestBetParams struct {
+	SimulationID int64          `json:"simulation_id"`
+	Contest      int64          `json:"contest"`
+	BetNumbers   string         `json:"bet_numbers"`
+	CostCents    int64          `json:"cost_cents"`
+	Hits         sql.NullInt64  `json:"hits"`
+	PrizeType    sql.NullString `json:"prize_type"`
+	PrizeCents   sql.NullInt64  `json:"prize_cents"`
+}
+
+// Contest bets
+func (q *Queries) CreateContestBet(ctx context.Context, arg CreateContestBetParams) (ContestBet, error) {
+	row := q.db.QueryRowContext(ctx, createContestBet,
+		arg.SimulationID,
+		arg.Contest,
+		arg.BetNumbers,
+		arg.CostCents,
+		arg.Hits,
+		arg.PrizeType,
+		arg.PrizeCents,
+	)
+	var i ContestBet
+	err := row.Scan(
+		&i.ID,
+		&i.SimulationID,
+		&i.Contest,
+		&i.BetNumbers,
+		&i.CostCents,
+		&i.Hits,
+		&i.PrizeType,
+		&i.PrizeCents,
+		&i.PlacedAt,
+	)
+	return i, err
+}
+
+const createLedgerEntry = `-- name: CreateLedgerEntry :one
+
+INSERT INTO ledger_entries (
+    transaction_date, transaction_type, amount_cents,
+    simulation_id, contest, description, metadata_json
+) VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, transaction_date, transaction_type, amount_cents, simulation_id, contest, description, metadata_json, created_at
+`
+
+type CreateLedgerEntryParams struct {
+	TransactionDate string         `json:"transaction_date"`
+	TransactionType string         `json:"transaction_type"`
+	AmountCents     int64          `json:"amount_cents"`
+	SimulationID    sql.NullInt64  `json:"simulation_id"`
+	Contest         sql.NullInt64  `json:"contest"`
+	Description     sql.NullString `json:"description"`
+	MetadataJson    sql.NullString `json:"metadata_json"`
+}
+
+// Financial database queries for comprehensive financial tracking
+// Schema: migrations/004_create_finances.sql
+// Ledger operations
+func (q *Queries) CreateLedgerEntry(ctx context.Context, arg CreateLedgerEntryParams) (LedgerEntry, error) {
+	row := q.db.QueryRowContext(ctx, createLedgerEntry,
+		arg.TransactionDate,
+		arg.TransactionType,
+		arg.AmountCents,
+		arg.SimulationID,
+		arg.Contest,
+		arg.Description,
+		arg.MetadataJson,
+	)
+	var i LedgerEntry
+	err := row.Scan(
+		&i.ID,
+		&i.TransactionDate,
+		&i.TransactionType,
+		&i.AmountCents,
+		&i.SimulationID,
+		&i.Contest,
+		&i.Description,
+		&i.MetadataJson,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createSimulationFinances = `-- name: CreateSimulationFinances :one
+INSERT INTO simulation_finances (
+    simulation_id, total_bets, total_cost_cents,
+    total_prizes_cents, net_profit_cents, roi_percentage
+) VALUES (?, ?, ?, ?, ?, ?)
+RETURNING id, simulation_id, total_bets, total_cost_cents, total_prizes_cents, net_profit_cents, roi_percentage, break_even_contest, best_prize_cents, best_prize_contest, quina_wins, quadra_wins, terno_wins, updated_at
+`
+
+type CreateSimulationFinancesParams struct {
+	SimulationID     int64   `json:"simulation_id"`
+	TotalBets        int64   `json:"total_bets"`
+	TotalCostCents   int64   `json:"total_cost_cents"`
+	TotalPrizesCents int64   `json:"total_prizes_cents"`
+	NetProfitCents   int64   `json:"net_profit_cents"`
+	RoiPercentage    float64 `json:"roi_percentage"`
+}
+
+// Simulation finances
+func (q *Queries) CreateSimulationFinances(ctx context.Context, arg CreateSimulationFinancesParams) (SimulationFinance, error) {
+	row := q.db.QueryRowContext(ctx, createSimulationFinances,
+		arg.SimulationID,
+		arg.TotalBets,
+		arg.TotalCostCents,
+		arg.TotalPrizesCents,
+		arg.NetProfitCents,
+		arg.RoiPercentage,
+	)
+	var i SimulationFinance
+	err := row.Scan(
+		&i.ID,
+		&i.SimulationID,
+		&i.TotalBets,
+		&i.TotalCostCents,
+		&i.TotalPrizesCents,
+		&i.NetProfitCents,
+		&i.RoiPercentage,
+		&i.BreakEvenContest,
+		&i.BestPrizeCents,
+		&i.BestPrizeContest,
+		&i.QuinaWins,
+		&i.QuadraWins,
+		&i.TernoWins,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getActiveBetCost = `-- name: GetActiveBetCost :one
+SELECT id, effective_from, effective_to, cost_cents, numbers_count, region, notes FROM bet_costs
+WHERE effective_from <= ? AND (effective_to IS NULL OR effective_to >= ?)
+    AND region = ? AND numbers_count = ?
+ORDER BY effective_from DESC
 LIMIT 1
 `
 
-// schema: migrations/004_create_finances.sql
-func (q *Queries) GetLedgerEntry(ctx context.Context, id int64) (Ledger, error) {
-	row := q.db.QueryRowContext(ctx, getLedgerEntry, id)
-	var i Ledger
+type GetActiveBetCostParams struct {
+	EffectiveFrom string         `json:"effective_from"`
+	EffectiveTo   sql.NullString `json:"effective_to"`
+	Region        sql.NullString `json:"region"`
+	NumbersCount  sql.NullInt64  `json:"numbers_count"`
+}
+
+func (q *Queries) GetActiveBetCost(ctx context.Context, arg GetActiveBetCostParams) (BetCost, error) {
+	row := q.db.QueryRowContext(ctx, getActiveBetCost,
+		arg.EffectiveFrom,
+		arg.EffectiveTo,
+		arg.Region,
+		arg.NumbersCount,
+	)
+	var i BetCost
 	err := row.Scan(
 		&i.ID,
-		&i.Account,
-		&i.AmountCents,
-		&i.Currency,
-		&i.Description,
-		&i.CreatedAt,
+		&i.EffectiveFrom,
+		&i.EffectiveTo,
+		&i.CostCents,
+		&i.NumbersCount,
+		&i.Region,
+		&i.Notes,
 	)
 	return i, err
 }
 
-const insertLedgerEntry = `-- name: InsertLedgerEntry :one
-
-INSERT INTO ledger (account, amount_cents, currency, description)
-VALUES (?, ?, ?, ?)
-RETURNING id, account, amount_cents, currency, description, created_at
+const getBudget = `-- name: GetBudget :one
+SELECT id, name, description, total_amount_cents, spent_cents, remaining_cents, start_date, end_date, status, created_at, updated_at FROM budgets WHERE id = ? LIMIT 1
 `
 
-type InsertLedgerEntryParams struct {
-	Account     string         `json:"account"`
-	AmountCents int64          `json:"amount_cents"`
-	Currency    string         `json:"currency"`
-	Description sql.NullString `json:"description"`
-}
-
-// NOTE: ledger table used in production migration. The view `financial_summary` provides balances by account.
-func (q *Queries) InsertLedgerEntry(ctx context.Context, arg InsertLedgerEntryParams) (Ledger, error) {
-	row := q.db.QueryRowContext(ctx, insertLedgerEntry,
-		arg.Account,
-		arg.AmountCents,
-		arg.Currency,
-		arg.Description,
-	)
-	var i Ledger
+func (q *Queries) GetBudget(ctx context.Context, id int64) (Budget, error) {
+	row := q.db.QueryRowContext(ctx, getBudget, id)
+	var i Budget
 	err := row.Scan(
 		&i.ID,
-		&i.Account,
-		&i.AmountCents,
-		&i.Currency,
+		&i.Name,
 		&i.Description,
+		&i.TotalAmountCents,
+		&i.SpentCents,
+		&i.RemainingCents,
+		&i.StartDate,
+		&i.EndDate,
+		&i.Status,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const listLedgerEntries = `-- name: ListLedgerEntries :many
-SELECT id, account, amount_cents, currency, description, created_at FROM ledger
-ORDER BY created_at DESC
+const getBudgetAllocations = `-- name: GetBudgetAllocations :many
+SELECT id, budget_id, simulation_id, sweep_id, allocated_cents, spent_cents, created_at FROM budget_allocations
+WHERE budget_id = ?
+`
+
+func (q *Queries) GetBudgetAllocations(ctx context.Context, budgetID int64) ([]BudgetAllocation, error) {
+	rows, err := q.db.QueryContext(ctx, getBudgetAllocations, budgetID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BudgetAllocation
+	for rows.Next() {
+		var i BudgetAllocation
+		if err := rows.Scan(
+			&i.ID,
+			&i.BudgetID,
+			&i.SimulationID,
+			&i.SweepID,
+			&i.AllocatedCents,
+			&i.SpentCents,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getContestBetByContest = `-- name: GetContestBetByContest :one
+SELECT id, simulation_id, contest, bet_numbers, cost_cents, hits, prize_type, prize_cents, placed_at FROM contest_bets
+WHERE simulation_id = ? AND contest = ?
+LIMIT 1
+`
+
+type GetContestBetByContestParams struct {
+	SimulationID int64 `json:"simulation_id"`
+	Contest      int64 `json:"contest"`
+}
+
+func (q *Queries) GetContestBetByContest(ctx context.Context, arg GetContestBetByContestParams) (ContestBet, error) {
+	row := q.db.QueryRowContext(ctx, getContestBetByContest, arg.SimulationID, arg.Contest)
+	var i ContestBet
+	err := row.Scan(
+		&i.ID,
+		&i.SimulationID,
+		&i.Contest,
+		&i.BetNumbers,
+		&i.CostCents,
+		&i.Hits,
+		&i.PrizeType,
+		&i.PrizeCents,
+		&i.PlacedAt,
+	)
+	return i, err
+}
+
+const getContestBets = `-- name: GetContestBets :many
+SELECT id, simulation_id, contest, bet_numbers, cost_cents, hits, prize_type, prize_cents, placed_at FROM contest_bets
+WHERE simulation_id = ?
+ORDER BY contest ASC
+`
+
+func (q *Queries) GetContestBets(ctx context.Context, simulationID int64) ([]ContestBet, error) {
+	rows, err := q.db.QueryContext(ctx, getContestBets, simulationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ContestBet
+	for rows.Next() {
+		var i ContestBet
+		if err := rows.Scan(
+			&i.ID,
+			&i.SimulationID,
+			&i.Contest,
+			&i.BetNumbers,
+			&i.CostCents,
+			&i.Hits,
+			&i.PrizeType,
+			&i.PrizeCents,
+			&i.PlacedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLedgerBalance = `-- name: GetLedgerBalance :one
+SELECT COALESCE(SUM(amount_cents), 0) as balance
+FROM ledger_entries
+WHERE simulation_id = ?
+`
+
+func (q *Queries) GetLedgerBalance(ctx context.Context, simulationID sql.NullInt64) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getLedgerBalance, simulationID)
+	var balance interface{}
+	err := row.Scan(&balance)
+	return balance, err
+}
+
+const getLedgerByDateRange = `-- name: GetLedgerByDateRange :many
+SELECT id, transaction_date, transaction_type, amount_cents, simulation_id, contest, description, metadata_json, created_at FROM ledger_entries
+WHERE transaction_date >= ? AND transaction_date <= ?
+ORDER BY transaction_date DESC
+`
+
+type GetLedgerByDateRangeParams struct {
+	TransactionDate   string `json:"transaction_date"`
+	TransactionDate_2 string `json:"transaction_date_2"`
+}
+
+func (q *Queries) GetLedgerByDateRange(ctx context.Context, arg GetLedgerByDateRangeParams) ([]LedgerEntry, error) {
+	rows, err := q.db.QueryContext(ctx, getLedgerByDateRange, arg.TransactionDate, arg.TransactionDate_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LedgerEntry
+	for rows.Next() {
+		var i LedgerEntry
+		if err := rows.Scan(
+			&i.ID,
+			&i.TransactionDate,
+			&i.TransactionType,
+			&i.AmountCents,
+			&i.SimulationID,
+			&i.Contest,
+			&i.Description,
+			&i.MetadataJson,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLedgerEntries = `-- name: GetLedgerEntries :many
+SELECT id, transaction_date, transaction_type, amount_cents, simulation_id, contest, description, metadata_json, created_at FROM ledger_entries
+WHERE simulation_id = ?
+ORDER BY transaction_date DESC
 LIMIT ? OFFSET ?
 `
 
-type ListLedgerEntriesParams struct {
+type GetLedgerEntriesParams struct {
+	SimulationID sql.NullInt64 `json:"simulation_id"`
+	Limit        int64         `json:"limit"`
+	Offset       int64         `json:"offset"`
+}
+
+func (q *Queries) GetLedgerEntries(ctx context.Context, arg GetLedgerEntriesParams) ([]LedgerEntry, error) {
+	rows, err := q.db.QueryContext(ctx, getLedgerEntries, arg.SimulationID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LedgerEntry
+	for rows.Next() {
+		var i LedgerEntry
+		if err := rows.Scan(
+			&i.ID,
+			&i.TransactionDate,
+			&i.TransactionType,
+			&i.AmountCents,
+			&i.SimulationID,
+			&i.Contest,
+			&i.Description,
+			&i.MetadataJson,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPrizeRule = `-- name: GetPrizeRule :one
+SELECT id, contest, prize_type, amount_cents, winners, total_collected_cents, notes FROM prize_rules
+WHERE contest = ? AND prize_type = ?
+LIMIT 1
+`
+
+type GetPrizeRuleParams struct {
+	Contest   int64  `json:"contest"`
+	PrizeType string `json:"prize_type"`
+}
+
+func (q *Queries) GetPrizeRule(ctx context.Context, arg GetPrizeRuleParams) (PrizeRule, error) {
+	row := q.db.QueryRowContext(ctx, getPrizeRule, arg.Contest, arg.PrizeType)
+	var i PrizeRule
+	err := row.Scan(
+		&i.ID,
+		&i.Contest,
+		&i.PrizeType,
+		&i.AmountCents,
+		&i.Winners,
+		&i.TotalCollectedCents,
+		&i.Notes,
+	)
+	return i, err
+}
+
+const getSimulationFinances = `-- name: GetSimulationFinances :one
+SELECT id, simulation_id, total_bets, total_cost_cents, total_prizes_cents, net_profit_cents, roi_percentage, break_even_contest, best_prize_cents, best_prize_contest, quina_wins, quadra_wins, terno_wins, updated_at FROM simulation_finances
+WHERE simulation_id = ?
+LIMIT 1
+`
+
+func (q *Queries) GetSimulationFinances(ctx context.Context, simulationID int64) (SimulationFinance, error) {
+	row := q.db.QueryRowContext(ctx, getSimulationFinances, simulationID)
+	var i SimulationFinance
+	err := row.Scan(
+		&i.ID,
+		&i.SimulationID,
+		&i.TotalBets,
+		&i.TotalCostCents,
+		&i.TotalPrizesCents,
+		&i.NetProfitCents,
+		&i.RoiPercentage,
+		&i.BreakEvenContest,
+		&i.BestPrizeCents,
+		&i.BestPrizeContest,
+		&i.QuinaWins,
+		&i.QuadraWins,
+		&i.TernoWins,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listPrizeRules = `-- name: ListPrizeRules :many
+SELECT id, contest, prize_type, amount_cents, winners, total_collected_cents, notes FROM prize_rules
+WHERE contest >= ? AND contest <= ?
+ORDER BY contest DESC, prize_type ASC
+`
+
+type ListPrizeRulesParams struct {
+	Contest   int64 `json:"contest"`
+	Contest_2 int64 `json:"contest_2"`
+}
+
+func (q *Queries) ListPrizeRules(ctx context.Context, arg ListPrizeRulesParams) ([]PrizeRule, error) {
+	rows, err := q.db.QueryContext(ctx, listPrizeRules, arg.Contest, arg.Contest_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PrizeRule
+	for rows.Next() {
+		var i PrizeRule
+		if err := rows.Scan(
+			&i.ID,
+			&i.Contest,
+			&i.PrizeType,
+			&i.AmountCents,
+			&i.Winners,
+			&i.TotalCollectedCents,
+			&i.Notes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTopSimulationsByROI = `-- name: ListTopSimulationsByROI :many
+SELECT sf.id, sf.simulation_id, sf.total_bets, sf.total_cost_cents, sf.total_prizes_cents, sf.net_profit_cents, sf.roi_percentage, sf.break_even_contest, sf.best_prize_cents, sf.best_prize_contest, sf.quina_wins, sf.quadra_wins, sf.terno_wins, sf.updated_at, s.recipe_name, s.mode
+FROM simulation_finances sf
+JOIN simulations s ON sf.simulation_id = s.id
+WHERE s.status = 'completed'
+ORDER BY sf.roi_percentage DESC
+LIMIT ? OFFSET ?
+`
+
+type ListTopSimulationsByROIParams struct {
 	Limit  int64 `json:"limit"`
 	Offset int64 `json:"offset"`
 }
 
-func (q *Queries) ListLedgerEntries(ctx context.Context, arg ListLedgerEntriesParams) ([]Ledger, error) {
-	rows, err := q.db.QueryContext(ctx, listLedgerEntries, arg.Limit, arg.Offset)
+type ListTopSimulationsByROIRow struct {
+	ID               int64          `json:"id"`
+	SimulationID     int64          `json:"simulation_id"`
+	TotalBets        int64          `json:"total_bets"`
+	TotalCostCents   int64          `json:"total_cost_cents"`
+	TotalPrizesCents int64          `json:"total_prizes_cents"`
+	NetProfitCents   int64          `json:"net_profit_cents"`
+	RoiPercentage    float64        `json:"roi_percentage"`
+	BreakEvenContest sql.NullInt64  `json:"break_even_contest"`
+	BestPrizeCents   sql.NullInt64  `json:"best_prize_cents"`
+	BestPrizeContest sql.NullInt64  `json:"best_prize_contest"`
+	QuinaWins        sql.NullInt64  `json:"quina_wins"`
+	QuadraWins       sql.NullInt64  `json:"quadra_wins"`
+	TernoWins        sql.NullInt64  `json:"terno_wins"`
+	UpdatedAt        sql.NullString `json:"updated_at"`
+	RecipeName       sql.NullString `json:"recipe_name"`
+	Mode             string         `json:"mode"`
+}
+
+func (q *Queries) ListTopSimulationsByROI(ctx context.Context, arg ListTopSimulationsByROIParams) ([]ListTopSimulationsByROIRow, error) {
+	rows, err := q.db.QueryContext(ctx, listTopSimulationsByROI, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Ledger
+	var items []ListTopSimulationsByROIRow
 	for rows.Next() {
-		var i Ledger
+		var i ListTopSimulationsByROIRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Account,
-			&i.AmountCents,
-			&i.Currency,
-			&i.Description,
-			&i.CreatedAt,
+			&i.SimulationID,
+			&i.TotalBets,
+			&i.TotalCostCents,
+			&i.TotalPrizesCents,
+			&i.NetProfitCents,
+			&i.RoiPercentage,
+			&i.BreakEvenContest,
+			&i.BestPrizeCents,
+			&i.BestPrizeContest,
+			&i.QuinaWins,
+			&i.QuadraWins,
+			&i.TernoWins,
+			&i.UpdatedAt,
+			&i.RecipeName,
+			&i.Mode,
 		); err != nil {
 			return nil, err
 		}
@@ -118,58 +694,156 @@ func (q *Queries) ListLedgerEntries(ctx context.Context, arg ListLedgerEntriesPa
 	return items, nil
 }
 
-const listLedgerForAccount = `-- name: ListLedgerForAccount :many
-SELECT id, account, amount_cents, currency, description, created_at FROM ledger WHERE account = ? ORDER BY created_at DESC LIMIT ? OFFSET ?
+const updateAllocationSpent = `-- name: UpdateAllocationSpent :exec
+UPDATE budget_allocations
+SET spent_cents = ?
+WHERE id = ?
 `
 
-type ListLedgerForAccountParams struct {
-	Account string `json:"account"`
-	Limit   int64  `json:"limit"`
-	Offset  int64  `json:"offset"`
+type UpdateAllocationSpentParams struct {
+	SpentCents sql.NullInt64 `json:"spent_cents"`
+	ID         int64         `json:"id"`
 }
 
-func (q *Queries) ListLedgerForAccount(ctx context.Context, arg ListLedgerForAccountParams) ([]Ledger, error) {
-	rows, err := q.db.QueryContext(ctx, listLedgerForAccount, arg.Account, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Ledger
-	for rows.Next() {
-		var i Ledger
-		if err := rows.Scan(
-			&i.ID,
-			&i.Account,
-			&i.AmountCents,
-			&i.Currency,
-			&i.Description,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) UpdateAllocationSpent(ctx context.Context, arg UpdateAllocationSpentParams) error {
+	_, err := q.db.ExecContext(ctx, updateAllocationSpent, arg.SpentCents, arg.ID)
+	return err
 }
 
-const sumLedgerBetweenDates = `-- name: SumLedgerBetweenDates :one
-SELECT SUM(amount_cents) FROM ledger WHERE created_at BETWEEN ? AND ?
+const updateBudgetSpent = `-- name: UpdateBudgetSpent :exec
+UPDATE budgets
+SET spent_cents = ?,
+    remaining_cents = total_amount_cents - ?,
+    status = CASE
+        WHEN total_amount_cents - ? <= 0 THEN 'exhausted'
+        WHEN ? > end_date THEN 'expired'
+        ELSE 'active'
+    END,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = ?
 `
 
-type SumLedgerBetweenDatesParams struct {
-	FromCreatedAt string `json:"from_created_at"`
-	ToCreatedAt   string `json:"to_created_at"`
+type UpdateBudgetSpentParams struct {
+	SpentCents         sql.NullInt64  `json:"spent_cents"`
+	TotalAmountCents   int64          `json:"total_amount_cents"`
+	TotalAmountCents_2 int64          `json:"total_amount_cents_2"`
+	EndDate            sql.NullString `json:"end_date"`
+	ID                 int64          `json:"id"`
 }
 
-func (q *Queries) SumLedgerBetweenDates(ctx context.Context, arg SumLedgerBetweenDatesParams) (sql.NullFloat64, error) {
-	row := q.db.QueryRowContext(ctx, sumLedgerBetweenDates, arg.FromCreatedAt, arg.ToCreatedAt)
-	var sum sql.NullFloat64
-	err := row.Scan(&sum)
-	return sum, err
+func (q *Queries) UpdateBudgetSpent(ctx context.Context, arg UpdateBudgetSpentParams) error {
+	_, err := q.db.ExecContext(ctx, updateBudgetSpent,
+		arg.SpentCents,
+		arg.TotalAmountCents,
+		arg.TotalAmountCents_2,
+		arg.EndDate,
+		arg.ID,
+	)
+	return err
+}
+
+const updateContestBetPrize = `-- name: UpdateContestBetPrize :exec
+UPDATE contest_bets
+SET hits = ?, prize_type = ?, prize_cents = ?
+WHERE id = ?
+`
+
+type UpdateContestBetPrizeParams struct {
+	Hits       sql.NullInt64  `json:"hits"`
+	PrizeType  sql.NullString `json:"prize_type"`
+	PrizeCents sql.NullInt64  `json:"prize_cents"`
+	ID         int64          `json:"id"`
+}
+
+func (q *Queries) UpdateContestBetPrize(ctx context.Context, arg UpdateContestBetPrizeParams) error {
+	_, err := q.db.ExecContext(ctx, updateContestBetPrize,
+		arg.Hits,
+		arg.PrizeType,
+		arg.PrizeCents,
+		arg.ID,
+	)
+	return err
+}
+
+const updateSimulationFinances = `-- name: UpdateSimulationFinances :exec
+UPDATE simulation_finances
+SET total_bets = ?,
+    total_cost_cents = ?,
+    total_prizes_cents = ?,
+    net_profit_cents = ?,
+    roi_percentage = ?,
+    break_even_contest = ?,
+    best_prize_cents = ?,
+    best_prize_contest = ?,
+    quina_wins = ?,
+    quadra_wins = ?,
+    terno_wins = ?,
+    updated_at = CURRENT_TIMESTAMP
+WHERE simulation_id = ?
+`
+
+type UpdateSimulationFinancesParams struct {
+	TotalBets        int64         `json:"total_bets"`
+	TotalCostCents   int64         `json:"total_cost_cents"`
+	TotalPrizesCents int64         `json:"total_prizes_cents"`
+	NetProfitCents   int64         `json:"net_profit_cents"`
+	RoiPercentage    float64       `json:"roi_percentage"`
+	BreakEvenContest sql.NullInt64 `json:"break_even_contest"`
+	BestPrizeCents   sql.NullInt64 `json:"best_prize_cents"`
+	BestPrizeContest sql.NullInt64 `json:"best_prize_contest"`
+	QuinaWins        sql.NullInt64 `json:"quina_wins"`
+	QuadraWins       sql.NullInt64 `json:"quadra_wins"`
+	TernoWins        sql.NullInt64 `json:"terno_wins"`
+	SimulationID     int64         `json:"simulation_id"`
+}
+
+func (q *Queries) UpdateSimulationFinances(ctx context.Context, arg UpdateSimulationFinancesParams) error {
+	_, err := q.db.ExecContext(ctx, updateSimulationFinances,
+		arg.TotalBets,
+		arg.TotalCostCents,
+		arg.TotalPrizesCents,
+		arg.NetProfitCents,
+		arg.RoiPercentage,
+		arg.BreakEvenContest,
+		arg.BestPrizeCents,
+		arg.BestPrizeContest,
+		arg.QuinaWins,
+		arg.QuadraWins,
+		arg.TernoWins,
+		arg.SimulationID,
+	)
+	return err
+}
+
+const upsertPrizeRule = `-- name: UpsertPrizeRule :exec
+INSERT INTO prize_rules (
+    contest, prize_type, amount_cents, winners, total_collected_cents, notes
+) VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT(contest, prize_type) DO UPDATE SET
+    amount_cents = excluded.amount_cents,
+    winners = excluded.winners,
+    total_collected_cents = excluded.total_collected_cents,
+    notes = excluded.notes
+`
+
+type UpsertPrizeRuleParams struct {
+	Contest             int64          `json:"contest"`
+	PrizeType           string         `json:"prize_type"`
+	AmountCents         int64          `json:"amount_cents"`
+	Winners             sql.NullInt64  `json:"winners"`
+	TotalCollectedCents sql.NullInt64  `json:"total_collected_cents"`
+	Notes               sql.NullString `json:"notes"`
+}
+
+// Prize rules
+func (q *Queries) UpsertPrizeRule(ctx context.Context, arg UpsertPrizeRuleParams) error {
+	_, err := q.db.ExecContext(ctx, upsertPrizeRule,
+		arg.Contest,
+		arg.PrizeType,
+		arg.AmountCents,
+		arg.Winners,
+		arg.TotalCollectedCents,
+		arg.Notes,
+	)
+	return err
 }

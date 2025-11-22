@@ -10,14 +10,37 @@ import (
 )
 
 type Querier interface {
-	GetAccountBalance(ctx context.Context, account string) (FinancialSummary, error)
-	// schema: migrations/004_create_finances.sql
-	GetLedgerEntry(ctx context.Context, id int64) (Ledger, error)
-	// NOTE: ledger table used in production migration. The view `financial_summary` provides balances by account.
-	InsertLedgerEntry(ctx context.Context, arg InsertLedgerEntryParams) (Ledger, error)
-	ListLedgerEntries(ctx context.Context, arg ListLedgerEntriesParams) ([]Ledger, error)
-	ListLedgerForAccount(ctx context.Context, arg ListLedgerForAccountParams) ([]Ledger, error)
-	SumLedgerBetweenDates(ctx context.Context, arg SumLedgerBetweenDatesParams) (sql.NullFloat64, error)
+	AllocateBudget(ctx context.Context, arg AllocateBudgetParams) (BudgetAllocation, error)
+	// Bet costs
+	CreateBetCost(ctx context.Context, arg CreateBetCostParams) (BetCost, error)
+	// Budgets
+	CreateBudget(ctx context.Context, arg CreateBudgetParams) (Budget, error)
+	// Contest bets
+	CreateContestBet(ctx context.Context, arg CreateContestBetParams) (ContestBet, error)
+	// Financial database queries for comprehensive financial tracking
+	// Schema: migrations/004_create_finances.sql
+	// Ledger operations
+	CreateLedgerEntry(ctx context.Context, arg CreateLedgerEntryParams) (LedgerEntry, error)
+	// Simulation finances
+	CreateSimulationFinances(ctx context.Context, arg CreateSimulationFinancesParams) (SimulationFinance, error)
+	GetActiveBetCost(ctx context.Context, arg GetActiveBetCostParams) (BetCost, error)
+	GetBudget(ctx context.Context, id int64) (Budget, error)
+	GetBudgetAllocations(ctx context.Context, budgetID int64) ([]BudgetAllocation, error)
+	GetContestBetByContest(ctx context.Context, arg GetContestBetByContestParams) (ContestBet, error)
+	GetContestBets(ctx context.Context, simulationID int64) ([]ContestBet, error)
+	GetLedgerBalance(ctx context.Context, simulationID sql.NullInt64) (interface{}, error)
+	GetLedgerByDateRange(ctx context.Context, arg GetLedgerByDateRangeParams) ([]LedgerEntry, error)
+	GetLedgerEntries(ctx context.Context, arg GetLedgerEntriesParams) ([]LedgerEntry, error)
+	GetPrizeRule(ctx context.Context, arg GetPrizeRuleParams) (PrizeRule, error)
+	GetSimulationFinances(ctx context.Context, simulationID int64) (SimulationFinance, error)
+	ListPrizeRules(ctx context.Context, arg ListPrizeRulesParams) ([]PrizeRule, error)
+	ListTopSimulationsByROI(ctx context.Context, arg ListTopSimulationsByROIParams) ([]ListTopSimulationsByROIRow, error)
+	UpdateAllocationSpent(ctx context.Context, arg UpdateAllocationSpentParams) error
+	UpdateBudgetSpent(ctx context.Context, arg UpdateBudgetSpentParams) error
+	UpdateContestBetPrize(ctx context.Context, arg UpdateContestBetPrizeParams) error
+	UpdateSimulationFinances(ctx context.Context, arg UpdateSimulationFinancesParams) error
+	// Prize rules
+	UpsertPrizeRule(ctx context.Context, arg UpsertPrizeRuleParams) error
 }
 
 var _ Querier = (*Queries)(nil)
