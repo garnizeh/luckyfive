@@ -54,7 +54,7 @@ func (e *APIError) HTTPStatusCode() int {
 	switch e.Code {
 	case "method_not_allowed":
 		return http.StatusMethodNotAllowed
-	case "invalid_json", "invalid_form", "no_file", "missing_artifact_id", "missing_contest", "invalid_contest", "invalid_limit", "invalid_offset", "invalid_request", "invalid_simulation_id", "invalid_config_id", "invalid_sweep_config_id":
+	case "invalid_json", "invalid_form", "no_file", "missing_artifact_id", "missing_contest", "invalid_contest", "invalid_limit", "invalid_offset", "invalid_request", "invalid_simulation_id", "invalid_config_id", "invalid_sweep_config_id", "invalid_id", "invalid_comparison_id", "invalid_metric", "invalid_sweep_id", "find_best_failed", "get_visualization_failed":
 		return http.StatusBadRequest
 	case "upload_failed", "import_failed", "get_draw_failed", "list_draws_failed", "simulation_creation_failed", "simulation_cancel_failed", "config_creation_failed", "config_update_failed", "config_delete_failed", "simulation_not_found", "preset_not_found":
 		return http.StatusInternalServerError

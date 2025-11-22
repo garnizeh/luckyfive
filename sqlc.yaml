@@ -59,3 +59,13 @@ sql:
         out: "internal/store/sweep_execution"
         emit_interface: true
         emit_json_tags: true
+
+  - schema: ["migrations/002_create_simulations.sql", "migrations/008_create_comparisons.sql"]
+    queries: "internal/store/queries/comparisons.sql"
+    engine: "sqlite"
+    gen:
+      go:
+        package: "comparisons"
+        out: "internal/store/comparisons"
+        emit_interface: true
+        emit_json_tags: true

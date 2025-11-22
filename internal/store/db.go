@@ -7,10 +7,12 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	"github.com/garnizeh/luckyfive/internal/store/comparisons"
 	"github.com/garnizeh/luckyfive/internal/store/configs"
 	"github.com/garnizeh/luckyfive/internal/store/finances"
-	resultsStore "github.com/garnizeh/luckyfive/internal/store/results"
+	"github.com/garnizeh/luckyfive/internal/store/results"
 	"github.com/garnizeh/luckyfive/internal/store/simulations"
+	sweepExecution "github.com/garnizeh/luckyfive/internal/store/sweep_execution"
 	"github.com/garnizeh/luckyfive/internal/store/sweeps"
 )
 
@@ -23,11 +25,13 @@ type DB struct {
 	SweepsDB      *sql.DB
 
 	// Querier interfaces (mockable)
-	Results     resultsStore.Querier
-	Simulations simulations.Querier
-	Configs     configs.Querier
-	Finances    finances.Querier
-	Sweeps      sweeps.Querier
+	Results        results.Querier
+	Simulations    simulations.Querier
+	Configs        configs.Querier
+	Finances       finances.Querier
+	Sweeps         sweeps.Querier
+	SweepExecution sweepExecution.Querier
+	Comparisons    comparisons.Querier
 }
 
 // Config holds the paths for each database.
@@ -53,7 +57,7 @@ func Open(cfg Config) (*DB, error) {
 		return nil, fmt.Errorf("ping results db: %w", err)
 	}
 	db.ResultsDB = resultsDB
-	db.Results = resultsStore.New(resultsDB)
+	db.Results = results.New(resultsDB)
 
 	// Open Simulations DB
 	simulationsDB, err := sql.Open("sqlite", cfg.SimulationsPath)
@@ -68,6 +72,8 @@ func Open(cfg Config) (*DB, error) {
 	}
 	db.SimulationsDB = simulationsDB
 	db.Simulations = simulations.New(simulationsDB)
+	db.Comparisons = comparisons.New(simulationsDB)
+	db.SweepExecution = sweepExecution.New(simulationsDB)
 
 	// Open Configs DB
 	configsDB, err := sql.Open("sqlite", cfg.ConfigsPath)
@@ -190,14 +196,14 @@ func (db *DB) Close() error {
 }
 
 // WithResultsTx executes a function within a results DB transaction using a querier.
-func (db *DB) WithResultsTx(ctx context.Context, fn func(resultsStore.Querier) error) error {
+func (db *DB) WithResultsTx(ctx context.Context, fn func(results.Querier) error) error {
 	tx, err := db.ResultsDB.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin results tx: %w", err)
 	}
 	defer tx.Rollback()
 
-	q := resultsStore.New(tx)
+	q := results.New(tx)
 	if err := fn(q); err != nil {
 		return err
 	}

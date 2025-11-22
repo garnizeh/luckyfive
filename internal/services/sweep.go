@@ -12,6 +12,14 @@ import (
 	"github.com/garnizeh/luckyfive/pkg/sweep"
 )
 
+type SweepServicer interface {
+	CreateSweep(ctx context.Context, req CreateSweepRequest) (*sweep_execution.SweepJob, error)
+	GetSweepStatus(ctx context.Context, sweepID int64) (*SweepStatus, error)
+	UpdateSweepProgress(ctx context.Context, sweepID int64) error
+	FindBest(ctx context.Context, sweepID int64, metric string) (*BestConfiguration, error)
+	GetVisualizationData(ctx context.Context, sweepID int64, metrics []string) (*VisualizationData, error)
+}
+
 type SweepService struct {
 	sweepExecutionQueries sweep_execution.Querier
 	simulationsDB         *sql.DB
@@ -52,6 +60,28 @@ type SweepStatus struct {
 	Failed      int
 	Pending     int
 	Simulations []sweep_execution.GetSweepSimulationDetailsRow
+}
+
+type BestConfiguration struct {
+	SweepID         int64                  `json:"sweep_id"`
+	SimulationID    int64                  `json:"simulation_id"`
+	Recipe          Recipe                 `json:"recipe"`
+	Metrics         map[string]float64     `json:"metrics"`
+	Rank            int                    `json:"rank"`
+	Percentile      float64                `json:"percentile"`
+	VariationParams map[string]interface{} `json:"variation_params"`
+}
+
+type VisualizationData struct {
+	SweepID    int64                    `json:"sweep_id"`
+	Parameters []string                 `json:"parameters"`
+	Metrics    []string                 `json:"metrics"`
+	DataPoints []VisualizationDataPoint `json:"data_points"`
+}
+
+type VisualizationDataPoint struct {
+	Params  map[string]interface{} `json:"params"`
+	Metrics map[string]float64     `json:"metrics"`
 }
 
 func (s *SweepService) CreateSweep(
@@ -264,4 +294,225 @@ func (s *SweepService) UpdateSweepProgress(ctx context.Context, sweepID int64) e
 	}
 
 	return nil
+}
+
+func (s *SweepService) FindBest(
+	ctx context.Context,
+	sweepID int64,
+	metric string,
+) (*BestConfiguration, error) {
+	// Validate metric
+	if !s.isValidMetric(metric) {
+		return nil, fmt.Errorf("invalid metric: %s", metric)
+	}
+
+	// Get sweep status to ensure it exists and get simulation details
+	status, err := s.GetSweepStatus(ctx, sweepID)
+	if err != nil {
+		return nil, fmt.Errorf("get sweep status: %w", err)
+	}
+
+	if status.Sweep.Status != "completed" {
+		return nil, fmt.Errorf("sweep %d is not completed (status: %s)", sweepID, status.Sweep.Status)
+	}
+
+	// Calculate metrics for all completed simulations
+	type simResult struct {
+		simulationID    int64
+		variationParams map[string]interface{}
+		metrics         map[string]float64
+	}
+
+	results := make([]simResult, 0, len(status.Simulations))
+
+	for _, sim := range status.Simulations {
+		if sim.Status != "completed" || !sim.SummaryJson.Valid {
+			continue
+		}
+
+		var summary Summary
+		if err := json.Unmarshal([]byte(sim.SummaryJson.String), &summary); err != nil {
+			s.logger.Error("failed to unmarshal summary", "simulation_id", sim.SimulationID, "error", err)
+			continue
+		}
+
+		// Parse variation params
+		var variationParams map[string]interface{}
+		if err := json.Unmarshal([]byte(sim.VariationParams), &variationParams); err != nil {
+			s.logger.Error("failed to unmarshal variation params", "simulation_id", sim.SimulationID, "error", err)
+			continue
+		}
+
+		// Calculate all metrics
+		metrics := s.calculateMetrics(&summary)
+
+		results = append(results, simResult{
+			simulationID:    sim.SimulationID,
+			variationParams: variationParams,
+			metrics:         metrics,
+		})
+	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no completed simulations found in sweep %d", sweepID)
+	}
+
+	// Find the best result for the specified metric
+	bestIndex := 0
+	bestValue := results[0].metrics[metric]
+
+	for i := 1; i < len(results); i++ {
+		if results[i].metrics[metric] > bestValue {
+			bestValue = results[i].metrics[metric]
+			bestIndex = i
+		}
+	}
+
+	best := results[bestIndex]
+
+	// Calculate rank and percentile
+	rank := 1
+	for _, result := range results {
+		if result.metrics[metric] > best.metrics[metric] {
+			rank++
+		}
+	}
+
+	percentile := 100.0 * float64(len(results)-rank+1) / float64(len(results))
+
+	// Get the recipe for this simulation
+	simulation, err := s.simulationService.GetSimulation(ctx, best.simulationID)
+	if err != nil {
+		return nil, fmt.Errorf("get simulation %d: %w", best.simulationID, err)
+	}
+
+	var recipe Recipe
+	if err := json.Unmarshal([]byte(simulation.RecipeJson), &recipe); err != nil {
+		return nil, fmt.Errorf("unmarshal recipe: %w", err)
+	}
+
+	return &BestConfiguration{
+		SweepID:         sweepID,
+		SimulationID:    best.simulationID,
+		Recipe:          recipe,
+		Metrics:         best.metrics,
+		Rank:            rank,
+		Percentile:      percentile,
+		VariationParams: best.variationParams,
+	}, nil
+}
+
+func (s *SweepService) calculateMetrics(summary *Summary) map[string]float64 {
+	metrics := make(map[string]float64)
+
+	metrics["quina_rate"] = summary.HitRateQuina
+	metrics["quadra_rate"] = summary.HitRateQuadra
+	metrics["terno_rate"] = summary.HitRateTerno
+	metrics["avg_hits"] = summary.AverageHits
+	metrics["total_quinaz"] = float64(summary.QuinaHits)
+	metrics["total_quadras"] = float64(summary.QuadraHits)
+	metrics["total_ternos"] = float64(summary.TernoHits)
+
+	// Custom metrics
+	if summary.TotalContests > 0 {
+		metrics["hit_efficiency"] = summary.AverageHits / float64(summary.TotalContests)
+	} else {
+		metrics["hit_efficiency"] = 0
+	}
+
+	return metrics
+}
+
+func (s *SweepService) isValidMetric(metric string) bool {
+	validMetrics := map[string]bool{
+		"quina_rate":     true,
+		"quadra_rate":    true,
+		"terno_rate":     true,
+		"avg_hits":       true,
+		"total_quinaz":   true,
+		"total_quadras":  true,
+		"total_ternos":   true,
+		"hit_efficiency": true,
+	}
+	return validMetrics[metric]
+}
+
+func (s *SweepService) GetVisualizationData(
+	ctx context.Context,
+	sweepID int64,
+	metrics []string,
+) (*VisualizationData, error) {
+	// Validate metrics
+	for _, metric := range metrics {
+		if !s.isValidMetric(metric) {
+			return nil, fmt.Errorf("invalid metric: %s", metric)
+		}
+	}
+
+	// If no metrics specified, use defaults
+	if len(metrics) == 0 {
+		metrics = []string{"quina_rate", "avg_hits"}
+	}
+
+	// Get sweep status to ensure it exists and get simulation details
+	status, err := s.GetSweepStatus(ctx, sweepID)
+	if err != nil {
+		return nil, fmt.Errorf("get sweep status: %w", err)
+	}
+
+	// Parse sweep config to get parameter names
+	var sweepConfig sweep.SweepConfig
+	if err := json.Unmarshal([]byte(status.Sweep.SweepConfigJson), &sweepConfig); err != nil {
+		return nil, fmt.Errorf("unmarshal sweep config: %w", err)
+	}
+
+	// Extract parameter names
+	parameters := make([]string, 0, len(sweepConfig.Parameters))
+	for _, param := range sweepConfig.Parameters {
+		parameters = append(parameters, param.Name)
+	}
+
+	// Collect data points from completed simulations
+	dataPoints := make([]VisualizationDataPoint, 0, len(status.Simulations))
+
+	for _, sim := range status.Simulations {
+		if sim.Status != "completed" || !sim.SummaryJson.Valid {
+			continue
+		}
+
+		var summary Summary
+		if err := json.Unmarshal([]byte(sim.SummaryJson.String), &summary); err != nil {
+			s.logger.Error("failed to unmarshal summary", "simulation_id", sim.SimulationID, "error", err)
+			continue
+		}
+
+		// Parse variation params
+		var variationParams map[string]interface{}
+		if err := json.Unmarshal([]byte(sim.VariationParams), &variationParams); err != nil {
+			s.logger.Error("failed to unmarshal variation params", "simulation_id", sim.SimulationID, "error", err)
+			continue
+		}
+
+		// Calculate requested metrics
+		pointMetrics := make(map[string]float64)
+		allMetrics := s.calculateMetrics(&summary)
+
+		for _, metric := range metrics {
+			if value, exists := allMetrics[metric]; exists {
+				pointMetrics[metric] = value
+			}
+		}
+
+		dataPoints = append(dataPoints, VisualizationDataPoint{
+			Params:  variationParams,
+			Metrics: pointMetrics,
+		})
+	}
+
+	return &VisualizationData{
+		SweepID:    sweepID,
+		Parameters: parameters,
+		Metrics:    metrics,
+		DataPoints: dataPoints,
+	}, nil
 }

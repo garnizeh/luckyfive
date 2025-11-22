@@ -82,7 +82,7 @@ func (s *ImportService) ParseXLSX(reader io.Reader, sheet string) ([]models.Draw
 			continue // Skip empty rows
 		}
 
-		draw, err := s.parseRow(row, mapping, i+2) // +2 because Excel is 1-indexed and we skip header
+		draw, err := s.parseRow(row, mapping)
 		if err != nil {
 			s.logger.Warn("Skipping invalid row", "row", i+2, "error", err)
 			continue
@@ -106,7 +106,7 @@ func (s *ImportService) ParseXLSX(reader io.Reader, sheet string) ([]models.Draw
 }
 
 // parseRow parses a single row into a Draw struct
-func (s *ImportService) parseRow(row []string, mapping models.ColumnMapping, rowNum int) (models.Draw, error) {
+func (s *ImportService) parseRow(row []string, mapping models.ColumnMapping) (models.Draw, error) {
 	draw := models.Draw{}
 
 	// Parse contest number

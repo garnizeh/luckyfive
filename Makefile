@@ -51,6 +51,7 @@ mock-generate: sqlc-generate
 	@echo "Generating mocks..."
 	@mockgen -source=internal/store/results/querier.go -destination=internal/store/results/mock/querier.go -package=mock
 	@mockgen -source=internal/store/simulations/querier.go -destination=internal/store/simulations/mock/querier.go -package=mock
+	@mockgen -source=internal/store/comparisons/querier.go -destination=internal/store/comparisons/mock/querier.go -package=mock
 	@mockgen -source=internal/store/configs/querier.go -destination=internal/store/configs/mock/querier.go -package=mock
 	@mockgen -source=internal/store/finances/querier.go -destination=internal/store/finances/mock/querier.go -package=mock
 	@mockgen -source=internal/store/sweeps/querier.go -destination=internal/store/sweeps/mock/querier.go -package=mock

@@ -208,3 +208,380 @@ func TestSweepService_GetSweepStatus(t *testing.T) {
 		t.Errorf("Expected pending 1, got %d", status.Pending)
 	}
 }
+
+func TestSweepService_GetVisualizationData(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create in-memory DB for testing
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("Failed to open test DB: %v", err)
+	}
+	defer db.Close()
+
+	// Create required tables
+	_, err = db.Exec(`
+		CREATE TABLE sweep_jobs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT,
+			sweep_config_json TEXT NOT NULL,
+			base_contest_range TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+			total_combinations INTEGER NOT NULL,
+			completed_simulations INTEGER DEFAULT 0,
+			failed_simulations INTEGER DEFAULT 0,
+			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			finished_at TEXT,
+			run_duration_ms INTEGER,
+			created_by TEXT
+		);
+		CREATE TABLE sweep_simulations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			sweep_job_id INTEGER NOT NULL,
+			simulation_id INTEGER NOT NULL,
+			variation_index INTEGER NOT NULL,
+			variation_params TEXT NOT NULL
+		);
+		CREATE TABLE simulations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			finished_at TEXT,
+			status TEXT NOT NULL,
+			recipe_name TEXT,
+			recipe_json TEXT NOT NULL,
+			mode TEXT NOT NULL,
+			start_contest INTEGER NOT NULL,
+			end_contest INTEGER NOT NULL,
+			worker_id TEXT,
+			run_duration_ms INTEGER,
+			summary_json TEXT,
+			output_blob BLOB,
+			output_name TEXT,
+			log_blob BLOB,
+			error_message TEXT,
+			error_stack TEXT,
+			created_by TEXT
+		);
+	`)
+	if err != nil {
+		t.Fatalf("Failed to create tables: %v", err)
+	}
+
+	// Insert test data
+	sweepConfig := `{
+		"name": "test_sweep",
+		"parameters": [
+			{"name": "alpha", "type": "range", "values": {"min": 0.0, "max": 1.0, "step": 0.1}},
+			{"name": "beta", "type": "range", "values": {"min": 0.0, "max": 1.0, "step": 0.1}}
+		]
+	}`
+
+	_, err = db.Exec(`
+		INSERT INTO sweep_jobs (id, name, sweep_config_json, base_contest_range, status, total_combinations)
+		VALUES (1, 'test_sweep', ?, '1-100', 'completed', 2)
+	`, sweepConfig)
+	if err != nil {
+		t.Fatalf("Failed to insert sweep job: %v", err)
+	}
+
+	// Insert test simulations
+	_, err = db.Exec(`
+		INSERT INTO simulations (id, status, recipe_json, summary_json, mode, start_contest, end_contest)
+		VALUES (1, 'completed', '{"version":"1.0","name":"test","parameters":{}}', '{"hitRateQuina":0.05,"hitRateQuadra":0.1,"hitRateTerno":0.2,"averageHits":2.3,"quinaHits":5,"quadraHits":10,"ternoHits":20,"totalContests":100}', 'historical', 1, 100)
+	`)
+	if err != nil {
+		t.Fatalf("Failed to insert simulation 1: %v", err)
+	}
+
+	_, err = db.Exec(`
+		INSERT INTO simulations (id, status, recipe_json, summary_json, mode, start_contest, end_contest)
+		VALUES (2, 'completed', '{"version":"1.0","name":"test","parameters":{}}', '{"hitRateQuina":0.03,"hitRateQuadra":0.08,"hitRateTerno":0.15,"averageHits":1.8,"quinaHits":3,"quadraHits":8,"ternoHits":15,"totalContests":100}', 'historical', 1, 100)
+	`)
+	if err != nil {
+		t.Fatalf("Failed to insert simulation 2: %v", err)
+	}
+
+	// Insert sweep simulations
+	_, err = db.Exec(`
+		INSERT INTO sweep_simulations (sweep_job_id, simulation_id, variation_index, variation_params)
+		VALUES (1, 1, 0, '{"alpha":0.1,"beta":0.2}')
+	`)
+	if err != nil {
+		t.Fatalf("Failed to insert sweep simulation 1: %v", err)
+	}
+
+	_, err = db.Exec(`
+		INSERT INTO sweep_simulations (sweep_job_id, simulation_id, variation_index, variation_params)
+		VALUES (1, 2, 1, '{"alpha":0.2,"beta":0.3}')
+	`)
+	if err != nil {
+		t.Fatalf("Failed to insert sweep simulation 2: %v", err)
+	}
+
+	// Create service
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	sweepQueries := sweep_execution.New(db)
+
+	mockSimSvc := NewMockSimulationServicer(ctrl)
+	mockSimSvc.EXPECT().GetSimulation(gomock.Any(), int64(1)).Return(&simulations.Simulation{
+		ID:         1,
+		Status:     "completed",
+		RecipeJson: `{"version":"1.0","name":"test","parameters":{}}`,
+		SummaryJson: sql.NullString{
+			String: `{"hitRateQuina":0.05,"hitRateQuadra":0.1,"hitRateTerno":0.2,"averageHits":2.3,"quinaHits":5,"quadraHits":10,"ternoHits":20,"totalContests":100}`,
+			Valid:  true,
+		},
+	}, nil).AnyTimes()
+
+	mockSimSvc.EXPECT().GetSimulation(gomock.Any(), int64(2)).Return(&simulations.Simulation{
+		ID:         2,
+		Status:     "completed",
+		RecipeJson: `{"version":"1.0","name":"test","parameters":{}}`,
+		SummaryJson: sql.NullString{
+			String: `{"hitRateQuina":0.03,"hitRateQuadra":0.08,"hitRateTerno":0.15,"averageHits":1.8,"quinaHits":3,"quadraHits":8,"ternoHits":15,"totalContests":100}`,
+			Valid:  true,
+		},
+	}, nil).AnyTimes()
+
+	svc := NewSweepService(sweepQueries, db, mockSimSvc, logger)
+
+	// Test with specific metrics
+	data, err := svc.GetVisualizationData(context.Background(), 1, []string{"quina_rate", "avg_hits"})
+	if err != nil {
+		t.Fatalf("GetVisualizationData failed: %v", err)
+	}
+
+	if data.SweepID != 1 {
+		t.Errorf("Expected sweep ID 1, got %d", data.SweepID)
+	}
+
+	if len(data.Parameters) != 2 {
+		t.Errorf("Expected 2 parameters, got %d", len(data.Parameters))
+	}
+
+	if data.Parameters[0] != "alpha" || data.Parameters[1] != "beta" {
+		t.Errorf("Expected parameters [alpha, beta], got %v", data.Parameters)
+	}
+
+	if len(data.Metrics) != 2 {
+		t.Errorf("Expected 2 metrics, got %d", len(data.Metrics))
+	}
+
+	if len(data.DataPoints) != 2 {
+		t.Errorf("Expected 2 data points, got %d", len(data.DataPoints))
+	}
+
+	// Check first data point
+	point1 := data.DataPoints[0]
+	if point1.Params["alpha"] != 0.1 || point1.Params["beta"] != 0.2 {
+		t.Errorf("Expected params {alpha:0.1, beta:0.2}, got %v", point1.Params)
+	}
+
+	if point1.Metrics["quina_rate"] != 0.05 || point1.Metrics["avg_hits"] != 2.3 {
+		t.Errorf("Expected metrics {quina_rate:0.05, avg_hits:2.3}, got %v", point1.Metrics)
+	}
+
+	// Check second data point
+	point2 := data.DataPoints[1]
+	if point2.Params["alpha"] != 0.2 || point2.Params["beta"] != 0.3 {
+		t.Errorf("Expected params {alpha:0.2, beta:0.3}, got %v", point2.Params)
+	}
+
+	if point2.Metrics["quina_rate"] != 0.03 || point2.Metrics["avg_hits"] != 1.8 {
+		t.Errorf("Expected metrics {quina_rate:0.03, avg_hits:1.8}, got %v", point2.Metrics)
+	}
+}
+
+func TestSweepService_GetVisualizationData_DefaultMetrics(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create in-memory DB for testing
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("Failed to open test DB: %v", err)
+	}
+	defer db.Close()
+
+	// Create required tables
+	_, err = db.Exec(`
+		CREATE TABLE sweep_jobs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT,
+			sweep_config_json TEXT NOT NULL,
+			base_contest_range TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+			total_combinations INTEGER NOT NULL,
+			completed_simulations INTEGER DEFAULT 0,
+			failed_simulations INTEGER DEFAULT 0,
+			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			finished_at TEXT,
+			run_duration_ms INTEGER,
+			created_by TEXT
+		);
+		CREATE TABLE sweep_simulations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			sweep_job_id INTEGER NOT NULL,
+			simulation_id INTEGER NOT NULL,
+			variation_index INTEGER NOT NULL,
+			variation_params TEXT NOT NULL
+		);
+		CREATE TABLE simulations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			finished_at TEXT,
+			status TEXT NOT NULL,
+			recipe_name TEXT,
+			recipe_json TEXT NOT NULL,
+			mode TEXT NOT NULL,
+			start_contest INTEGER NOT NULL,
+			end_contest INTEGER NOT NULL,
+			worker_id TEXT,
+			run_duration_ms INTEGER,
+			summary_json TEXT,
+			output_blob BLOB,
+			output_name TEXT,
+			log_blob BLOB,
+			error_message TEXT,
+			error_stack TEXT,
+			created_by TEXT
+		);
+	`)
+	if err != nil {
+		t.Fatalf("Failed to create tables: %v", err)
+	}
+
+	// Insert test data
+	sweepConfig := `{
+		"name": "test_sweep",
+		"parameters": [
+			{"name": "alpha", "type": "range", "values": {"min": 0.0, "max": 1.0, "step": 0.1}}
+		]
+	}`
+
+	_, err = db.Exec(`
+		INSERT INTO sweep_jobs (id, name, sweep_config_json, base_contest_range, status, total_combinations)
+		VALUES (1, 'test_sweep', ?, '1-100', 'completed', 1)
+	`, sweepConfig)
+	if err != nil {
+		t.Fatalf("Failed to insert sweep job: %v", err)
+	}
+
+	_, err = db.Exec(`
+		INSERT INTO simulations (id, status, recipe_json, summary_json, mode, start_contest, end_contest)
+		VALUES (1, 'completed', '{"version":"1.0","name":"test","parameters":{}}', '{"hitRateQuina":0.05,"hitRateQuadra":0.1,"hitRateTerno":0.2,"averageHits":2.3,"quinaHits":5,"quadraHits":10,"ternoHits":20,"totalContests":100}', 'historical', 1, 100)
+	`)
+	if err != nil {
+		t.Fatalf("Failed to insert simulation: %v", err)
+	}
+
+	_, err = db.Exec(`
+		INSERT INTO sweep_simulations (sweep_job_id, simulation_id, variation_index, variation_params)
+		VALUES (1, 1, 0, '{"alpha":0.1}')
+	`)
+	if err != nil {
+		t.Fatalf("Failed to insert sweep simulation: %v", err)
+	}
+
+	// Create service
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	sweepQueries := sweep_execution.New(db)
+
+	mockSimSvc := NewMockSimulationServicer(ctrl)
+	mockSimSvc.EXPECT().GetSimulation(gomock.Any(), int64(1)).Return(&simulations.Simulation{
+		ID:         1,
+		Status:     "completed",
+		RecipeJson: `{"version":"1.0","name":"test","parameters":{}}`,
+		SummaryJson: sql.NullString{
+			String: `{"hitRateQuina":0.05,"hitRateQuadra":0.1,"hitRateTerno":0.2,"averageHits":2.3,"quinaHits":5,"quadraHits":10,"ternoHits":20,"totalContests":100}`,
+			Valid:  true,
+		},
+	}, nil).AnyTimes()
+
+	svc := NewSweepService(sweepQueries, db, mockSimSvc, logger)
+
+	// Test with no metrics specified (should use defaults)
+	data, err := svc.GetVisualizationData(context.Background(), 1, []string{})
+	if err != nil {
+		t.Fatalf("GetVisualizationData failed: %v", err)
+	}
+
+	if len(data.Metrics) != 2 {
+		t.Errorf("Expected 2 default metrics, got %d", len(data.Metrics))
+	}
+
+	if data.Metrics[0] != "quina_rate" || data.Metrics[1] != "avg_hits" {
+		t.Errorf("Expected default metrics [quina_rate, avg_hits], got %v", data.Metrics)
+	}
+}
+
+func TestSweepService_GetVisualizationData_InvalidMetric(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create in-memory DB for testing
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("Failed to open test DB: %v", err)
+	}
+	defer db.Close()
+
+	// Create required tables
+	_, err = db.Exec(`
+		CREATE TABLE sweep_jobs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT,
+			sweep_config_json TEXT NOT NULL,
+			base_contest_range TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+			total_combinations INTEGER NOT NULL,
+			completed_simulations INTEGER DEFAULT 0,
+			failed_simulations INTEGER DEFAULT 0,
+			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			finished_at TEXT,
+			run_duration_ms INTEGER,
+			created_by TEXT
+		);
+	`)
+	if err != nil {
+		t.Fatalf("Failed to create tables: %v", err)
+	}
+
+	// Insert test data
+	sweepConfig := `{"name": "test_sweep", "parameters": []}`
+
+	_, err = db.Exec(`
+		INSERT INTO sweep_jobs (id, name, sweep_config_json, base_contest_range, status, total_combinations)
+		VALUES (1, 'test_sweep', ?, '1-100', 'completed', 0)
+	`, sweepConfig)
+	if err != nil {
+		t.Fatalf("Failed to insert sweep job: %v", err)
+	}
+
+	// Create service
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	sweepQueries := sweep_execution.New(db)
+
+	mockSimSvc := NewMockSimulationServicer(ctrl)
+
+	svc := NewSweepService(sweepQueries, db, mockSimSvc, logger)
+
+	// Test with invalid metric
+	_, err = svc.GetVisualizationData(context.Background(), 1, []string{"invalid_metric"})
+	if err == nil {
+		t.Error("Expected error for invalid metric, got nil")
+	}
+
+	if err.Error() != "invalid metric: invalid_metric" {
+		t.Errorf("Expected 'invalid metric: invalid_metric', got '%s'", err.Error())
+	}
+}

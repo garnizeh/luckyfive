@@ -24,6 +24,185 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/comparisons": {
+            "get": {
+                "description": "Get a paginated list of comparisons",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comparisons"
+                ],
+                "summary": "List comparisons",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum number of results",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of results to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of comparisons",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "comparisons": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "created_at": {
+                                                "type": "string"
+                                            },
+                                            "description": {
+                                                "type": "string"
+                                            },
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "metrics": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            },
+                                            "simulation_ids": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "limit": {
+                                    "type": "integer"
+                                },
+                                "offset": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Compare multiple simulations across various metrics",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comparisons"
+                ],
+                "summary": "Create a new simulation comparison",
+                "parameters": [
+                    {
+                        "description": "Comparison request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/services.CompareRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Comparison created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/services.ComparisonResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/comparisons/{id}": {
+            "get": {
+                "description": "Retrieve a specific comparison with full results",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comparisons"
+                ],
+                "summary": "Get comparison by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Comparison ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Comparison details",
+                        "schema": {
+                            "$ref": "#/definitions/services.ComparisonResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Comparison not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/models.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/configs": {
             "get": {
                 "description": "Retrieve a paginated list of simulation configurations",
@@ -501,6 +680,30 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/metrics": {
+            "get": {
+                "description": "Returns comprehensive performance metrics including database stats, query performance, and HTTP statistics",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metrics"
+                ],
+                "summary": "Get system performance metrics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1986,6 +2189,85 @@ const docTemplate = `{
                 }
             }
         },
+        "services.CompareRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "metrics": {
+                    "description": "[\"quina_rate\", \"avg_hits\", \"roi\"]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "simulationIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            }
+        },
+        "services.ComparisonResult": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "metrics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rankings": {
+                    "description": "metric -\u003e ranked list",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/services.SimulationRank"
+                        }
+                    }
+                },
+                "simulation_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "statistics": {
+                    "description": "metric -\u003e stats",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/services.MetricStats"
+                    }
+                },
+                "winner_by_metric": {
+                    "description": "metric -\u003e simulation_id",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                }
+            }
+        },
         "services.ImportResult": {
             "type": "object",
             "properties": {
@@ -2012,6 +2294,29 @@ const docTemplate = `{
                 },
                 "rows_skipped": {
                     "type": "integer"
+                }
+            }
+        },
+        "services.MetricStats": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "max": {
+                    "type": "number"
+                },
+                "mean": {
+                    "type": "number"
+                },
+                "median": {
+                    "type": "number"
+                },
+                "min": {
+                    "type": "number"
+                },
+                "std_dev": {
+                    "type": "number"
                 }
             }
         },
@@ -2058,6 +2363,26 @@ const docTemplate = `{
                 },
                 "sim_prev_max": {
                     "type": "integer"
+                }
+            }
+        },
+        "services.SimulationRank": {
+            "type": "object",
+            "properties": {
+                "percentile": {
+                    "type": "number"
+                },
+                "rank": {
+                    "type": "integer"
+                },
+                "simulation_id": {
+                    "type": "integer"
+                },
+                "simulation_name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "number"
                 }
             }
         },

@@ -78,9 +78,12 @@ func main() {
 	configSvc := services.NewConfigService(db.Configs, db.ConfigsDB, logger)
 	sweepSvc := services.NewSweepConfigService(db.Sweeps, db.SweepsDB, logger)
 	simSvc := services.NewSimulationService(db.Simulations, db.SimulationsDB, engineSvc, logger)
+	comparisonSvc := services.NewComparisonService(db.Comparisons, db.Simulations, db.SimulationsDB, logger)
+	leaderboardSvc := services.NewLeaderboardService(db.Simulations, logger)
+	sweepExecutionSvc := services.NewSweepService(db.SweepExecution, db.SimulationsDB, simSvc, logger)
 
 	// Setup router
-	router := setupRouter(logger, systemSvc, uploadSvc, resultsSvc, configSvc, sweepSvc, simSvc, metricsSvc)
+	router := setupRouter(logger, systemSvc, uploadSvc, resultsSvc, configSvc, sweepSvc, simSvc, metricsSvc, comparisonSvc, leaderboardSvc, sweepExecutionSvc)
 
 	// Create HTTP server
 	server := &http.Server{
@@ -115,7 +118,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService, resultsSvc *services.ResultsService, configSvc *services.ConfigService, sweepSvc *services.SweepConfigService, simSvc *services.SimulationService, metricsSvc *services.MetricsService) *chi.Mux {
+func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadSvc *services.UploadService, resultsSvc *services.ResultsService, configSvc *services.ConfigService, sweepSvc *services.SweepConfigService, simSvc *services.SimulationService, metricsSvc *services.MetricsService, comparisonSvc *services.ComparisonService, leaderboardSvc *services.LeaderboardService, sweepExecutionSvc *services.SweepService) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Middleware stack
@@ -161,6 +164,23 @@ func setupRouter(logger *slog.Logger, systemSvc *services.SystemService, uploadS
 	r.Get("/api/v1/sweep-configs/{id}", handlers.GetSweepConfig(sweepSvc))
 	r.Put("/api/v1/sweep-configs/{id}", handlers.UpdateSweepConfig(sweepSvc))
 	r.Delete("/api/v1/sweep-configs/{id}", handlers.DeleteSweepConfig(sweepSvc))
+
+	// Comparison endpoints
+	r.Post("/api/v1/comparisons", handlers.CreateComparison(comparisonSvc))
+	r.Get("/api/v1/comparisons/{id}", handlers.GetComparison(comparisonSvc))
+	r.Get("/api/v1/comparisons", handlers.ListComparisons(comparisonSvc))
+
+	// Leaderboard endpoints
+	r.Get("/api/v1/leaderboards/{metric}", handlers.GetLeaderboard(leaderboardSvc))
+
+	// Sweep execution endpoints
+	r.Post("/api/v1/sweeps", handlers.CreateSweep(sweepExecutionSvc))
+	r.Get("/api/v1/sweeps/{id}", handlers.GetSweep(sweepExecutionSvc))
+	r.Get("/api/v1/sweeps/{id}/status", handlers.GetSweepStatus(sweepExecutionSvc))
+	r.Get("/api/v1/sweeps/{id}/results", handlers.GetSweepResults(sweepExecutionSvc))
+	r.Post("/api/v1/sweeps/{id}/cancel", handlers.CancelSweep(sweepExecutionSvc))
+	r.Get("/api/v1/sweeps/{id}/best", handlers.GetSweepBest(sweepExecutionSvc))
+	r.Get("/api/v1/sweeps/{id}/visualization", handlers.GetSweepVisualization(sweepExecutionSvc))
 
 	// Swagger UI — serves UI and expects swagger JSON at /swagger/doc.json
 	// If you generate docs with `swag init -g cmd/api/main.go -o api`,

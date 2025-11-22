@@ -21,7 +21,7 @@ type MetricsServiceInterface interface {
 // @Tags metrics
 // @Accept json
 // @Produce json
-// @Success 200 {object} services.SystemMetrics
+// @Success 200 {object} map[string]interface{}
 // @Router /api/v1/metrics [get]
 func GetMetrics(metricsSvc MetricsServiceInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
